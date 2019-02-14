@@ -1,0 +1,198 @@
+# noinspection PyProtectedMember
+from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass, Field, _FIELDS
+# noinspection PyUnresolvedReferences,PyProtectedMember
+from typing import Dict, Type, TypeVar, Any, _eval_type, ForwardRef, Tuple, ClassVar, Sequence, Generic
+
+from .pretty import pretty_dict, pprint
+from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
+from .constants import GENERIC_ATT, BINDINGS_ATT
+
+
+def as_tuple(x):
+    return x if isinstance(x, tuple) else (x,)
+
+
+def get_type_spec(types) -> Dict[str, Type]:
+    res = {}
+    for x in types:
+        if not isinstance(x, TypeVar):
+            msg = f'Not sure what happened - but did you import zuper_json? {(x, types)}'
+            raise ValueError(msg)
+
+        res[x.__name__] = x.__bound__ or Any
+    return res
+
+
+class ZenericFix:
+    class CannotInstantiate(TypeError):
+        ...
+
+    @classmethod
+    def __class_getitem__(cls, params):
+        types = as_tuple(params)
+
+        class GenericProxy(metaclass=ABCMeta):
+            @abstractmethod
+            def need(self):
+                """"""
+
+            @classmethod
+            def __class_getitem__(cls, params2):
+                types2 = as_tuple(params2)
+                return make_type(cls, types, types2)
+
+        name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
+
+        gp = type(name, (GenericProxy,), {})
+
+        setattr(gp, GENERIC_ATT, get_type_spec(types))
+        return gp
+
+
+class NoConstructorImplemented(TypeError):
+    pass
+
+
+def eval_type(T, bindings0: Dict[str, Any], symbols: Dict[str, Any]):
+
+    if T in bindings0:
+        return bindings0[T]
+    if hasattr(T, '__args__'):
+        T.__args__ = tuple(eval_type(_, bindings0, symbols) for _ in T.__args__)
+    # if hasattr(T, GENERIC_ATT) and getattr(T, GENERIC_ATT):
+    # if isinstance(T, GenericProxy):
+    #     pprint('generic found', T=T, Tn=T.__name__)
+    #     assign = {k: bindings0[k] for k, v in getattr(T, GENERIC_ATT)}
+    #     print(assign)
+    #     return T[assign]
+    if isinstance(T, type):
+        # pprint('eval_type_Type', T=T, Tn=T.__name__, Td=T.__dict__)
+        return T
+    info = lambda: dict(bindings=bindings0,
+                        symbols=symbols)
+    bindings = dict(bindings0)
+
+    try:
+
+        res = _eval_type(T, bindings, symbols)
+        # pprint('eval_type', T=T, bindings0=bindings0, symbols=symbols, res=res)
+        return res
+    except BaseException as e:  # pragma: no cover
+        m = f'Cannot eval type {T!r}'
+        msg = pretty_dict(m, info())
+        raise type(e)(msg) from e
+
+
+def resolve_types(T, l):
+    # g = dict(globals())
+    g = {}
+    if hasattr(T, '__name__'):
+        g[T.__name__] = T
+    if hasattr(T, '__annotations__'):
+        for k, v in T.__annotations__.items():
+            T.__annotations__[k] = _eval_type(v, g, l)
+
+
+def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
+    # black magic
+    for t2 in types2:
+        if isinstance(t2, TypeVar):
+            return cls
+
+    bindings = {T: U for T, U in zip(types, types2)}
+    for T, U in bindings.items():
+        if T.__bound__ is not None and isinstance(T.__bound__, type):
+            if not issubclass(U, T.__bound__):
+                msg = (f'For type parameter "{T.__name__}", expected a'
+                       f'subclass of "{T.__bound__.__name__}", found {U}.')
+                raise TypeError(msg)
+
+    d = {'need': lambda: None}
+
+    annotations = getattr(cls, '__annotations__', {})
+
+    class Fake:
+        # pass
+
+        def __getitem__(self, item):
+            return ForwardRef(f'{cls.__name__}[{item.__name__}]')
+
+    symbols = {cls.__name__: Fake()}
+    for T, U in bindings.items():
+        symbols[T.__name__] = U
+        if hasattr(U, '__name__'):
+            # dict does not have name
+            symbols[U.__name__] = U
+
+    if hasattr(cls, _FIELDS):
+        fields = getattr(cls, _FIELDS)
+        for k, v in fields.items():
+            assert isinstance(v, Field)
+            v.type = eval_type(v.type, bindings, symbols)
+
+    new_annotations = {}
+
+    for k, v in annotations.items():
+        if is_ClassVar(v):
+            s = get_ClassVar_arg(v)
+            if is_Type(s):
+                st = get_Type_arg(s)
+                concrete = eval_type(st, bindings, symbols)
+                new_annotations[k] = ClassVar[Type]
+                d[k] = concrete
+            else:
+                new_annotations[k] = ClassVar[s]
+        else:
+            # if v in bindings:
+            #     new_annotations[k] = bindings[v]
+            # else:
+            #     new_annotations[k] = v
+            new_annotations[k] = eval_type(v, bindings, symbols)
+
+    name2 = '%s[%s]' % (cls.__name__, ",".join(name_for_type_like(_) for _ in types2))
+    assert '<' not in name2, name2
+    assert '~' not in name2, (cls.__dict__, name2)
+
+    def __post_init__(self):
+        # print('Doing post init check')
+        for k, v in new_annotations.items():
+            if is_ClassVar(k): continue
+            if isinstance(v, type):
+                val = getattr(self, k)
+                if not isinstance(val, v):
+                    msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
+                    raise ValueError(msg)
+
+    d['__post_init__'] = __post_init__
+    cls2 = type(name2, (cls,), d)
+
+    # important: do it before zataclass/dataclass
+    cls2.__annotations__ = new_annotations
+
+    # if hasattr(cls, ZATA):
+    #     # note: need to have set new annotations
+    #     cls2 = zataclass(cls2, **getattr(cls, ZATA))
+    # el
+    if hasattr(cls, _FIELDS):
+        # note: need to have set new annotations
+        cls2 = dataclass(cls2)
+    else:
+
+        # noinspection PyUnusedLocal
+        def init_placeholder(self, *args, **kwargs):
+            if args or kwargs:
+                msg = f'Default constructor of {cls2.__name__} does not know what to do with arguments.'
+                msg += f'\nargs: {args!r}\nkwargs: {kwargs!r}'
+                raise NoConstructorImplemented(msg)
+
+        setattr(cls2, '__init__', init_placeholder)
+
+    cls2.__module__ = cls.__module__
+    setattr(cls2, BINDINGS_ATT, bindings)
+
+    setattr(cls2, GENERIC_ATT, None)
+
+    setattr(cls2, '__post_init__', __post_init__)
+
+    return cls2
