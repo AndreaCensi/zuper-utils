@@ -20,8 +20,8 @@ def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     schema = type_to_schema(T, use_globals)
     print(json.dumps(schema, indent=2))
     T2 = schema_to_type(schema, {}, {})
-    # pprint("T", **getattr(T, '__dict__', {}))
-    # pprint("T2", **getattr(T2, '__dict__', {}))
+    pprint("T", **getattr(T, '__dict__', {}))
+    pprint("T2", **getattr(T2, '__dict__', {}))
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
     assert_equal(schema, schema0)

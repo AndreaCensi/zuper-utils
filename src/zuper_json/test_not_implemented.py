@@ -85,6 +85,10 @@ symbols = {}
 
 @relies_on_missing_features
 def test_type1():
+    T = Type
+    assert_type_roundtrip(T, symbols)
+
+def test_type2():
     T = type
     assert_type_roundtrip(T, symbols)
 

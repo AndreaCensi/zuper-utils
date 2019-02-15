@@ -1,7 +1,5 @@
 import json
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass
-# noinspection PyUnresolvedReferences
-# noinspection PyUnresolvedReferences
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
     _SpecialForm, Generic, List, Tuple, Callable
@@ -10,22 +8,22 @@ from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
-# from zuper_json.zeneric2 import Zeneric
+from contracts import check_isinstance
 from zuper_json.my_dict import make_dict, CustomDict
 from zuper_json.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from zuper_json.register import hash_from_string
-from .pretty import pretty_dict, pprint
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
-    is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, get_Dict_name, \
-    is_Dict, get_Dict_name_K_V
+    is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
+    get_Dict_name_K_V
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
     ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS
+from .pretty import pretty_dict
 from .types import MemoryJSON
 
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
-ProcessingDict = Dict[str, str]
+ProcessingDict = Dict[str, Any]
 EncounteredDict = Dict[str, str]
 
 
@@ -187,15 +185,16 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
             msg = f'Cannot instantiate type with attrs {attrs}:\n{K}'
             msg += f'\n\n Bases: {K.__bases__}'
             msg += f'\n{K.__annotations__}'
+            # noinspection PyUnresolvedReferences
             msg += f'\n{K.__dataclass_fields__}'
             raise TypeError(msg) from e
 
-def deserialize_Dict(D, attrs):
 
-    pprint('here', D=D)
+def deserialize_Dict(D, attrs):
+    # pprint('here', D=D)
     if issubclass(D, CustomDict):
         K, V = D.__dict_type__
-        pprint(K=K, V=V)
+        # pprint(K=K, V=V)
 
         if issubclass(K, str):
             ob = D()
@@ -260,7 +259,8 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     if schema_id:
         # print(f'Processing {schema_id}')
         if not JSC_TITLE in schema:
-            msg = f'No title for id: {schema0}'
+            pass
+            # msg = f'No title for id: {schema0}'
             # raise Exception(msg)
         else:
             cls_name = schema[JSC_TITLE]
@@ -271,7 +271,10 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     if REF_ATT in schema:
         r = schema[REF_ATT]
         if r == SCHEMA_ID:
-            return Type
+            if schema.get(JSC_TITLE,'') == 'type':
+                return type
+            else:
+                return Type
 
         if r in encountered:
             return encountered[r]
@@ -321,6 +324,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
 
     assert False, schema  # pragma: no cover
 
+
 def schema_dict_to_DictType(schema, global_symbols, encountered):
     K = str
     V = schema_to_type(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
@@ -339,7 +343,10 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
     globals_ = dict(globals0)
     try:
         if T is type:
-            res: JSONSchema =  {REF_ATT: SCHEMA_ID}
+            res: JSONSchema = {REF_ATT: SCHEMA_ID,
+                               JSC_TITLE: 'type'
+                               # JSC_DESCRIPTION: T.__doc__
+                               }
             return res
 
         if isinstance(T, type):
@@ -359,6 +366,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
         processing = processing or {}
         schema = type_to_schema_(T, globals_, processing)
+        check_isinstance(schema, dict)
     except BaseException as e:
         m = f'Cannot get schema for {T}'
         msg = pretty_dict(m, dict(globals0=globals0, globals=globals_, processing=processing))
@@ -377,9 +385,6 @@ SCHEMA_BYTES: JSONSchema = {JSC_TYPE: JSC_OBJECT,
                             SCHEMA_ATT: SCHEMA_ID,
                             JSC_PROPERTIES: {"base64": {JSC_TYPE: JSC_STRING}}}
 
-
-
-
 K = TypeVar('K')
 V = TypeVar('V')
 
@@ -390,7 +395,7 @@ class FakeValues(Generic[K, V]):
     value: V
 
 
-def dict_to_schema(T, globals_, processing):
+def dict_to_schema(T, globals_, processing) -> JSONSchema:
     assert is_Dict(T) or issubclass(T, CustomDict)
 
     if is_Dict(T):
@@ -400,7 +405,7 @@ def dict_to_schema(T, globals_, processing):
     else:
         assert False
 
-    res = {JSC_TYPE: JSC_OBJECT}
+    res: JSONSchema = {JSC_TYPE: JSC_OBJECT}
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if issubclass(K, str):
         res[JSC_PROPERTIES] = {"$schema": {}}  # XXX
@@ -413,6 +418,13 @@ def dict_to_schema(T, globals_, processing):
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(props, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID
         return res
+
+
+def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    # res: JSONSchema = {}
+    # res[ATT_PYTHON_NAME] = T.__qualname__
+    # res[SCHEMA_ATT] = SCHEMA_ID
+    pass
 
 
 def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
@@ -464,10 +476,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return SCHEMA_BYTES
 
     # we cannot use isinstance on typing.Any
-    if is_Any(T) or (T is type):  # XXX not possible...
+    if is_Any(T):  # XXX not possible...
         res: JSONSchema = {SCHEMA_ATT: SCHEMA_ID}
         return res
-
+    # ) or (T is type)
     # put this check before "issubclass" because of typing weirdness
 
     if is_union(T):
@@ -494,6 +506,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
     if is_Callable(T):
         return type_callable_to_schema(T, globals_, processing)
+
+    if is_Type(T):
+        return type_Type_to_schema(T, globals_, processing)
+
     assert isinstance(T, type), T
 
     # if issubclass(T, CustomDict):
@@ -547,6 +563,7 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
         # noinspection PyTypeHints
         if is_Any(bound):
             bound = None
+        # noinspection PyTypeHints
         tv = TypeVar(tname, bound=bound)
         typevars.append(tv)
         if ID_ATT in t:
@@ -559,7 +576,7 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
     fields = []  # (name, type, Field)
     for pname, v in res.get(JSC_PROPERTIES, {}).items():
         ptype = schema_to_type(v, global_symbols, encountered)
-        # assert isinstance(ptype)
+
         if pname in required:
             _Field = field()
         else:
