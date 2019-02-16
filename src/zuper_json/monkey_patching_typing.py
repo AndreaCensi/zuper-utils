@@ -14,7 +14,8 @@ class Alias1:
     def __getitem__(self, params):
         if self is typing.Dict:
             K, V = params
-            return make_dict(K, V)
+            if K is not str:
+                return make_dict(K, V)
         return previous_getitem(self, params)
 
 _GenericAlias.__getitem__ = Alias1.__getitem__

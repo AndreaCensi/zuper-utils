@@ -1,2 +1,4 @@
 .registers
 *egg-info
+.coverage
+cover
