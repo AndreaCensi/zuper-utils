@@ -17,12 +17,15 @@ from zuper_json.my_dict import make_dict, CustomDict
 from zuper_json.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
-    get_Dict_name_K_V, is_Tuple
+    get_Dict_name_K_V, is_Tuple, get_List_arg, is_List
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, ID_ATT, \
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36
 from .pretty import pretty_dict
 from .types import MemoryJSON
+
+
+import pybase64
 
 
 def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None) -> MemoryJSON:
@@ -35,6 +38,7 @@ def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None) -> MemoryJSON:
         # print(json.dumps(schema, indent=2))
         # print(json.dumps(res, indent=2))
 
+        # currently disabled becasue JSONSchema insists on resolving all the URIs
         if False:
             validate(res, schema)
         #
@@ -48,9 +52,6 @@ def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None) -> MemoryJSON:
         #     raise
 
     return res
-
-
-import pybase64
 
 
 def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> MemoryJSON:
@@ -258,14 +259,9 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     # noinspection PyUnusedLocal
     metaschema = schema.pop(SCHEMA_ATT, None)
     schema_id = schema.pop(ID_ATT, None)
-    # if ID_ATT in res:
-    #     encountered[res[ID_ATT]] = ForwardRef(cls_name)
     if schema_id:
-        # print(f'Processing {schema_id}')
         if not JSC_TITLE in schema:
             pass
-            # msg = f'No title for id: {schema0}'
-            # raise Exception(msg)
         else:
             cls_name = schema[JSC_TITLE]
             encountered[schema_id] = cls_name
@@ -332,7 +328,6 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     elif jsc_type == "array":
         return schema_array_to_type(schema, global_symbols, encountered)
 
-    # pprint(schema=schema, schema0=schema0)
     assert False, schema  # pragma: no cover
 
 
@@ -348,13 +343,22 @@ def schema_array_to_type(schema, global_symbols, encountered):
             # noinspection PyArgumentList
             return Tuple.__getitem__(args)
     else:
-        args = schema_to_type(items, global_symbols, encountered)
-        if PYTHON_36:  # pragma: no cover
-            return typing.Tuple[args, ...]
-        else:
-            # noinspection PyArgumentList
-            return Tuple.__getitem__((args, Ellipsis))
+        if 'Tuple' in schema[JSC_TITLE]:
 
+            args = schema_to_type(items, global_symbols, encountered)
+            if PYTHON_36:  # pragma: no cover
+                return typing.Tuple[args, ...]
+            else:
+                # noinspection PyArgumentList
+                return Tuple.__getitem__((args, Ellipsis))
+        else:
+
+            args = schema_to_type(items, global_symbols, encountered)
+            if PYTHON_36:  # pragma: no cover
+                return List[args]
+            else:
+                # noinspection PyArgumentList
+                return List[args]
 
 def schema_dict_to_DictType(schema, global_symbols, encountered):
     K = str
@@ -456,12 +460,6 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
         return res
 
 
-# def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-#     # res: JSONSchema = {}
-#     # res[ATT_PYTHON_NAME] = T.__qualname__
-#     # res[SCHEMA_ATT] = SCHEMA_ID
-#     raise NotImplementedError()
-
 
 def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     assert is_Tuple(T)
@@ -484,6 +482,17 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         for a in args:
             res['items'].append(type_to_schema(a, globals_, processing))
         return res
+
+def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    assert is_List(T)
+    items = get_List_arg(T)
+    res: JSONSchema = {}
+    res[SCHEMA_ATT] = SCHEMA_ID
+    res["type"] = "array"
+    res["items"] = type_to_schema(items, globals_, processing)
+    res['title'] = 'List'
+    return res
+
 
 
 def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
@@ -559,8 +568,6 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Any(T):  # XXX not possible...
         res: JSONSchema = {SCHEMA_ATT: SCHEMA_ID}
         return res
-    # ) or (T is type)
-    # put this check before "issubclass" because of typing weirdness
 
     if is_union(T):
         return schema_Union(T, globals_, processing)
@@ -574,11 +581,12 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Callable(T):
         return type_callable_to_schema(T, globals_, processing)
 
+
+    if is_List(T):
+        return List_to_schema(T, globals_, processing)
+
     if is_Tuple(T):
         return Tuple_to_schema(T, globals_, processing)
-    #
-    # if is_Type(T):
-    #     return type_Type_to_schema(T, globals_, processing)
 
     assert isinstance(T, type), T
 
@@ -750,8 +758,6 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     # noinspection PyUnusedLocal
     afield: Field
 
-    # hints = get_type_hints(T)
-    # print(f'type hints {hints}')
     for name, afield in fields_.items():
 
         t = afield.type
@@ -793,7 +799,8 @@ class Result:
 # TODO: make url generic
 def make_url(x: str):
     assert isinstance(x, str), x
-    return f'http://censi.org/{x}#'
+    return f'http://uri.duckietown.org/{x}#'
+
 
 
 def make_ref(x: str):
@@ -805,10 +812,6 @@ def make_ref(x: str):
 def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     # print(pretty_dict(f'evaluating field {t!r}', dict(processing=processing, globals_=globals_)))
     debug_info2 = lambda: dict(globals_=globals_, processing=processing)
-
-    # if is_ClassVar(t):
-    #     msg = f'Should not be here: {t}'
-    #     raise AssertionError(msg)
 
     if is_Type(t):
         res: JSONSchema = make_ref(SCHEMA_ID)
@@ -824,6 +827,10 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
 
     if is_Tuple(t):
         res = Tuple_to_schema(t, globals_, processing)
+        return Result(res)
+
+    if is_List(t):
+        res = List_to_schema(t, globals_, processing)
         return Result(res)
 
     if isinstance(t, str):
@@ -882,10 +889,6 @@ def schema_Union(t, globals_, processing):
 
 def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     globals2 = dict(globals_)
-    # for k, v in processing.items():
-    #     if k not in globals2:
-    #         globals2[k] = make_ref(v) # {"$ref": f"{v}#"}
-
     debug_info = lambda: dict(t=t, globals2=pretty_dict("", globals2), processing=pretty_dict("", processing))
 
     if t in processing:
@@ -893,7 +896,6 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
         return Result(schema)
 
     elif t in globals2:
-        # return globals2[t]
         return eval_field(globals2[t], globals2, processing)
     else:
         try:
@@ -902,8 +904,6 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
             # TODO: put more above?
             # do not pollute environment
             eval_globals = dict(globals2)
-            # eval_globals['Optional'] = Optional
-            # eval_locals.update(eval_globals)
             try:
                 res = eval(t, eval_globals, eval_locals)
             except BaseException as e:
@@ -958,7 +958,6 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
             interpreted = ipce_to_object(v, global_symbols)
         setattr(T, pname, interpreted)
 
-    # setattr(T, '__annotations__', fields)
 
     if JSC_DESCRIPTION in res:
         setattr(T, '__doc__', res[JSC_DESCRIPTION])

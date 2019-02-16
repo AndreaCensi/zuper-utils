@@ -7,6 +7,7 @@ from unittest import SkipTest
 
 from nose.tools import assert_equal
 
+from zuper_json.json_utils import json_dump
 from . import logger
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .pretty import pretty_dict, pprint
@@ -101,7 +102,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     # print('---original')
 
     # print('---recalled')
-    # print(json_dump(y1b))
+    # print(json.dumps(y1b, indent=2))
 
     # print(register.pretty_print())
 

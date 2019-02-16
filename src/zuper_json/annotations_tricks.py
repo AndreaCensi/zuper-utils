@@ -85,6 +85,17 @@ def is_Tuple(x):
         return isinstance(x, typing._GenericAlias) and (x._name == 'Tuple')
 
 
+def is_List(x):
+    if PYTHON_36: # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
+    else:
+        return isinstance(x, typing._GenericAlias) and (x._name == 'List')
+
+def get_List_arg(x):
+    assert is_List(x)
+    return x.__args__[0]
+
 def is_finiteTuple(x):
     pass
 
