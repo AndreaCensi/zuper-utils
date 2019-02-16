@@ -86,26 +86,26 @@ jobs:
 #          when: always
 #          command: |
 #            make coverage-coveralls
-
-      - run:
-          name: Create JUnit output
-          when: always
-          command: |
-            make junit
-
-      - test-results-store:
-          path: out-comptests/junit
+#
+#      - run:
+#          name: Create JUnit output
+#          when: always
+#          command: |
+#            make junit
+#
+#      - test-results-store:
+#          path: out-comptests/junit
+#
+#      - store_artifacts:
+#          path: out-comptests/duckietown_world_tests
+#          destination: duckietown_world_tests
+#
+#      - store_artifacts:
+#          path: artifacts
+#          destination: artifacts
 
       - store_artifacts:
-          path: out-comptests/duckietown_world_tests
-          destination: duckietown_world_tests
-
-      - store_artifacts:
-          path: artifacts
-          destination: artifacts
-
-      - store_artifacts:
-          path: out_coverage
+          path: cover
           destination: coverage
 
       - store_artifacts:
