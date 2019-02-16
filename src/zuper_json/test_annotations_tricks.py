@@ -3,7 +3,7 @@ import typing
 from typing import *
 
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple, \
-    is_ClassVar, get_ClassVar_arg
+    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
 
 PYTHON_36 = (sys.version_info[1] == 6)
 PYTHON_37 = sys.version_info[1] == 7
@@ -108,3 +108,13 @@ def test_ClassVar():
     # print(a.__dict__)
     assert is_ClassVar(a)
     assert get_ClassVar_arg(a) is int
+
+
+
+
+def test_Type():
+    X =  TypeVar('X')
+    a = Type[X]
+    assert is_Type(a)
+    assert get_Type_arg(a) == X
+    # assert get_ClassVar_arg(a) is int

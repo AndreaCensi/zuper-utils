@@ -185,6 +185,22 @@ def test_isType():
     assert is_Type(A)
     assert get_Type_arg(A) == X
 
+@with_private_register
+def test_more3_simpler():
+
+    X = TypeVar('X')
+
+    @dataclass
+    class MyClass(Generic[X]):
+        XT: ClassVar[Type[X]]
+
+    assert_type_roundtrip(MyClass, {})
+    #
+    # # type_to_schema(MyClass, {})
+
+    C = MyClass[int, str]
+    assert_type_roundtrip(C, {})
+
 
 @with_private_register
 def test_more3():

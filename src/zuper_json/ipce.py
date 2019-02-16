@@ -4,7 +4,7 @@ import typing
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
-     Generic, List, Tuple, Callable
+    Generic, List, Tuple, Callable
 
 _SpecialForm = Any
 from contracts import check_isinstance
@@ -30,6 +30,7 @@ ProcessingDict = Dict[str, Any]
 EncounteredDict = Dict[str, str]
 
 PYTHON_36 = sys.version_info[1] == 6
+
 
 def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None) -> MemoryJSON:
     res = object_to_ipce_(ob, globals_, suggest_type)
@@ -386,7 +387,7 @@ def schema_array_to_type(schema, global_symbols, encountered):
     if isinstance(items, list):
         assert len(items) > 0
         args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
-        print(args)
+
         if PYTHON_36:
             return typing.Tuple[args]
         else:
@@ -414,6 +415,7 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
 
 
 def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) -> JSONSchema:
+    # pprint('type_to_schema', T=T)
     globals_ = dict(globals0)
     try:
         if T is type:
@@ -565,6 +567,7 @@ def schema_to_type_callable(schema: JSONSchema, global_symbols: GlobalsDict, enc
 
 
 def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    # pprint('type_to_schema_', T=T)
     if T is str:
         res: JSONSchema = {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID}
         return res
@@ -620,11 +623,11 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Callable(T):
         return type_callable_to_schema(T, globals_, processing)
 
-    if is_Type(T):
-        return type_Type_to_schema(T, globals_, processing)
-
     if is_Tuple(T):
         return Tuple_to_schema(T, globals_, processing)
+
+    if is_Type(T):
+        return type_Type_to_schema(T, globals_, processing)
 
     assert isinstance(T, type), T
 
@@ -813,7 +816,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
         # print(f'{name} -> {t}')
         if is_ClassVar(t):
             tt = get_ClassVar_arg(t)
-            print('tt = %s ' % tt)
+
             result = eval_field(tt, globals_, p2)
             classvars[name] = result.schema
             the_att = getattr(T, name)
@@ -866,6 +869,10 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     #     msg = f'Should not be here: {t}'
     #     raise AssertionError(msg)
 
+    if is_Type(t):
+        res: JSONSchema = make_ref(SCHEMA_ID)
+        return Result(res)
+
     if isinstance(t, type):
         # catch recursion here
         if t.__name__ in processing:
@@ -873,10 +880,6 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         else:
             schema = type_to_schema(t, globals_, processing)
             return Result(schema)
-
-    if is_Type(t):
-        res: JSONSchema = make_ref(SCHEMA_ID)
-        return Result(res)
 
     if is_Tuple(t):
         res = Tuple_to_schema(t, globals_, processing)

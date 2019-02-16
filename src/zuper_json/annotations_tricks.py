@@ -82,7 +82,7 @@ def get_ClassVar_arg(x):
 
 def is_Type(x):
     if PYTHON_36:
-        return (x is typing.Type)or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
+        return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
     else:
         return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
