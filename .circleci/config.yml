@@ -35,7 +35,7 @@ jobs:
 
             wget https://dist.ipfs.io/go-ipfs/v0.4.18/go-ipfs_v0.4.18_linux-amd64.tar.gz
             tar xvzf go-ipfs_v0.4.18_linux-amd64.tar.gz
-            cp go-ipfs_v0.4.18_linux-amd64/ipfs /usr/local/bin
+            cp go-ipfs/ipfs /usr/local/bin
 
       - run:
           name: List deps
