@@ -71,17 +71,17 @@ jobs:
 #            make tests-LFV-coverage
 
 
-      - run:
-          name: Coverage analysis
-          when: always
-          command: |
-            make coverage-report
-
-      - run:
-          name: Coveralls submission
-          when: always
-          command: |
-            make coverage-coveralls
+#      - run:
+#          name: Coverage analysis
+#          when: always
+#          command: |
+#            make coverage-report
+#
+#      - run:
+#          name: Coveralls submission
+#          when: always
+#          command: |
+#            make coverage-coveralls
 
       - run:
           name: Create JUnit output
