@@ -1,6 +1,6 @@
-from typing import Dict, List, Union, NewType, ForwardRef
+from typing import Dict, List, Union, NewType
 
-JSONObject = Dict[str, ForwardRef('MemoryJSON')]
+JSONObject = Dict[str, Dict]
 JSONList = List['MemoryJSON']
 MemoryJSON = Union[int, str, float, JSONList, JSONObject]
 

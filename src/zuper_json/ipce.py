@@ -2,8 +2,9 @@ import json
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
-    _SpecialForm, Generic, List, Tuple, Callable
+     Generic, List, Tuple, Callable
 
+_SpecialForm = Any
 from contracts import check_isinstance
 from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg

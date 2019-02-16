@@ -1,6 +1,6 @@
 import typing
 from dataclasses import dataclass
-from typing import Union, ForwardRef, Any, Dict
+from typing import Union,  Any, Dict
 
 
 def is_optional(x):

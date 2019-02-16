@@ -2,7 +2,7 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, Field, _FIELDS
 # noinspection PyUnresolvedReferences,PyProtectedMember
-from typing import Dict, Type, TypeVar, Any, _eval_type, ForwardRef, Tuple, ClassVar, Sequence, Generic
+from typing import Dict, Type, TypeVar, Any, _eval_type,  Tuple, ClassVar, Sequence, Generic
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
 from .constants import GENERIC_ATT, BINDINGS_ATT
@@ -86,7 +86,7 @@ def resolve_types(T, l):
             T.__annotations__[k] = _eval_type(v, g, l)
 
 
-def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
+def make_type(cls: type, types, types2: Sequence) -> type:
     # black magic
     for t2 in types2:
         if isinstance(t2, TypeVar):
