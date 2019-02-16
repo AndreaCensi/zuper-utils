@@ -1,9 +1,9 @@
 from typing import Iterator, Tuple
 
-from zuper_json.constants import LINKS
+from zuper_ipce.ipce_constants import LINKS
 from zuper_json.json_utils import json_dump
 from zuper_json.pretty import pretty_dict
-from zuper_ipce.register import hash_from_string
+from .register import hash_from_string
 from zuper_json.types import MemoryJSON, CanonicalJSONString, Hash
 
 
@@ -66,10 +66,6 @@ def to_canonical_json(x: MemoryJSON) -> MemoryJSON:
     assert False, type(x)  # pragma: no cover
 
 
-Z_ATT_DEPTH = 'depth'
-Z_ATT_NOBJECTS = 'nobjects_with_dups'
-
-
 def assert_good_canonical(x):
     assert isinstance(x, dict), x
 
@@ -103,7 +99,7 @@ def assert_good_canonical(x):
 def assert_reconstruct(original, x):
     from zuper_ipce.register import _substitute
     recon = _substitute(x)
-    if (recon != original):  # pragma: no cover
+    if recon != original:  # pragma: no cover
         # print(register.pretty_print())
         msg = pretty_dict('Problem', dict(original=original, x=x, recon=recon))
         raise ValueError(msg)

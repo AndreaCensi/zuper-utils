@@ -48,7 +48,7 @@ def test_boxed2():
 
 @raises(TypeError)
 def test_boxed_cannot():
-    # without @zataclass
+    # without @dataclass
     class CannotInstantiateYet(Generic[X]):
         inside: X
 
@@ -91,7 +91,7 @@ def test_boxed_can_dataclass():
     CanBeInstantiated(inside="13")
 
 
-def test_boxed_can_zataclass():
+def test_boxed_can_with_dataclass():
     @dataclass
     class CannotInstantiateYet(Generic[X]):
         inside: X
@@ -141,7 +141,3 @@ def test_parametric_zeneric():
 
 def test_parametric_zeneric_dataclass():
     _do_parametric(dataclass)
-
-#
-# def test_parametric_zeneric_zataclass():
-#     _do_parametric(zataclass)

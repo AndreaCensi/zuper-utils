@@ -1,4 +1,4 @@
-import sys
+from .constants import PYTHON_36
 from dataclasses import dataclass, is_dataclass
 
 INTERSECTION_ATT = '__intersection__'
@@ -15,12 +15,8 @@ def Intersection_item(cls, params):
         a = getattr(t, '__annotations__', {})
         annotations.update(a)
 
-    # def my_eq(self, other):
-    #     return getattr(self, INTERSECTION_ATT) == getattr(other, INTERSECTION_ATT, ())
-
     res = {
         '__annotations__': annotations,
-        # '__eq__': my_eq,
         INTERSECTION_ATT: types
     }
 
@@ -30,9 +26,8 @@ def Intersection_item(cls, params):
 
     return C
 
-PYTHON_36 = sys.version_info[1] == 6
 
-if PYTHON_36:
+if PYTHON_36: # pragma: no cover
     class IntersectionMeta(type):
 
         def __getitem__(self, params):

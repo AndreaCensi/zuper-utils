@@ -3,7 +3,7 @@ from typing import Set, Dict, NewType, Any
 
 from IPython.display import Javascript, display, HTML
 
-from zuper_ipce.register import get_register, get_links_prefix
+from .register import get_register, get_links_prefix
 from zuper_json.types import Hash
 
 

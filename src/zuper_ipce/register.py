@@ -10,7 +10,7 @@ from typing import Tuple, Dict, Iterator, Optional
 
 import networkx as nx
 
-from zuper_json.constants import LINKS
+from zuper_ipce.ipce_constants import LINKS
 from zuper_json.json_utils import json_dump
 from zuper_json.pretty import pretty_dict
 from zuper_json.types import Hash, CanonicalJSONString, MemoryJSON
@@ -48,7 +48,7 @@ class IPFSDagRegister(Register):
 
         try:
             os.unlink(fn)
-        except OSError:
+        except OSError: # pragma: no cover
             pass
         return HashResult(h, {})
 

@@ -76,8 +76,5 @@ def zj_main():
                 print(h1)
 
 
-            # h1 = register.store_json(y1)
-
-
 if __name__ == '__main__':
     zj_main()

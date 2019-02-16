@@ -1,16 +1,15 @@
-import sys
 import typing
 from dataclasses import dataclass
-from typing import Union,  Any, Dict
+from typing import Union, Any, Dict
 
-
-PYTHON_36 = sys.version_info[1] == 6
+from zuper_json.constants import NAME_ARG
+from .constants import PYTHON_36
 
 
 # noinspection PyProtectedMember
 def is_optional(x):
-    if PYTHON_36:
-        return  isinstance(x, typing._Union) and x.__args__[-1] is type(None)
+    if PYTHON_36: # pragma: no cover
+        return isinstance(x, typing._Union) and x.__args__[-1] is type(None)
     else:
         return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
 
@@ -22,7 +21,7 @@ def get_optional_type(x):
 
 def is_union(x):
     """ Union[X, None] is not considered a Union"""
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         return not is_optional(x) and isinstance(x, typing._Union)
     else:
         return not is_optional(x) and isinstance(x, typing._GenericAlias) and (x.__origin__ is Union)
@@ -34,7 +33,7 @@ def get_union_types(x):
 
 
 def is_forward_ref(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         return isinstance(x, typing._ForwardRef)
     else:
 
@@ -44,22 +43,9 @@ def is_forward_ref(x):
 def get_forward_ref_arg(x) -> str:
     assert is_forward_ref(x)
     return x.__forward_arg__
-    #
-    # t._evaluate(localns=locals(), globalns=globals())
-    # print(f'__forward_arg__: {t.__forward_arg__!r}')
-    # print(f'__forward_code__: {t.__forward_code__!r}')
-    # print(f'__forward_evaluated__: {t.__forward_evaluated__!r}')
-    # print(f'__forward_value__: {t.__forward_value__!r}')
-    # print(f'__forward_is_argument__: {t.__forward_is_argument__!r}')
-    #
-
-
-# def is_typevar(x):
-#     return typing.TypeVar
-#     return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
 
 def is_Any(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         return str(x) == 'typing.Any'
     else:
         # noinspection PyUnresolvedReferences
@@ -67,7 +53,7 @@ def is_Any(x):
 
 
 def is_ClassVar(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._ClassVar)
     else:
@@ -76,7 +62,7 @@ def is_ClassVar(x):
 
 def get_ClassVar_arg(x):
     assert is_ClassVar(x)
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         return x.__type__
     else:
 
@@ -84,7 +70,7 @@ def get_ClassVar_arg(x):
 
 
 def is_Type(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
     else:
@@ -92,7 +78,7 @@ def is_Type(x):
 
 
 def is_Tuple(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.TupleMeta)
     else:
@@ -107,8 +93,9 @@ def get_Type_arg(x):
     assert is_Type(x)
     return x.__args__[0]
 
+
 def is_Callable(x):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.CallableMeta)
     else:
@@ -116,9 +103,6 @@ def is_Callable(x):
     # return hasattr(x, '__origin__') and x.__origin__ is typing.Callable
 
     # return isinstance(x, typing._GenericAlias) and x.__origin__.__name__ == "Callable"
-
-
-NAME_ARG = '__name_arg__'  # XXX: repeated
 
 
 def is_MyNamedArg(x):
@@ -131,7 +115,7 @@ def get_MyNamedArg_name(x):
 
 
 def is_Dict(T: Any):
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(T, typing.GenericMeta) and T.__origin__ is typing.Dict
     else:

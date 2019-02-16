@@ -1,12 +1,10 @@
-import sys
 import typing
 from typing import *
 
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple, \
     is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
+from .constants import PYTHON_36, PYTHON_37
 
-PYTHON_36 = (sys.version_info[1] == 6)
-PYTHON_37 = sys.version_info[1] == 7
 
 def test_union():
     a = Union[int, str]
@@ -50,7 +48,7 @@ def test_forward():
 
     assert get_forward_ref_arg(t) == 'Tree'
 
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         t._eval_type(localns=locals(), globalns=globals())
     else:
         t._evaluate(localns=locals(), globalns=globals())
@@ -63,57 +61,32 @@ def test_forward():
 
 def test_any():
     a = Any
-    # print(a)
-    # print(type(a))
-    # print(a._name)
-    # print(a.__dict__)
     assert is_Any(a)
 
 
 def test_Tuple1():
     a = Tuple[int, str]
-    # print(a)
-    # print(type(a))
-    # print(a._name)
-    # print(a.__dict__)
     assert is_Tuple(a)
 
 
 def test_Tuple2():
     a = Tuple[int, ...]
-    # print(a)
-    # print(type(a))
-    # print(a._name)
-    # print(a.__dict__)
     assert is_Tuple(a)
-
-
 
 
 def test_Typevar():
     a = TypeVar('X')
-    # print(a)
-    # print(type(a))
-    # print(a._name)
-    # print(a.__dict__)
     assert isinstance(a, TypeVar)
-
 
 
 def test_ClassVar():
     a = ClassVar[int]
-    # print(a)
-    # print(type(a))
-    # print(a._name)
-    # print(a.__dict__)
     assert is_ClassVar(a)
     assert get_ClassVar_arg(a) is int
 
 
-
-
 def test_Type():
-    X =  TypeVar('X')
+    X = TypeVar('X')
     a = Type[X]
     assert is_Type(a)
     assert get_Type_arg(a) == X

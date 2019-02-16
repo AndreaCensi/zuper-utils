@@ -7,7 +7,7 @@ setup(name='zuper_utils',
       zip_safe=False,
       entry_points={
             'console_scripts': [
-                  'zj = zuper_json.zj:zj_main'
+                  'zj = zuper_ipce.zj:zj_main'
             ]
       },
       install_requires=[

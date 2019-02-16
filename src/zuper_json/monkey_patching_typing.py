@@ -1,14 +1,13 @@
+from .constants import PYTHON_36
 import dataclasses
-import sys
 import typing
 from typing import TypeVar, Generic, Dict
 
-from zuper_json.my_dict import make_dict
+from .my_dict import make_dict
+
 from .zeneric2 import ZenericFix
 
-PYTHON_36 = sys.version_info[1] == 6
-
-if PYTHON_36:
+if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
 
     previous_getitem = GenericMeta.__getitem__
@@ -31,7 +30,7 @@ class Alias1:
         return previous_getitem(self, params)
 
 
-if PYTHON_36:
+if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
 
     # print(GenericMeta.__getitem__)

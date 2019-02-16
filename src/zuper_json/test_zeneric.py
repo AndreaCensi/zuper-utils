@@ -13,7 +13,7 @@ from .zeneric2 import resolve_types
 
 
 @raises(TypeError)
-def test_zataclass_can_preserve_init():
+def test_dataclass_can_preserve_init():
     X = typing.TypeVar('X')
 
     @dataclass

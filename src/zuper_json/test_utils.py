@@ -10,9 +10,7 @@ from nose.tools import assert_equal
 from . import logger
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .pretty import pretty_dict, pprint
-
-PYTHON_36 = sys.version_info[1] == 6
-
+from .constants import PYTHON_36
 
 def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     # resolve_types(T)
@@ -71,7 +69,7 @@ def assert_equivalent_types(T1: type, T2: type):
                 if m1 is T1 or m2 is T2: continue
                 assert_equivalent_types(m1, m2)
 
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         pass  # XX
     else:
         if isinstance(T1, typing._GenericAlias):

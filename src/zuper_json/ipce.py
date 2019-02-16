@@ -1,35 +1,28 @@
 import json
-import sys
 import typing
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
 from numbers import Number
-from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
+from typing import Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union, \
     Generic, List, Tuple, Callable
 
-_SpecialForm = Any
 from contracts import check_isinstance
 from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
+from zuper_ipce.register import hash_from_string
+from zuper_json.constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, \
+    _SpecialForm, ProcessingDict, EncounteredDict
 from zuper_json.my_dict import make_dict, CustomDict
 from zuper_json.my_intersection import is_Intersection, get_Intersection_args, Intersection
-from zuper_ipce.register import hash_from_string
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
     get_Dict_name_K_V, is_Tuple
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
-    JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
-    ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL
+    JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, ID_ATT, \
+    JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36
 from .pretty import pretty_dict
 from .types import MemoryJSON
-
-JSONSchema = NewType('JSONSchema', dict)
-GlobalsDict = Dict[str, Any]
-ProcessingDict = Dict[str, Any]
-EncounteredDict = Dict[str, str]
-
-PYTHON_36 = sys.version_info[1] == 6
 
 
 def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None) -> MemoryJSON:
@@ -277,9 +270,6 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         raise NotImplementedError(msg)
 
 
-ATT_PYTHON_NAME = '__qualname__'
-
-
 class CannotFindSchemaReference(ValueError):
     pass
 
@@ -391,14 +381,14 @@ def schema_array_to_type(schema, global_symbols, encountered):
         assert len(items) > 0
         args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
 
-        if PYTHON_36:
+        if PYTHON_36:  # pragma: no cover
             return typing.Tuple[args]
         else:
             # noinspection PyArgumentList
             return Tuple.__getitem__(args)
     else:
         args = schema_to_type(items, global_symbols, encountered)
-        if PYTHON_36:
+        if PYTHON_36:  # pragma: no cover
             return typing.Tuple[args, ...]
         else:
             # noinspection PyArgumentList
@@ -469,10 +459,6 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         cls.check_schema(schema)
     return schema
 
-
-SCHEMA_BYTES: JSONSchema = {JSC_TYPE: JSC_OBJECT,
-                            SCHEMA_ATT: SCHEMA_ID,
-                            JSC_PROPERTIES: {"base64": {JSC_TYPE: JSC_STRING}}}
 
 K = TypeVar('K')
 V = TypeVar('V')
@@ -572,6 +558,18 @@ def schema_to_type_callable(schema: JSONSchema, global_symbols: GlobalsDict, enc
 
 
 def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    if is_optional(T):  # pragma: no cover
+        msg = f'Should not be needed to have an Optional here yet: {T}'
+        raise AssertionError(msg)
+
+    if is_forward_ref(T):  # pragma: no cover
+        msg = f'It is not supported to have an ForwardRef here yet: {T}'
+        raise ValueError(msg)
+
+    if isinstance(T, str):  # pragma: no cover
+        msg = f'It is not supported to have a string here: {T!r}'
+        raise ValueError(msg)
+
     # pprint('type_to_schema_', T=T)
     if T is str:
         res: JSONSchema = {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID}
@@ -609,21 +607,8 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Dict(T) or (isinstance(T, type) and issubclass(T, CustomDict)):
         return dict_to_schema(T, globals_, processing)
 
-    if is_optional(T):
-        msg = f'Should not be needed to have an Optional here yet: {T}'
-        raise AssertionError(msg)
-
-    if is_forward_ref(T):
-        msg = f'It is not supported to have an ForwardRef here yet: {T}'
-        raise ValueError(msg)
-        # name = get_forward_ref_arg(T)
-
     if is_Intersection(T):
         return schema_Intersection(T, globals_, processing)
-
-    if isinstance(T, str):
-        msg = f'It is not supported to have a string here: {T!r}'
-        raise ValueError(msg)
 
     if is_Callable(T):
         return type_callable_to_schema(T, globals_, processing)
@@ -636,22 +621,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
     assert isinstance(T, type), T
 
-    # if issubclass(T, CustomDict):
-    #     K, V = getattr(T, '__dict_type__')
-    #     res = {JSC_TYPE: JSC_OBJECT}
-    #     res[JSC_TITLE] = 'Dict[%s,%s]' % (K.__name__, V.__name__)
-    #     res[JSC_PROPERTIES] = {"$schema": {}}  # XXX
-    #     res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(V, globals_, processing)
-    #     res[SCHEMA_ATT] = SCHEMA_ID
-    #     return res
-
-    if issubclass(T, dict):
+    if issubclass(T, dict):  # pragma: no cover
         msg = f'A regular "dict" slipped through.\n{T}'
         raise TypeError(msg)
 
-    # print(T)
-    # print(T.__annotations__)
-    # print(getattr(T, _FIELDS))
     if hasattr(T, GENERIC_ATT) and getattr(T, GENERIC_ATT) is not None:
         return type_generic_to_schema(T, globals_, processing)
 
@@ -667,7 +640,6 @@ def schema_Intersection(T, globals_, processing):
     options = [type_to_schema(t, globals_, processing) for t in args]
     res: JSONSchema = {SCHEMA_ATT: SCHEMA_ID, "allOf": options}
     return res
-
 
 
 def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: dict) -> Type:
@@ -695,7 +667,7 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
             encountered[t[ID_ATT]] = tv
 
     typevars: Tuple[TypeVar, ...] = tuple(typevars)
-    if PYTHON_36:
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         base = Generic.__getitem__(typevars)
     else:
@@ -727,9 +699,6 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
     return T
 
 
-X_PYTHON_MODULE_ATT = '__module__'
-
-
 def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: ProcessingDict) -> JSONSchema:
     assert hasattr(T, GENERIC_ATT)
 
@@ -747,7 +716,6 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
     res[ID_ATT] = make_url(T.__name__)
 
     res[JSC_TYPE] = JSC_OBJECT
-
 
     processing2[f'{T.__name__}'] = make_ref(res[ID_ATT])
 
@@ -784,7 +752,6 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
     if required:
         res[JSC_REQUIRED] = required
 
-
     return res
 
 
@@ -806,9 +773,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     res[ATT_PYTHON_NAME] = T.__qualname__
     res[X_PYTHON_MODULE_ATT] = T.__module__
 
-
     res[SCHEMA_ATT] = SCHEMA_ID
-
 
     res[JSC_TYPE] = JSC_OBJECT
 
@@ -986,11 +951,11 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
                 raise type(e)(msg) from e
 
             return eval_field(res, globals2, processing)
-        except NotImplementedError as e:
+        except NotImplementedError as e:  # pragma: no cover
             m = 'While evaluating string'
             msg = pretty_dict(m, debug_info())
             raise NotImplementedError(msg) from e
-        except BaseException as e:
+        except BaseException as e:  # pragma: no cover
             m = 'Could not evaluate type string'
             msg = pretty_dict(m, debug_info())
             raise ValueError(msg) from e

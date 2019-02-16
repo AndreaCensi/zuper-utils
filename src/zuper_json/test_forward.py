@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from typing import *
-# noinspection PyUnresolvedReferences
+
 try:
+    # noinspection PyUnresolvedReferences
     from typing import ForwardRef
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from typing import _ForwardRef as ForwardRef
 
 from .test_utils import assert_object_roundtrip, with_private_register
@@ -46,18 +48,3 @@ def test_forward2():
 
     e = C(12, C(1))
     assert_object_roundtrip(e, {"C": C})
-
-#
-# @with_private_register
-# def test_forward3():
-#     X = TypeVar('X')
-#
-#     @zataclass
-#     class C(Zeneric[X]):
-#         a: X
-#         b: 'Optional[C[X]]' = None
-#
-#     Cstr = C[str]
-#
-#     e = Cstr("a", Cstr("b"))
-#     assert_object_roundtrip(e, {"C": C})

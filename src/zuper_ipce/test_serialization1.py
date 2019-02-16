@@ -8,14 +8,13 @@ except ImportError:
 
 from zuper_json.annotations_tricks import is_Any
 from zuper_ipce.as_json import to_canonical_json, assert_regular_memory_json, assert_good_canonical
-from zuper_json.constants import LINKS, SCHEMA_ATT, SCHEMA_ID
+from zuper_json.constants import SCHEMA_ATT, SCHEMA_ID
+from zuper_ipce.ipce_constants import LINKS
 from zuper_json.ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from zuper_json.test_utils import assert_object_roundtrip
 from .test_utils import with_private_register
 
-
-# from zuper_json.zeneric2 import zataclass, Zeneric
 
 
 @dataclass

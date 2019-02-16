@@ -1,11 +1,9 @@
-
-# noinspection PyProtectedMember
-import sys
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, Field, _FIELDS
-from typing import Dict, Type, TypeVar, Any,  ClassVar, Sequence
 # noinspection PyUnresolvedReferences
-from typing import _eval_type
+from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type
+
+from .constants import PYTHON_36
 
 try:
     from typing import ForwardRef
@@ -32,9 +30,6 @@ def get_type_spec(types) -> Dict[str, Type]:
     return res
 
 
-PYTHON_36 = sys.version_info[1] == 6
-
-
 class ZenericFix:
     class CannotInstantiate(TypeError):
         ...
@@ -44,7 +39,7 @@ class ZenericFix:
         # pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
         types = as_tuple(params)
 
-        if PYTHON_36:
+        if PYTHON_36: # pragma: no cover
             class FakeGenericMeta(ABCMeta):
                 def __getitem__(self, params2):
                     types2 = as_tuple(params2)
@@ -66,7 +61,7 @@ class ZenericFix:
 
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
-        gp = type(name, (GenericProxy,), {}) #'__getitem__': GenericProxy.__class_getitem__})
+        gp = type(name, (GenericProxy,), {})  # '__getitem__': GenericProxy.__class_getitem__})
 
         # setattr(gp, '__getitem__', GenericProxy.__class_getitem__)
         setattr(gp, GENERIC_ATT, get_type_spec(types))
