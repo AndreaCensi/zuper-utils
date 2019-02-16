@@ -1,7 +1,6 @@
+from zuper_json.constants import INTERSECTION_ATT
 from .constants import PYTHON_36
 from dataclasses import dataclass, is_dataclass
-
-INTERSECTION_ATT = '__intersection__'
 
 
 def Intersection_item(cls, params):

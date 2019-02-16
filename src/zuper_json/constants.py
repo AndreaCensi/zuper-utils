@@ -9,10 +9,10 @@ _SpecialForm = Any
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = '$schema'
 
+INTERSECTION_ATT = '__intersection__'
+
 ID_ATT = '$id'
 REF_ATT = '$ref'
-# X_SCHEMA_ID = "http://censi.org/schema"
-# X_TYPE_FUNCTION = "function"
 
 X_CLASSVARS = 'classvars'
 X_CLASSATTS = 'clasatts'

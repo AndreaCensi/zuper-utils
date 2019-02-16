@@ -63,30 +63,17 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
         raise TypeError(msg)
 
     if isinstance(ob, list):
-        # msg = 'Do not support lists yet'
-        # raise TypeError(msg)
         suggest_type_l = None  # ZXX
         return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
 
     if isinstance(ob, tuple):
-        suggest_type_l = None  # ZXX
+        suggest_type_l = None  # XXX
         return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
-        # msg = 'Do not support tuples yet'
-        # raise TypeError(msg)
 
     if isinstance(ob, bytes):
-        # res = base58.b58encode(ob)
-        # return res.decode()
         res = pybase64.b64encode(ob)
-        # logger.debug(f'Decoding bytes of len {len(res)}')
         res = str(res, encoding='ascii')
-        # logger.debug(f'done')
-        # res = res.decode('ascii')
-
         return {'base64': res, SCHEMA_ATT: SCHEMA_BYTES}
-
-        # msg = 'Do not support bytes yet'
-        # raise TypeError(msg)
 
     if isinstance(ob, (int, str, float)):
         return ob
@@ -98,11 +85,7 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
         return type_to_schema(ob, globals_, processing={})
 
     res = {}
-    #
-    # D = getattr(ob, '__dict__', None)
-    # if D is None:
-    #     msg = f'No __dict__ for {ob!r}'
-    #     raise ValueError(msg)
+
     annotations = getattr(type(ob), '__annotations__', {})
     for k, ann in annotations.items():
         if is_ClassVar(ann):
@@ -130,7 +113,7 @@ def dict_to_ipce(ob, globals_, suggest_type):
         K, V = suggest_type.__dict_type__
     else:  # pragma: no cover
         assert False, suggest_type
-    # T = suggest_type or type(ob)
+
     res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
     if issubclass(K, str):
         for k, v in ob.items():
@@ -169,17 +152,11 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
 
     sa = mj[SCHEMA_ATT]
     if sa == SCHEMA_ID:
-        # msg = f'Trying to instantiate a schema?\n{mj}'
-        # raise NotImplementedError(msg)
         return schema_to_type(mj, global_symbols, encountered)
 
     K = schema_to_type(sa, global_symbols, encountered)
 
     assert isinstance(K, type), K
-
-    # if K is type:
-    #     # we expect a schema
-    #     return schema_to_type(mj, global_symbols, encountered)
 
     if K is bytes:
         data = mj['base64']
@@ -235,10 +212,8 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
             continue
         attrs[k] = ipce_to_object(v, global_symbols, encountered)
 
-    # pprint('here', D=D)
     if issubclass(D, CustomDict):
         K, V = D.__dict_type__
-        # pprint(K=K, V=V)
 
         if issubclass(K, str):
             ob = D()
@@ -250,20 +225,6 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
                 # noinspection PyUnresolvedReferences
                 ob[v.real_key] = v.value
             return ob
-        # if V.__name__.startswith('FakeValues'):
-        #     realK = V.__annotations__['real_key']
-        #     realV = V.__annotations__['value']
-        #     ob = make_dict(realK, realV)()
-        #     for a in attrs.items():
-        #         ob[a.real_key] = a.value
-        #     return ob
-        # elif issubclass(K, str):
-        #     ob = D()
-        #     ob.update(attrs)
-        #     return ob
-        # else:
-        #     msg = pretty_dict("here", dict(K=K, V=V, attrs=attrs))
-        #     raise NotImplementedError(msg)
 
     else:  # pragma: no cover
         msg = pretty_dict("not sure", dict(D=D, attrs=attrs))
