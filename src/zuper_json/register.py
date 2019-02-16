@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import tempfile
 import threading
 from abc import abstractmethod, ABCMeta
 from contextlib import contextmanager
@@ -34,15 +36,20 @@ class Register(metaclass=ABCMeta):
 class IPFSDagRegister(Register):
 
     def hash_from_string(self, s: CanonicalJSONString) -> HashResult:
-        t = 'tmpfile'
-        with open(t, 'w') as f:
+
+        fid, fn = tempfile.mkstemp()
+        with open(fn, 'w') as f:
             f.write(s)
 
-        cmd = ['ipfs', 'dag', 'put', t]
+        cmd = ['ipfs', 'dag', 'put', fn]
         res = subprocess.check_output(cmd)
         res = res.decode()
         h = res.strip()
 
+        try:
+            os.unlink(fn)
+        except OSError:
+            pass
         return HashResult(h, {})
 
     def string_from_hash(self, h: Hash) -> CanonicalJSONString:
@@ -119,7 +126,7 @@ class ConcreteRegister(Register):
         self._create_schema()
         self._load_graph()
         self.parent = parent
-
+        #
         if not parent:
             raise ValueError()
 

@@ -4,7 +4,7 @@ import sys
 from typing import *
 
 from .ipce import ipce_to_object, object_to_ipce
-from .register import ConcreteRegister
+from .register import ConcreteRegister, store_json, recall_json, use_register, IPFSDagRegister
 from .types import Hash
 
 
@@ -24,37 +24,57 @@ def zj_main():
     MODE_OBJECT = 'object'
     MODE_OBJECT2J = 'object2j'
     MODE_OBJECT2J2H = 'object2j2h'
-    choices = [MODE_STRINGS, MODE_JSON, MODE_OBJECT, MODE_OBJECT2J, MODE_OBJECT2J2H]
+    MODE_JSON_INTERPRET = 'json-interpret'
+    MODE_JSON_STORE = 'json-store'
+    choices = [MODE_STRINGS, MODE_JSON, MODE_OBJECT, MODE_OBJECT2J, MODE_OBJECT2J2H, MODE_JSON_INTERPRET,
+               MODE_JSON_STORE]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-w', choices=choices, required=True)
 
     parsed, args = parser.parse_known_args()
+    r = IPFSDagRegister()
 
-    register = ConcreteRegister('zj.sqlite.db')
-    for h in read_arguments(args):
-        h: Hash = h
-        if parsed.w == MODE_STRINGS:
-            s = register.string_from_hash(h)
-            print(s)
-        if parsed.w == MODE_JSON:
-            j = register.recall_json(h)
-            print(json.dumps(j, indent=4))
-        if parsed.w == MODE_OBJECT:
-            j = register.recall_json(h)
-            ob = ipce_to_object(j, globals())
-            print(f'{ob!r}')
-        if parsed.w == MODE_OBJECT2J:
-            j = register.recall_json(h)
-            ob = ipce_to_object(j, globals())
-            obj = object_to_ipce(ob, globals())
-            print(json.dumps(obj, indent=4))
-        if parsed.w == MODE_OBJECT2J2H:
-            j = register.recall_json(h)
-            ob = ipce_to_object(j, globals())
-            obj = object_to_ipce(ob, globals())
-            h1 = register.store_json(obj)
-            print(h1)
+    register = ConcreteRegister('zj.sqlite.db', parent=r)
+
+    with use_register(register):
+
+        if parsed.w == MODE_JSON_INTERPRET:
+            j = sys.stdin.read()
+            ipce = json.loads(j)
+            obj = ipce_to_object(ipce, globals())
+            print(obj)
+            return
+        if parsed.w == MODE_JSON_STORE:
+            j = sys.stdin.read()
+            ipce = json.loads(j)
+            h = store_json(ipce)
+            print(h)
+            return
+        for h in read_arguments(args):
+            h: Hash = h
+            if parsed.w == MODE_STRINGS:
+                s = register.string_from_hash(h)
+                print(s)
+            if parsed.w == MODE_JSON:
+                j = recall_json(h)
+                print(json.dumps(j, indent=4))
+            if parsed.w == MODE_OBJECT:
+                j = recall_json(h)
+                ob = ipce_to_object(j, globals())
+                print(f'{ob!r}')
+            if parsed.w == MODE_OBJECT2J:
+                j = recall_json(h)
+                ob = ipce_to_object(j, globals())
+                obj = object_to_ipce(ob, globals())
+                print(json.dumps(obj, indent=4))
+            if parsed.w == MODE_OBJECT2J2H:
+                j = recall_json(h)
+                ob = ipce_to_object(j, globals())
+                obj = object_to_ipce(ob, globals())
+                h1 = store_json(obj)
+                print(h1)
+
 
             # h1 = register.store_json(y1)
 

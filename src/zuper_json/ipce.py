@@ -21,7 +21,7 @@ from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, 
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
     ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL
-from .pretty import pretty_dict
+from .pretty import pretty_dict, pprint
 from .types import MemoryJSON
 
 JSONSchema = NewType('JSONSchema', dict)
@@ -128,7 +128,9 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
 
 
 def dict_to_ipce(ob, globals_, suggest_type):
+    assert suggest_type is not None
     res = {}
+    # pprint('suggest_type ', suggest_type=suggest_type)
     if is_Dict(suggest_type):
         K, V = suggest_type.__args__
     elif issubclass(suggest_type, CustomDict):
@@ -735,14 +737,19 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
 
     res: JSONSchema = {}
     res[SCHEMA_ATT] = SCHEMA_ID
-    res[JSC_TYPE] = JSC_OBJECT
+
     res[JSC_TITLE] = T.__name__
+    res[ATT_PYTHON_NAME] = T.__qualname__
+    res[X_PYTHON_MODULE_ATT] = T.__module__
 
     res[ID_ATT] = make_url(T.__name__)
+
+    res[JSC_TYPE] = JSC_OBJECT
+
+
     processing2[f'{T.__name__}'] = make_ref(res[ID_ATT])
 
     # print(f'T: {T.__name__} ')
-    res[X_PYTHON_MODULE_ATT] = T.__module__
     res[JSC_DEFINITIONS] = definitions = {}
 
     if hasattr(T, '__doc__') and T.__doc__:
@@ -775,7 +782,7 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
     if required:
         res[JSC_REQUIRED] = required
 
-    res[ATT_PYTHON_NAME] = T.__qualname__
+
     return res
 
 
@@ -787,14 +794,21 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
 
     p2 = dict(processing)
     res: JSONSchema = {}
-    res[ATT_PYTHON_NAME] = T.__qualname__
-    res[SCHEMA_ATT] = SCHEMA_ID
-    res[JSC_TYPE] = JSC_OBJECT
+
     res[ID_ATT] = make_url(T.__name__)
     if hasattr(T, '__name__') and T.__name__:
         res[JSC_TITLE] = T.__name__
 
         p2[T.__name__] = make_ref(res[ID_ATT])
+
+    res[ATT_PYTHON_NAME] = T.__qualname__
+    res[X_PYTHON_MODULE_ATT] = T.__module__
+
+
+    res[SCHEMA_ATT] = SCHEMA_ID
+
+
+    res[JSC_TYPE] = JSC_OBJECT
 
     if hasattr(T, '__doc__') and T.__doc__:
         res[JSC_DESCRIPTION] = T.__doc__
@@ -839,7 +853,6 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     if classatts:
         res[X_CLASSATTS] = classatts
 
-    res[X_PYTHON_MODULE_ATT] = T.__module__
     return res
 
 

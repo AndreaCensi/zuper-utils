@@ -1,0 +1,14 @@
+FROM python:3.6
+
+
+RUN mkdir /project
+WORKDIR /project
+
+
+COPY . .
+RUN pip install -r requirements.txt
+RUN python setup.py develop --no-deps
+
+RUN wget https://dist.ipfs.io/go-ipfs/v0.4.18/go-ipfs_v0.4.18_linux-amd64.tar.gz
+RUN tar xvzf go-ipfs_v0.4.18_linux-amd64.tar.gz
+RUN cp go-ipfs/ipfs /usr/local/bin
