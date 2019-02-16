@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from typing import *
-# noinspection PyUnresolvedReferences
-from typing import ForwardRef
+
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_Any
 from .as_json import to_canonical_json, assert_regular_memory_json, assert_good_canonical

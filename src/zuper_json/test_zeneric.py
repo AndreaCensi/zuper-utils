@@ -185,6 +185,22 @@ def test_isType():
     assert is_Type(A)
     assert get_Type_arg(A) == X
 
+@with_private_register
+def test_more3_simpler():
+
+    X = TypeVar('X')
+
+    @dataclass
+    class MyClass(Generic[X]):
+        XT: ClassVar[Type[X]]
+
+    assert_type_roundtrip(MyClass, {})
+    #
+    # # type_to_schema(MyClass, {})
+
+    C = MyClass[int, str]
+    assert_type_roundtrip(C, {})
+
 
 @with_private_register
 def test_more3():
@@ -303,7 +319,7 @@ def test_check_bound():
     #
 
 
-@raises(ValueError)
+@raises(ValueError, TypeError)  # typerror in 3.6
 def test_check_value():
     @dataclass
     class CG(Generic[()]):
@@ -346,7 +362,7 @@ def test_derived1():
         """hello"""
         pass
 
-    assert_equal(S.__doc__, 'Signed3[int](data: int)')
+    assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
     assert_equal(Y.__doc__, """hello""")
     assert_type_roundtrip(Y, {})
 
@@ -371,20 +387,25 @@ def test_derived2_no_doc():
 def test_derived2_subst():
     X = TypeVar('X')
 
+    # print(dir(Generic))
+    # print(dir(typing.GenericMeta))
+    # print(Generic.__getitem__)
     @dataclass
     class Signed3(Generic[X]):
         data: X
         parent: Optional['Signed3[X]'] = None
 
+    print(Signed3.mro())
+    Signed3[int]
     resolve_types(Signed3, locals())
 
     S = Signed3[int]
 
     pprint(**S.__annotations__)
-    assert 'X' not in str(S.__annotations__)
+    assert 'X' not in str(S.__annotations__), S.__annotations__
 
     # assert_type_roundtrip(S, {})
-
+    @dataclass
     class Y(S):
         pass
 

@@ -1,12 +1,18 @@
+# ss
 # noinspection PyProtectedMember
+import sys
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, Field, _FIELDS
-# noinspection PyUnresolvedReferences,PyProtectedMember
-from typing import Dict, Type, TypeVar, Any, _eval_type, ForwardRef, Tuple, ClassVar, Sequence, Generic
+from typing import Dict, Type, TypeVar, Any, _eval_type, ClassVar, Sequence
+
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
 from .constants import GENERIC_ATT, BINDINGS_ATT
-from .pretty import pretty_dict
+from .pretty import pretty_dict, pprint
 
 
 def as_tuple(x):
@@ -23,6 +29,7 @@ def get_type_spec(types) -> Dict[str, Type]:
         res[x.__name__] = x.__bound__ or Any
     return res
 
+PYTHON_36 = sys.version_info[1] == 6
 
 class ZenericFix:
     class CannotInstantiate(TypeError):
@@ -30,22 +37,34 @@ class ZenericFix:
 
     @classmethod
     def __class_getitem__(cls, params):
+        # pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
         types = as_tuple(params)
 
-        class GenericProxy(metaclass=ABCMeta):
+        if PYTHON_36:
+            class FakeGenericMeta(ABCMeta):
+                def __getitem__(self, params2):
+                    types2 = as_tuple(params2)
+                    return make_type(self, types, types2)
+        else:
+            FakeGenericMeta = ABCMeta
+
+        class GenericProxy(metaclass=FakeGenericMeta):
+
             @abstractmethod
             def need(self):
                 """"""
 
             @classmethod
             def __class_getitem__(cls, params2):
+                # pprint('ZenericFix', cls=cls, params2=params2)
                 types2 = as_tuple(params2)
                 return make_type(cls, types, types2)
 
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
-        gp = type(name, (GenericProxy,), {})
+        gp = type(name, (GenericProxy,), {'__getitem__': GenericProxy.__class_getitem__})
 
+        setattr(gp, '__getitem__',  GenericProxy.__class_getitem__)
         setattr(gp, GENERIC_ATT, get_type_spec(types))
         return gp
 
@@ -73,7 +92,7 @@ def eval_type(T, bindings0: Dict[str, Any], symbols: Dict[str, Any]):
     except BaseException as e:  # pragma: no cover
         m = f'Cannot eval type {T!r}'
         msg = pretty_dict(m, info())
-        raise type(e)(msg) from e
+        raise TypeError(msg) from e
 
 
 def resolve_types(T, l):
@@ -83,10 +102,17 @@ def resolve_types(T, l):
         g[T.__name__] = T
     if hasattr(T, '__annotations__'):
         for k, v in T.__annotations__.items():
-            T.__annotations__[k] = _eval_type(v, g, l)
+            try:
+                T.__annotations__[k] = _eval_type(v, g, l)
+            except TypeError as e:
+                raise TypeError(f'could not resolve {k} = {v}') from e
 
 
-def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
+from dataclasses import is_dataclass
+
+def make_type(cls: type, types, types2: Sequence) -> type:
+    # pprint('make_type', types=types, types2=types2)
+    # print('cls %s dataclass? %s' % (cls, is_dataclass(cls)))
     # black magic
     for t2 in types2:
         if isinstance(t2, TypeVar):
@@ -117,7 +143,7 @@ def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
             # dict does not have name
             symbols[U.__name__] = U
 
-    if hasattr(cls, _FIELDS):
+    if is_dataclass(cls):
         fields = getattr(cls, _FIELDS)
         for k, v in fields.items():
             assert isinstance(v, Field)
@@ -155,19 +181,24 @@ def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
     d['__post_init__'] = __post_init__
     cls2 = type(name2, (cls,), d)
 
-    # important: do it before zataclass/dataclass
+    # important: do it before dataclass
     cls2.__annotations__ = new_annotations
 
-    if hasattr(cls, _FIELDS):
+    if is_dataclass(cls):
         # note: need to have set new annotations
+        # pprint('creating dataclass from %s' % cls2)
         cls2 = dataclass(cls2)
     else:
+        # print('Detected that cls = %s not a dataclass' % cls)
 
         # noinspection PyUnusedLocal
         def init_placeholder(self, *args, **kwargs):
             if args or kwargs:
                 msg = f'Default constructor of {cls2.__name__} does not know what to do with arguments.'
                 msg += f'\nargs: {args!r}\nkwargs: {kwargs!r}'
+                msg += f'\nself: {self}'
+                msg += f'\nself: {dir(type(self))}'
+                msg += f'\nself: {type(self)}'
                 raise NoConstructorImplemented(msg)
 
         setattr(cls2, '__init__', init_placeholder)

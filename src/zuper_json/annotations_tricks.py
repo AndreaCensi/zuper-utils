@@ -1,10 +1,16 @@
+import sys
 import typing
 from dataclasses import dataclass
-from typing import Union, ForwardRef, Any, Dict
+from typing import Union,  Any, Dict
 
+
+PYTHON_36 = sys.version_info[1] == 6
 
 def is_optional(x):
-    return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
+    if PYTHON_36:
+        return  isinstance(x, typing._Union) and x.__args__[-1] is type(None)
+    else:
+        return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
 
 
 def get_optional_type(x):
@@ -14,7 +20,10 @@ def get_optional_type(x):
 
 def is_union(x):
     """ Union[X, None] is not considered a Union"""
-    return not is_optional(x) and isinstance(x, typing._GenericAlias) and (x.__origin__ is Union)
+    if PYTHON_36:
+        return not is_optional(x) and isinstance(x, typing._Union)
+    else:
+        return not is_optional(x) and isinstance(x, typing._GenericAlias) and (x.__origin__ is Union)
 
 
 def get_union_types(x):
@@ -23,7 +32,11 @@ def get_union_types(x):
 
 
 def is_forward_ref(x):
-    return isinstance(x, ForwardRef)
+    if PYTHON_36:
+        return isinstance(x, typing._ForwardRef)
+    else:
+
+        return isinstance(x, typing.ForwardRef)
 
 
 def get_forward_ref_arg(x) -> str:
@@ -44,25 +57,41 @@ def get_forward_ref_arg(x) -> str:
 #     return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
 
 def is_Any(x):
-    # noinspection PyUnresolvedReferences
-    return isinstance(x, typing._SpecialForm) and x._name == 'Any'
+    if PYTHON_36:
+        return str(x) == 'typing.Any'
+    else:
+        # noinspection PyUnresolvedReferences
+        return isinstance(x, typing._SpecialForm) and x._name == 'Any'
 
 
 def is_ClassVar(x):
-    return isinstance(x, typing._GenericAlias) and (x.__origin__ is typing.ClassVar)
+    if PYTHON_36:
+        return isinstance(x, typing._ClassVar)
+    else:
+        return isinstance(x, typing._GenericAlias) and (x.__origin__ is typing.ClassVar)
 
 
 def get_ClassVar_arg(x):
     assert is_ClassVar(x)
-    return x.__args__[0]
+    if PYTHON_36:
+        return x.__type__
+    else:
+
+        return x.__args__[0]
 
 
 def is_Type(x):
-    return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
+    if PYTHON_36:
+        return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
+    else:
+        return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
 
 def is_Tuple(x):
-    return (isinstance(x, typing._GenericAlias) and (x._name == 'Tuple'))
+    if PYTHON_36:
+        return isinstance(x, typing.TupleMeta)
+    else:
+        return isinstance(x, typing._GenericAlias) and (x._name == 'Tuple')
 
 
 def is_finiteTuple(x):
@@ -73,9 +102,11 @@ def get_Type_arg(x):
     assert is_Type(x)
     return x.__args__[0]
 
-
 def is_Callable(x):
-    return getattr(x, '_name', None) == 'Callable'
+    if PYTHON_36:
+        return isinstance(x, typing.CallableMeta)
+    else:
+        return getattr(x, '_name', None) == 'Callable'
     # return hasattr(x, '__origin__') and x.__origin__ is typing.Callable
 
     # return isinstance(x, typing._GenericAlias) and x.__origin__.__name__ == "Callable"
@@ -94,7 +125,10 @@ def get_MyNamedArg_name(x):
 
 
 def is_Dict(T: Any):
-    return isinstance(T, typing._GenericAlias) and T._name == 'Dict'
+    if PYTHON_36:
+        return isinstance(T, typing.GenericMeta) and T.__origin__ is typing.Dict
+    else:
+        return isinstance(T, typing._GenericAlias) and T._name == 'Dict'
 
 
 def get_Dict_name(T):

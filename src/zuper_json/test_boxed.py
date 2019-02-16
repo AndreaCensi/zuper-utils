@@ -1,8 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass
 from typing import *
-# noinspection PyUnresolvedReferences
-from typing import ForwardRef
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
+
 
 from nose.tools import raises, assert_equal
 
@@ -73,7 +76,17 @@ def test_boxed_can_dataclass():
     class CannotInstantiateYet(Generic[X]):
         inside: X
 
+    print('name: %s %s' % (CannotInstantiateYet.__name__, CannotInstantiateYet))
+    assert 'CannotInstantiateYet' in CannotInstantiateYet.__name__, CannotInstantiateYet.__name__
+
+    assert is_dataclass(CannotInstantiateYet)
+    print('calling')
     CanBeInstantiated = CannotInstantiateYet[str]
+
+    assert 'CannotInstantiateYet[str]' in CanBeInstantiated.__name__, CanBeInstantiated.__name__
+    print('CanBeInstantiated: %s %s' % (CanBeInstantiated.__name__, CanBeInstantiated))
+
+    print(CanBeInstantiated.__init__)
 
     CanBeInstantiated(inside="13")
 

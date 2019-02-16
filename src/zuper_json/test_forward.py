@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 from typing import *
 # noinspection PyUnresolvedReferences
-from typing import ForwardRef
+try:
+    from typing import ForwardRef
+except ImportError:
+    from typing import _ForwardRef as ForwardRef
 
 from .test_utils import assert_object_roundtrip, with_private_register
 

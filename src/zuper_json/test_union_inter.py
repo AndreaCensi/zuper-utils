@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import *
 # noinspection PyUnresolvedReferences
-from typing import ForwardRef
+
 
 from zuper_json.my_intersection import Intersection
 from .test_utils import assert_object_roundtrip, with_private_register, assert_type_roundtrip

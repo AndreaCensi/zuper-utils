@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import *
 # noinspection PyUnresolvedReferences
-from typing import ForwardRef, NewType, Tuple, List
+from typing import NewType, Tuple, List
 
 from zuper_json.test_utils import relies_on_missing_features, assert_type_roundtrip
 from .test_utils import assert_object_roundtrip, with_private_register
@@ -99,14 +99,10 @@ def test_newtype():
     T = NewType('T', str)
     assert_type_roundtrip(T, symbols)
 
-
-# @relies_on_missing_features
 def test_tuples1():
     T = Tuple[str, int]
     assert_type_roundtrip(T, symbols)
 
-
-# @relies_on_missing_features
 def test_tuples2():
     T = Tuple[str, ...]
     assert_type_roundtrip(T, symbols)
