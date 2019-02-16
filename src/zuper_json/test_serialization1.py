@@ -151,7 +151,7 @@ def test_abnormal_no_schema():
     ipce_to_object({}, {})
 
 
-@raises(TypeError)
+# @raises(TypeError)
 def test_abnormal_no_lists():
     ipce_to_object([], {})
 
@@ -161,7 +161,7 @@ def test_abnormal_no_nulls():
     object_to_ipce(None, {})
 
 
-@raises(TypeError)
+# @raises(TypeError)
 def test_abnormal_no_lists_2():
     object_to_ipce([1], {})
 

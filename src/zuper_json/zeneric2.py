@@ -4,9 +4,9 @@ from dataclasses import dataclass, Field, _FIELDS
 # noinspection PyUnresolvedReferences,PyProtectedMember
 from typing import Dict, Type, TypeVar, Any, _eval_type, ForwardRef, Tuple, ClassVar, Sequence, Generic
 
-from .pretty import pretty_dict, pprint
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
 from .constants import GENERIC_ATT, BINDINGS_ATT
+from .pretty import pretty_dict
 
 
 def as_tuple(x):
@@ -55,26 +55,18 @@ class NoConstructorImplemented(TypeError):
 
 
 def eval_type(T, bindings0: Dict[str, Any], symbols: Dict[str, Any]):
-
     if T in bindings0:
         return bindings0[T]
     if hasattr(T, '__args__'):
         T.__args__ = tuple(eval_type(_, bindings0, symbols) for _ in T.__args__)
-    # if hasattr(T, GENERIC_ATT) and getattr(T, GENERIC_ATT):
-    # if isinstance(T, GenericProxy):
-    #     pprint('generic found', T=T, Tn=T.__name__)
-    #     assign = {k: bindings0[k] for k, v in getattr(T, GENERIC_ATT)}
-    #     print(assign)
-    #     return T[assign]
+
     if isinstance(T, type):
-        # pprint('eval_type_Type', T=T, Tn=T.__name__, Td=T.__dict__)
         return T
     info = lambda: dict(bindings=bindings0,
                         symbols=symbols)
     bindings = dict(bindings0)
 
     try:
-
         res = _eval_type(T, bindings, symbols)
         # pprint('eval_type', T=T, bindings0=bindings0, symbols=symbols, res=res)
         return res
@@ -144,10 +136,6 @@ def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
             else:
                 new_annotations[k] = ClassVar[s]
         else:
-            # if v in bindings:
-            #     new_annotations[k] = bindings[v]
-            # else:
-            #     new_annotations[k] = v
             new_annotations[k] = eval_type(v, bindings, symbols)
 
     name2 = '%s[%s]' % (cls.__name__, ",".join(name_for_type_like(_) for _ in types2))
@@ -170,10 +158,6 @@ def make_type(cls: type, types: Sequence[TypeVar], types2: Sequence) -> type:
     # important: do it before zataclass/dataclass
     cls2.__annotations__ = new_annotations
 
-    # if hasattr(cls, ZATA):
-    #     # note: need to have set new annotations
-    #     cls2 = zataclass(cls2, **getattr(cls, ZATA))
-    # el
     if hasattr(cls, _FIELDS):
         # note: need to have set new annotations
         cls2 = dataclass(cls2)

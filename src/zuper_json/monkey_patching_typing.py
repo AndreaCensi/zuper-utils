@@ -12,24 +12,10 @@ previous_getitem = _GenericAlias.__getitem__
 class Alias1:
 
     def __getitem__(self, params):
-
         if self is typing.Dict:
             K, V = params
-
             return make_dict(K, V)
-            # print(f'here {type(self)} {self} {params}')
-            # raise Exception(params)
         return previous_getitem(self, params)
-        #
-        # if self.__origin__ in (Generic, _Protocol):
-        #     # Can't subscript Generic[...] or _Protocol[...].
-        #     raise TypeError(f"Cannot subscript already-subscripted {self}")
-        # if not isinstance(params, tuple):
-        #     params = (params,)
-        # msg = "Parameters to generic types must be types."
-        # params = tuple(_type_check(p, msg) for p in params)
-        # _check_generic(self, params)
-        # return _subs_tvars(self, self.__parameters__, params)
 
 _GenericAlias.__getitem__ = Alias1.__getitem__
 Dict.__getitem__ = Alias1.__getitem__
@@ -126,21 +112,5 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
     return res
-    #
-    # def wrap(cls):
-    #     res = dataclasses._process_class(cls, **kwargs)
-    #     remember_created_class(res)
-    #     return res
-    #
-    # # See if we're being called as @dataclass or @dataclass().
-    # if _cls is None:
-    #     # We're called with parens.
-    #     return wrap
-    #
-    # # We're called as @dataclass without parens.
-    # res = wrap(_cls)
-    # remember_created_class(res)
-    # return res
-
 
 setattr(dataclasses, 'dataclass', my_dataclass)

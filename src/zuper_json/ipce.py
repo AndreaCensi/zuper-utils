@@ -65,8 +65,10 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
         raise TypeError(msg)
 
     if isinstance(ob, list):
-        msg = 'Do not support lists yet'
-        raise TypeError(msg)
+        # msg = 'Do not support lists yet'
+        # raise TypeError(msg)
+        suggest_type_l = None # ZXX
+        return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
 
     if isinstance(ob, tuple):
         suggest_type_l = None # ZXX
@@ -126,7 +128,7 @@ def dict_to_ipce(ob, globals_, suggest_type):
         K, V = suggest_type.__args__
     elif issubclass(suggest_type, CustomDict):
         K, V = suggest_type.__dict_type__
-    else:
+    else: # pragma: no cover
         assert False, suggest_type
     # T = suggest_type or type(ob)
     res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
@@ -146,14 +148,28 @@ def dict_to_ipce(ob, globals_, suggest_type):
     return res
 
 
-def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> object:
+def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
+                   expect_type=None) -> object:
     encountered = encountered or {}
     if isinstance(mj, (int, str, float)):
         return mj
 
     if isinstance(mj, list):
-        msg = 'Do not support lists.'
-        raise TypeError(msg)
+
+        if expect_type and is_Tuple(expect_type):
+            seq = []
+            for i, ob in enumerate(mj):
+                expect_type_i = expect_type.__args__[i]
+                seq.append(ipce_to_object(ob, global_symbols, encountered, expect_type=expect_type_i))
+
+            return tuple(seq)
+
+        else:
+            seq = [ipce_to_object(_, global_symbols, encountered) for _ in mj]
+            return seq
+
+        # msg = 'Do not support lists.'
+        # raise TypeError(msg)
 
     assert isinstance(mj, dict)
 
@@ -169,25 +185,39 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
 
 
     K = schema_to_type(sa, global_symbols, encountered)
+
     assert isinstance(K, type), K
-    attrs = {}
-    for k, v in mj.items():
-        if k == SCHEMA_ATT:
-            continue
-        attrs[k] = ipce_to_object(v, global_symbols, encountered)
 
     if K is type:
         # we expect a schema
         return schema_to_type(mj, global_symbols, encountered)
-    elif issubclass(K, dict):
-        return deserialize_Dict(K, attrs)
 
-    elif K is bytes:
+    if K is bytes:
         data = mj['base64']
         res = pybase64.b64decode(data)
         assert isinstance(res, bytes)
         return res
-    else:
+
+
+    if issubclass(K, dict):
+        attrs = {}
+        for k, v in mj.items():
+            if k == SCHEMA_ATT:
+                continue
+            attrs[k] = ipce_to_object(v, global_symbols, encountered)
+
+
+        return deserialize_Dict(K, attrs)
+
+    if is_dataclass(K):
+        # some data classes might have no annotations ("Empty")
+        anns = getattr(K, '__annotations__', {})
+
+        attrs = {}
+        for k, v in mj.items():
+            if k in anns:
+                expect_type = K.__annotations__[k]
+                attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
 
         try:
             return K(**attrs)
@@ -201,6 +231,7 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
             msg += f'\n{df}'
             raise TypeError(msg) from e
 
+    assert False, K # pragma: no cover
 
 def deserialize_Dict(D, attrs):
     # pprint('here', D=D)
@@ -232,7 +263,7 @@ def deserialize_Dict(D, attrs):
         #     msg = pretty_dict("here", dict(K=K, V=V, attrs=attrs))
         #     raise NotImplementedError(msg)
 
-    else:
+    else: # pragma: no cover
         msg = pretty_dict("not sure", dict(D=D, attrs=attrs))
         raise NotImplementedError(msg)
 
@@ -338,7 +369,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     elif schema.get(JSC_TYPE, None) == "array":
         return schema_array_to_type(schema, global_symbols, encountered)
 
-    pprint(schema=schema, schema0=schema0)
+    # pprint(schema=schema, schema0=schema0)
     assert False, schema  # pragma: no cover
 
 
@@ -432,7 +463,7 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
         K, V = T.__args__
     elif issubclass(T, CustomDict):
         K, V = T.__dict_type__
-    else:
+    else: # pragma: no cover
         assert False
 
     res: JSONSchema = {JSC_TYPE: JSC_OBJECT}
@@ -454,7 +485,7 @@ def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) ->
     # res: JSONSchema = {}
     # res[ATT_PYTHON_NAME] = T.__qualname__
     # res[SCHEMA_ATT] = SCHEMA_ID
-    pass
+    raise NotImplementedError()
 
 
 def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
@@ -596,7 +627,6 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
     msg = 'Cannot interpret this type. (not a dataclass): %s' % T
     raise ValueError(msg)
-    assert False, T
 
 
 def schema_Intersection(T, globals_, processing):
@@ -720,9 +750,10 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
 
 
 def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    if not hasattr(T, _FIELDS):
-        msg = f'The type {T} does not look like a Dataclass to me.'
-        raise ValueError(msg)
+    assert is_dataclass(T), T
+    # if not hasattr(T, _FIELDS):
+    #     msg = f'The type {T} does not look like a Dataclass to me.'
+    #     raise ValueError(msg)
 
     p2 = dict(processing)
     res: JSONSchema = {}
