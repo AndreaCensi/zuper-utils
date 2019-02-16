@@ -9,8 +9,9 @@ from unittest import SkipTest
 
 from nose.tools import assert_equal
 
-from .pretty import pretty_dict, pprint
+from . import logger
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
+from .pretty import pretty_dict, pprint
 from .register import ConcreteRegister, use_register, store_json, recall_json, IPFSDagRegister
 
 
@@ -30,7 +31,6 @@ def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
         # assert_same_types(T2, T)
         assert_equivalent_types(T, T2)
 
-
     schema2 = type_to_schema(T2, use_globals)
     if schema != schema2:
         msg = 'Different schemas'
@@ -44,20 +44,20 @@ def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
         assert_equal(schema, schema2)
         raise AssertionError(msg)
 
+
 def assert_equivalent_types(T1: type, T2: type):
     if T1 is T2:
         return
     if hasattr(T1, '__dict__'):
         pprint('compare',
                T1n=str(T1),
-               T2n =str(T2),
+               T2n=str(T2),
 
                T1=T1.__dict__, T2=T2.__dict__)
     assert_equal(T1.__doc__, T2.__doc__)
 
     for k in ['__name__', '__module__', '__doc__']:
         assert_equal(getattr(T1, k, ()), getattr(T2, k, ()))
-
 
     for k in ['__annotations__']:
         assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
@@ -80,7 +80,6 @@ def assert_equivalent_types(T1: type, T2: type):
     # assert_equal(T1.mro(), T2.mro())
 
 
-
 def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     """
 
@@ -93,7 +92,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     """
 
     y1 = object_to_ipce(x1, use_globals)
-    # print(json.dumps(y1, indent=2))
+
     h1 = store_json(y1)
     y1b = recall_json(h1)
 
@@ -122,31 +121,35 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
         raise AssertionError(msg)
 
-    eq1 = (x1b == x1)
-    eq2 = (x1 == x1b)
-    # test object equality
-    if expect_equality:  # pragma: no cover
-        if not eq1:
-            m = 'Object equality (next == orig) not preserved'
-            msg = pretty_dict(m,
-                              dict(x1b=x1b,
-                                   x1b_=type(x1b),
-                                   x1=x1,
-                                   x1_=type(x1), x1b_eq=x1b.__eq__))
-            raise AssertionError(msg)
-        if not eq2:
-            m = 'Object equality (orig == next) not preserved'
-            msg = pretty_dict(m,
-                              dict(x1b=x1b,
-                                   x1b_=type(x1b),
-                                   x1=x1,
-                                   x1_=type(x1),
-                                   x1_eq=x1.__eq__))
-            raise AssertionError(msg)
+    if isinstance(x1b, type) and isinstance(x1, type):
+        logger.warning('Skipping type equality check for %s and %s' % (x1b, x1))
     else:
-        if eq1 and eq2:  # pragma: no cover
-            msg = 'You did not expect equality but they actually are'
-            raise Exception(msg)
+
+        eq1 = (x1b == x1)
+        eq2 = (x1 == x1b)
+        # test object equality
+        if expect_equality:  # pragma: no cover
+            if not eq1:
+                m = 'Object equality (next == orig) not preserved'
+                msg = pretty_dict(m,
+                                  dict(x1b=x1b,
+                                       x1b_=type(x1b),
+                                       x1=x1,
+                                       x1_=type(x1), x1b_eq=x1b.__eq__))
+                raise AssertionError(msg)
+            if not eq2:
+                m = 'Object equality (orig == next) not preserved'
+                msg = pretty_dict(m,
+                                  dict(x1b=x1b,
+                                       x1b_=type(x1b),
+                                       x1=x1,
+                                       x1_=type(x1),
+                                       x1_eq=x1.__eq__))
+                raise AssertionError(msg)
+        else:
+            if eq1 and eq2:  # pragma: no cover
+                msg = 'You did not expect equality but they actually are'
+                raise Exception(msg)
 
     return locals()
 

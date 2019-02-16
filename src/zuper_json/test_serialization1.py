@@ -237,7 +237,8 @@ def test_the_tester_no_links2_in_snd_not2_0():
 @raises(ValueError)
 @with_private_register
 def test_the_tester_no_links2_in_snd_not2():
-    class NotDataClass: ...
+    class NotDataClass:
+        ...
 
     T = NotDataClass
     type_to_schema(T, symbols)
@@ -272,7 +273,7 @@ def test_any():
     assert_equal(s, {SCHEMA_ATT: SCHEMA_ID})
 
 
-@raises(NotImplementedError)
+# @raises(NotImplementedError)
 def test_any_instantiate():
     # noinspection PyTypeChecker
     schema = type_to_schema(Name, {})

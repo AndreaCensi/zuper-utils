@@ -56,7 +56,7 @@ def test_not_implemented_list_1():
     assert_object_roundtrip(e, {})
 
 
-@relies_on_missing_features
+# @relies_on_missing_features
 @with_private_register
 def test_not_implemented_float_1():
     @dataclass
@@ -99,13 +99,13 @@ def test_newtype():
     assert_type_roundtrip(T, symbols)
 
 
-@relies_on_missing_features
+# @relies_on_missing_features
 def test_tuples1():
     T = Tuple[str, int]
     assert_type_roundtrip(T, symbols)
 
 
-@relies_on_missing_features
+# @relies_on_missing_features
 def test_tuples2():
     T = Tuple[str, ...]
     assert_type_roundtrip(T, symbols)

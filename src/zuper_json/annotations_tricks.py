@@ -60,6 +60,12 @@ def get_ClassVar_arg(x):
 def is_Type(x):
     return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
+def is_Tuple(x):
+    return (isinstance(x, typing._GenericAlias) and (x._name == 'Tuple'))
+
+def is_finiteTuple(x):
+    pass
+
 
 def get_Type_arg(x):
     assert is_Type(x)

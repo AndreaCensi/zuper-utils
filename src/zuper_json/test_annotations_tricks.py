@@ -1,7 +1,7 @@
 import typing
 from typing import *
 
-from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any
+from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple
 
 
 def test_union():
@@ -58,3 +58,21 @@ def test_any():
     # print(a._name)
     # print(a.__dict__)
     assert is_Any(a)
+
+
+def test_Tuple1():
+    a = Tuple[int, str]
+    # print(a)
+    # print(type(a))
+    # print(a._name)
+    # print(a.__dict__)
+    assert is_Tuple(a)
+
+
+def test_Tuple2():
+    a = Tuple[int, ...]
+    # print(a)
+    # print(type(a))
+    # print(a._name)
+    # print(a.__dict__)
+    assert is_Tuple(a)

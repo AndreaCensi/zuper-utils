@@ -1,5 +1,5 @@
 import json
-from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass
+from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
     _SpecialForm, Generic, List, Tuple, Callable
@@ -14,11 +14,11 @@ from zuper_json.my_intersection import is_Intersection, get_Intersection_args, I
 from zuper_json.register import hash_from_string
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
-    get_Dict_name_K_V
+    get_Dict_name_K_V, is_Tuple
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
     ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS
-from .pretty import pretty_dict
+from .pretty import pretty_dict, pprint
 from .types import MemoryJSON
 
 JSONSchema = NewType('JSONSchema', dict)
@@ -69,8 +69,10 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
         raise TypeError(msg)
 
     if isinstance(ob, tuple):
-        msg = 'Do not support tuples yet'
-        raise TypeError(msg)
+        suggest_type_l = None # ZXX
+        return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
+        # msg = 'Do not support tuples yet'
+        # raise TypeError(msg)
 
     if isinstance(ob, bytes):
         # res = base58.b58encode(ob)
@@ -91,6 +93,9 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
 
     if isinstance(ob, dict):
         return dict_to_ipce(ob, globals_, suggest_type)
+
+    if isinstance(ob, type):
+        return type_to_schema(ob, globals_, processing={})
 
     res = {}
     #
@@ -158,8 +163,10 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
 
     sa = mj[SCHEMA_ATT]
     if sa == SCHEMA_ID:
-        msg = f'Trying to instantiate a schema?\n{mj}'
-        raise NotImplementedError(msg)
+        # msg = f'Trying to instantiate a schema?\n{mj}'
+        # raise NotImplementedError(msg)
+        return schema_to_type(mj, global_symbols, encountered)
+
 
     K = schema_to_type(sa, global_symbols, encountered)
     assert isinstance(K, type), K
@@ -169,7 +176,10 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
             continue
         attrs[k] = ipce_to_object(v, global_symbols, encountered)
 
-    if issubclass(K, dict):
+    if K is type:
+        # we expect a schema
+        return schema_to_type(mj, global_symbols, encountered)
+    elif issubclass(K, dict):
         return deserialize_Dict(K, attrs)
 
     elif K is bytes:
@@ -184,9 +194,11 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None) -> 
         except TypeError as e:  # pragma: no cover
             msg = f'Cannot instantiate type with attrs {attrs}:\n{K}'
             msg += f'\n\n Bases: {K.__bases__}'
-            msg += f'\n{K.__annotations__}'
+            anns = getattr(K, '__annotations__', 'none')
+            msg += f"\n{anns}"
+            df = getattr(K, '__dataclass_fields__', 'none')
             # noinspection PyUnresolvedReferences
-            msg += f'\n{K.__dataclass_fields__}'
+            msg += f'\n{df}'
             raise TypeError(msg) from e
 
 
@@ -225,7 +237,7 @@ def deserialize_Dict(D, attrs):
         raise NotImplementedError(msg)
 
 
-ATT_PYTHON_NAME = '^python_qualified_name'
+ATT_PYTHON_NAME = '__qualname__'
 
 
 class CannotFindSchemaReference(ValueError):
@@ -247,9 +259,10 @@ def schema_to_type(schema0: JSONSchema, global_symbols: Dict, encountered: Dict)
 
 
 def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> Union[Type, _SpecialForm]:
+    # pprint('schema_to_type_', schema0=schema0)
     encountered = encountered or {}
     info = dict(global_symbols=global_symbols, encountered=encountered)
-    assert isinstance(schema0, dict), schema0
+    check_isinstance(schema0, dict)
     schema: JSONSchema = dict(schema0)
     # noinspection PyUnusedLocal
     metaschema = schema.pop(SCHEMA_ATT, None)
@@ -265,13 +278,14 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
         else:
             cls_name = schema[JSC_TITLE]
             encountered[schema_id] = cls_name
+
     if schema == {}:
         return Any
 
     if REF_ATT in schema:
         r = schema[REF_ATT]
         if r == SCHEMA_ID:
-            if schema.get(JSC_TITLE,'') == 'type':
+            if schema.get(JSC_TITLE, '') == 'type':
                 return type
             else:
                 return Type
@@ -321,8 +335,22 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
                 return schema_to_type_dataclass(schema, global_symbols, encountered)
 
         assert False, schema  # pragma: no cover
+    elif schema.get(JSC_TYPE, None) == "array":
+        return schema_array_to_type(schema, global_symbols, encountered)
 
+    pprint(schema=schema, schema0=schema0)
     assert False, schema  # pragma: no cover
+
+
+def schema_array_to_type(schema, global_symbols, encountered):
+    items = schema['items']
+    if isinstance(items, list):
+        args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
+        return Tuple.__getitem__(args)
+    else:
+        args = schema_to_type(items, global_symbols, encountered)
+        return Tuple.__getitem__((args, Ellipsis))
+
 
 
 def schema_dict_to_DictType(schema, global_symbols, encountered):
@@ -369,7 +397,9 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         check_isinstance(schema, dict)
     except BaseException as e:
         m = f'Cannot get schema for {T}'
-        msg = pretty_dict(m, dict(globals0=globals0, globals=globals_, processing=processing))
+        msg = pretty_dict(m, dict(#globals0=globals0,
+                                  #globals=globals_,
+                processing=processing))
         raise type(e)(msg) from e
 
     assert_in(SCHEMA_ATT, schema)
@@ -427,6 +457,29 @@ def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) ->
     pass
 
 
+def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    assert is_Tuple(T)
+    args = T.__args__
+    if args[-1] == Ellipsis:
+        items = args[0]
+        res: JSONSchema = {}
+        res[SCHEMA_ATT] = SCHEMA_ID
+        res["type"] = "array"
+        res["items"] = type_to_schema(items, globals_, processing)
+        res['title'] = 'Tuple'
+        return res
+    else:
+        res: JSONSchema = {}
+
+        res[SCHEMA_ATT] = SCHEMA_ID
+        res["type"] = "array"
+        res["items"] = []
+        res['title'] = 'Tuple'
+        for a in args:
+            res['items'].append(type_to_schema(a, globals_, processing))
+        return res
+
+
 def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
@@ -465,6 +518,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return res
 
     if T is Number:
+        res: JSONSchema = {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID}
+        return res
+
+    if T is float:
         res: JSONSchema = {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID}
         return res
 
@@ -510,6 +567,9 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Type(T):
         return type_Type_to_schema(T, globals_, processing)
 
+    if is_Tuple(T):
+        return Tuple_to_schema(T, globals_, processing)
+
     assert isinstance(T, type), T
 
     # if issubclass(T, CustomDict):
@@ -531,7 +591,12 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if hasattr(T, GENERIC_ATT) and getattr(T, GENERIC_ATT) is not None:
         return type_generic_to_schema(T, globals_, processing)
 
-    return type_dataclass_to_schema(T, globals_, processing)
+    if is_dataclass(T):
+        return type_dataclass_to_schema(T, globals_, processing)
+
+    msg = 'Cannot interpret this type. (not a dataclass): %s' % T
+    raise ValueError(msg)
+    assert False, T
 
 
 def schema_Intersection(T, globals_, processing):
@@ -753,6 +818,10 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         res: JSONSchema = make_ref(SCHEMA_ID)
         return Result(res)
 
+    if is_Tuple(t):
+        res = Tuple_to_schema(t, globals_, processing)
+        return Result(res)
+
     if isinstance(t, str):
         te = eval_type_string(t, globals_, processing)
         return te
@@ -766,7 +835,6 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
 
     if is_optional(t):
         tt = get_optional_type(t)
-
         result = eval_field(tt, globals_, processing)
         return Result(result.schema, optional=True)
 
@@ -797,6 +865,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
             m = f'Could not resolve the TypeVar {t}'
             msg = pretty_dict(m, debug_info2())
             raise CannotResolveTypeVar(msg)
+
 
     assert False, t  # pragma: no cover
 
