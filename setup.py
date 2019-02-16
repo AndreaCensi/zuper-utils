@@ -19,5 +19,6 @@ setup(name='zuper_utils',
             'nose',
             'coverage',
             'networkx',
+            'dataclasses',
         ],
       )
