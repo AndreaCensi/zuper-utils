@@ -60,8 +60,10 @@ def get_ClassVar_arg(x):
 def is_Type(x):
     return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
+
 def is_Tuple(x):
     return (isinstance(x, typing._GenericAlias) and (x._name == 'Tuple'))
+
 
 def is_finiteTuple(x):
     pass
@@ -94,13 +96,16 @@ def get_MyNamedArg_name(x):
 def is_Dict(T: Any):
     return isinstance(T, typing._GenericAlias) and T._name == 'Dict'
 
+
 def get_Dict_name(T):
     assert is_Dict(T)
     K, V = T.__args__
     return get_Dict_name_K_V(K, V)
 
+
 def get_Dict_name_K_V(K, V):
     return 'Dict[%s,%s]' % (name_for_type_like(K), name_for_type_like(V))
+
 
 def name_for_type_like(x):
     if isinstance(x, type):
@@ -118,6 +123,7 @@ def name_for_type_like(x):
         return x.__name__
     else:
         return str(x)
+
 
 from typing import Tuple
 

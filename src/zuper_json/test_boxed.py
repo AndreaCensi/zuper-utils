@@ -16,7 +16,6 @@ X = TypeVar('X')
 @raises(TypeError)
 @with_private_register
 def test_boxed1():
-
     @dataclass
     class Boxed(Generic[X]):
         inside: X

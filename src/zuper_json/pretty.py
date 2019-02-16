@@ -2,6 +2,7 @@ from typing import Optional, Dict, Any, TypeVar
 
 from contracts import indent
 
+
 def pprint(msg=None, **kwargs):
     print(pretty_dict(msg, kwargs))
 

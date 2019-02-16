@@ -161,7 +161,6 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
             seq = [ipce_to_object(_, global_symbols, encountered) for _ in mj]
             return seq
 
-
     assert isinstance(mj, dict)
 
     if SCHEMA_ATT not in mj:
@@ -196,6 +195,7 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
 
     assert False, K  # pragma: no cover
 
+
 def deserialize_tuple(expect_type, mj, global_symbols, encountered):
     seq = []
     for i, ob in enumerate(mj):
@@ -203,6 +203,7 @@ def deserialize_tuple(expect_type, mj, global_symbols, encountered):
         seq.append(ipce_to_object(ob, global_symbols, encountered, expect_type=expect_type_i))
 
     return tuple(seq)
+
 
 def deserialize_dataclass(K, mj, global_symbols, encountered):
     # some data classes might have no annotations ("Empty")
@@ -338,7 +339,6 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
         args = [schema_to_type(_, global_symbols, encountered) for _ in options]
         res = Intersection[tuple(args)]
         return res
-
 
     jsc_type = schema.get(JSC_TYPE, None)
     if schema0 == SCHEMA_BYTES:

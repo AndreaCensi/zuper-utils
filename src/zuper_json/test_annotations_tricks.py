@@ -22,7 +22,9 @@ def test_optional():
 class Tree:
     n: Optional['Tree']
 
+
 symbols = {'Tree': Tree}
+
 
 def test_forward():
     x = Tree.__annotations__['n']

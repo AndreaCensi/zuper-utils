@@ -1,5 +1,3 @@
-
-
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = '$schema'
 
@@ -11,7 +9,7 @@ REF_ATT = '$ref'
 X_CLASSVARS = 'classvars'
 X_CLASSATTS = 'clasatts'
 
-JSC_REQUIRED= 'required'
+JSC_REQUIRED = 'required'
 JSC_TYPE = 'type'
 JSC_TITLE = 'title'
 JSC_NUMBER = 'number'
@@ -31,5 +29,3 @@ GENERIC_ATT = '__generic__'
 BINDINGS_ATT = '__binding__'
 
 # ZATA = 'ZATACLASS'
-
-

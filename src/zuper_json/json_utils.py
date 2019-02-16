@@ -6,7 +6,7 @@ def json_dump(x) -> str:
 
     if False:
         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
-                   indent=2)
+                       indent=2)
     else:
         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
                        separators=(',', ':'))

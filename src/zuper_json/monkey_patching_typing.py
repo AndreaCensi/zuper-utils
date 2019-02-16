@@ -7,8 +7,9 @@ from .zeneric2 import ZenericFix
 
 Generic.__class_getitem__ = ZenericFix.__class_getitem__
 
-
 previous_getitem = _GenericAlias.__getitem__
+
+
 class Alias1:
 
     def __getitem__(self, params):
@@ -18,8 +19,10 @@ class Alias1:
                 return make_dict(K, V)
         return previous_getitem(self, params)
 
+
 _GenericAlias.__getitem__ = Alias1.__getitem__
 Dict.__getitem__ = Alias1.__getitem__
+
 
 def _cmp_fn_loose(name, op, self_tuple, other_tuple):
     body = ['if other.__class__.__name__ == self.__class__.__name__:',
@@ -77,10 +80,8 @@ def MyNamedArg(x: type, name):
         return Reg.already[key]
     meta = getattr(x, '__metaclass_', type)
 
-
     d = {NAME_ARG: name, 'original': x}
     cname = x.__name__
-
 
     res = meta(cname, (x,), d)
 
@@ -113,5 +114,6 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
     return res
+
 
 setattr(dataclasses, 'dataclass', my_dataclass)

@@ -9,6 +9,8 @@ from .constants import LINKS, SCHEMA_ATT, SCHEMA_ID
 from .ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from .test_utils import assert_object_roundtrip, with_private_register
+
+
 # from zuper_json.zeneric2 import zataclass, Zeneric
 
 
@@ -233,7 +235,6 @@ def test_the_tester_no_links2_in_snd_not2_0():
     to_canonical_json(x)
 
 
-
 @raises(ValueError)
 @with_private_register
 def test_the_tester_no_links2_in_snd_not2():
@@ -394,7 +395,6 @@ def test_error2():
 def test_to_canonical_no_none_values():
     x = {'x': None}
     to_canonical_json(x)
-
 
 
 # for completeness

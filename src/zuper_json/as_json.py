@@ -2,9 +2,9 @@ from typing import Iterator, Tuple
 
 from .constants import LINKS
 from .json_utils import json_dump
+from .pretty import pretty_dict
 from .register import hash_from_string
 from .types import MemoryJSON, CanonicalJSONString, Hash
-from .pretty import pretty_dict
 
 
 def assert_regular_memory_json(x):
