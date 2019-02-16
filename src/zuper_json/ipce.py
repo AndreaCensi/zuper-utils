@@ -117,7 +117,7 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
         except BaseException as e:
             msg = f'Cannot serialize attribute {k}  = {v}'
             msg += f'\nType {type(ob)} has annotated it as {ann}'
-            raise type(e)(msg) from e
+            raise Exception(msg) from e
     res[SCHEMA_ATT] = type_to_schema(type(ob), globals_)
     return res
 
