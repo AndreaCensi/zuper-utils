@@ -1,12 +1,18 @@
 import dataclasses
 import typing
-from typing import TypeVar, Generic, Dict, _GenericAlias
+from typing import TypeVar, Generic, Dict
 
 from zuper_json.my_dict import make_dict
 from .zeneric2 import ZenericFix
 
 Generic.__class_getitem__ = ZenericFix.__class_getitem__
 
+try:  # Python 3.7
+    from typing import _GenericAlias
+
+except ImportError:  # 3.6
+    from typing import GenericMeta as _GenericAlias
+    
 previous_getitem = _GenericAlias.__getitem__
 
 
@@ -19,8 +25,10 @@ class Alias1:
                 return make_dict(K, V)
         return previous_getitem(self, params)
 
-
 _GenericAlias.__getitem__ = Alias1.__getitem__
+
+
+
 Dict.__getitem__ = Alias1.__getitem__
 
 
