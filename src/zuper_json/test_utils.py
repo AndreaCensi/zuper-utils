@@ -1,6 +1,7 @@
 import functools
 import json
 import os
+import sys
 import typing
 from contextlib import contextmanager
 # noinspection PyUnresolvedReferences
@@ -13,7 +14,7 @@ from . import logger
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .pretty import pretty_dict, pprint
 from .register import ConcreteRegister, use_register, store_json, recall_json, IPFSDagRegister
-
+PYTHON_36 = sys.version_info[1] == 6
 
 def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     # resolve_types(T)
@@ -72,9 +73,12 @@ def assert_equivalent_types(T1: type, T2: type):
                 if m1 is T1 or m2 is T2: continue
                 assert_equivalent_types(m1, m2)
 
-    if isinstance(T1, typing._GenericAlias):
-        for z1, z2 in zip(T1.__args__, T2.__args__):
-            assert_equivalent_types(z1, z2)
+    if PYTHON_36:
+        pass # XX
+    else:
+        if isinstance(T1, typing._GenericAlias):
+            for z1, z2 in zip(T1.__args__, T2.__args__):
+                assert_equivalent_types(z1, z2)
 
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())

@@ -1,31 +1,55 @@
 import dataclasses
+import sys
 import typing
 from typing import TypeVar, Generic, Dict
 
 from zuper_json.my_dict import make_dict
+from zuper_json.pretty import pprint
 from .zeneric2 import ZenericFix
 
-Generic.__class_getitem__ = ZenericFix.__class_getitem__
 
-try:  # Python 3.7
+
+PYTHON_36 = sys.version_info[1] == 6
+
+if PYTHON_36:
+    from typing import GenericMeta
+    previous_getitem = GenericMeta.__getitem__
+else:
     from typing import _GenericAlias
-
-except ImportError:  # 3.6
-    from typing import GenericMeta as _GenericAlias
-    
-previous_getitem = _GenericAlias.__getitem__
-
+    previous_getitem = _GenericAlias.__getitem__
 
 class Alias1:
 
     def __getitem__(self, params):
+
         if self is typing.Dict:
             K, V = params
             if K is not str:
                 return make_dict(K, V)
+
         return previous_getitem(self, params)
 
-_GenericAlias.__getitem__ = Alias1.__getitem__
+if PYTHON_36:
+    from typing import GenericMeta
+
+    print(GenericMeta.__getitem__)
+    print(Generic.__getitem__)
+
+    old_one = GenericMeta.__getitem__
+    class P36Generic:
+        def __getitem__(self, params):
+            # pprint('P36', params=params, self=self)
+            if self is typing.Generic:
+                return ZenericFix.__class_getitem__(params)
+            return old_one(self, params)
+    GenericMeta.__getitem__ = P36Generic.__getitem__
+
+
+    # Generic.__getitem__ = ZenericFix.__class_getitem__
+    # GenericMeta.__getitem__ = ZenericFix.__class_getitem__
+else:
+    Generic.__class_getitem__ = ZenericFix.__class_getitem__
+    _GenericAlias.__getitem__ = Alias1.__getitem__
 
 
 
@@ -107,7 +131,8 @@ from dataclasses import dataclass as original_dataclass
 
 
 class RegisteredClasses:
-    klasses: Dict[str, type] = {}
+    # klasses: Dict[str, type] = {}
+    klasses = {}
 
 
 def remember_created_class(res):
@@ -118,6 +143,7 @@ def remember_created_class(res):
 
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
+    pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)

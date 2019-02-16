@@ -303,7 +303,7 @@ def test_check_bound():
     #
 
 
-@raises(ValueError)
+@raises(ValueError, TypeError) # typerror in 3.6
 def test_check_value():
     @dataclass
     class CG(Generic[()]):
@@ -370,21 +370,26 @@ def test_derived2_no_doc():
 @with_private_register
 def test_derived2_subst():
     X = TypeVar('X')
-
+    # print(dir(Generic))
+    # print(dir(typing.GenericMeta))
+    # print(Generic.__getitem__)
     @dataclass
     class Signed3(Generic[X]):
         data: X
         parent: Optional['Signed3[X]'] = None
 
+    print(Signed3.mro())
+    Signed3[int]
     resolve_types(Signed3, locals())
+
 
     S = Signed3[int]
 
     pprint(**S.__annotations__)
-    assert 'X' not in str(S.__annotations__)
+    assert 'X' not in str(S.__annotations__), S.__annotations__
 
     # assert_type_roundtrip(S, {})
-
+    @dataclass
     class Y(S):
         pass
 
