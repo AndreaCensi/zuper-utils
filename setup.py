@@ -18,5 +18,6 @@ setup(name='zuper_utils',
             'mypy_extensions',
             'nose',
             'coverage',
+            'networkx',
         ],
-      ) 
+      )
