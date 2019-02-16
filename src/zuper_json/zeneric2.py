@@ -37,7 +37,7 @@ class ZenericFix:
 
     @classmethod
     def __class_getitem__(cls, params):
-        pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
+        # pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
         types = as_tuple(params)
 
         if PYTHON_36:
@@ -49,14 +49,14 @@ class ZenericFix:
             FakeGenericMeta = ABCMeta
 
         class GenericProxy(metaclass=FakeGenericMeta):
-        # class GenericProxy()
+
             @abstractmethod
             def need(self):
                 """"""
 
             @classmethod
             def __class_getitem__(cls, params2):
-                pprint('ZenericFix', cls=cls, params2=params2)
+                # pprint('ZenericFix', cls=cls, params2=params2)
                 types2 = as_tuple(params2)
                 return make_type(cls, types, types2)
 
@@ -111,8 +111,8 @@ def resolve_types(T, l):
 from dataclasses import is_dataclass
 
 def make_type(cls: type, types, types2: Sequence) -> type:
-    pprint('make_type', types=types, types2=types2)
-    print('cls %s dataclass? %s' % (cls, is_dataclass(cls)))
+    # pprint('make_type', types=types, types2=types2)
+    # print('cls %s dataclass? %s' % (cls, is_dataclass(cls)))
     # black magic
     for t2 in types2:
         if isinstance(t2, TypeVar):
@@ -186,11 +186,10 @@ def make_type(cls: type, types, types2: Sequence) -> type:
 
     if is_dataclass(cls):
         # note: need to have set new annotations
-        pprint('creating dataclass from %s' % cls2)
+        # pprint('creating dataclass from %s' % cls2)
         cls2 = dataclass(cls2)
     else:
-        print('Detected that cls = %s not a dataclass' % cls)
-
+        # print('Detected that cls = %s not a dataclass' % cls)
 
         # noinspection PyUnusedLocal
         def init_placeholder(self, *args, **kwargs):

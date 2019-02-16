@@ -393,7 +393,10 @@ def schema_array_to_type(schema, global_symbols, encountered):
             return Tuple.__getitem__(args)
     else:
         args = schema_to_type(items, global_symbols, encountered)
-        return Tuple.__getitem__((args, Ellipsis))
+        if PYTHON_36:
+            return typing.Tuple[args, ...]
+        else:
+            return Tuple.__getitem__((args, Ellipsis))
 
 
 def schema_dict_to_DictType(schema, global_symbols, encountered):
@@ -810,9 +813,11 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
         # print(f'{name} -> {t}')
         if is_ClassVar(t):
             tt = get_ClassVar_arg(t)
+            print('tt = %s ' % tt)
             result = eval_field(tt, globals_, p2)
             classvars[name] = result.schema
             the_att = getattr(T, name)
+
             if isinstance(the_att, type):
                 classatts[name] = type_to_schema(the_att, globals_, processing)
             else:

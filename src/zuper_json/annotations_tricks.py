@@ -68,7 +68,6 @@ def is_ClassVar(x):
     if PYTHON_36:
         return isinstance(x, typing._ClassVar)
     else:
-
         return isinstance(x, typing._GenericAlias) and (x.__origin__ is typing.ClassVar)
 
 

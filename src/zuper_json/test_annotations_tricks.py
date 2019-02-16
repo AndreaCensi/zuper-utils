@@ -2,7 +2,8 @@ import sys
 import typing
 from typing import *
 
-from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple
+from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple, \
+    is_ClassVar, get_ClassVar_arg
 
 PYTHON_36 = (sys.version_info[1] == 6)
 PYTHON_37 = sys.version_info[1] == 7
@@ -96,3 +97,14 @@ def test_Typevar():
     # print(a._name)
     # print(a.__dict__)
     assert isinstance(a, TypeVar)
+
+
+
+def test_ClassVar():
+    a = ClassVar[int]
+    # print(a)
+    # print(type(a))
+    # print(a._name)
+    # print(a.__dict__)
+    assert is_ClassVar(a)
+    assert get_ClassVar_arg(a) is int

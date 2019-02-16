@@ -303,7 +303,7 @@ def test_check_bound():
     #
 
 
-@raises(ValueError, TypeError) # typerror in 3.6
+@raises(ValueError, TypeError)  # typerror in 3.6
 def test_check_value():
     @dataclass
     class CG(Generic[()]):
@@ -346,7 +346,7 @@ def test_derived1():
         """hello"""
         pass
 
-    assert_equal(S.__doc__, 'Signed3[int](data: int)')
+    assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
     assert_equal(Y.__doc__, """hello""")
     assert_type_roundtrip(Y, {})
 
@@ -370,6 +370,7 @@ def test_derived2_no_doc():
 @with_private_register
 def test_derived2_subst():
     X = TypeVar('X')
+
     # print(dir(Generic))
     # print(dir(typing.GenericMeta))
     # print(Generic.__getitem__)
@@ -381,7 +382,6 @@ def test_derived2_subst():
     print(Signed3.mro())
     Signed3[int]
     resolve_types(Signed3, locals())
-
 
     S = Signed3[int]
 

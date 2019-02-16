@@ -32,8 +32,8 @@ class Alias1:
 if PYTHON_36:
     from typing import GenericMeta
 
-    print(GenericMeta.__getitem__)
-    print(Generic.__getitem__)
+    # print(GenericMeta.__getitem__)
+    # print(Generic.__getitem__)
 
     old_one = GenericMeta.__getitem__
     class P36Generic:
@@ -41,6 +41,12 @@ if PYTHON_36:
             # pprint('P36', params=params, self=self)
             if self is typing.Generic:
                 return ZenericFix.__class_getitem__(params)
+
+            if self is typing.Dict:
+                K, V = params
+                if K is not str:
+                    return make_dict(K, V)
+
             return old_one(self, params)
     GenericMeta.__getitem__ = P36Generic.__getitem__
 
@@ -143,10 +149,12 @@ def remember_created_class(res):
 
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
-    pprint('my_dataclass', _cls=_cls)
+    # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
+
+    # res.__doc__  = res.__doc__.replace(' ', '')
     return res
 
 
