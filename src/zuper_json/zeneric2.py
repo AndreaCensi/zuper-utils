@@ -174,7 +174,7 @@ def make_type(cls: type, types, types2: Sequence) -> type:
             if is_ClassVar(k): continue
             if isinstance(v, type):
                 val = getattr(self, k)
-                if not isinstance(val, v):
+                if not isinstance(val, v) and type(val).__name__ != v.__name__:
                     msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
                     raise ValueError(msg)
 

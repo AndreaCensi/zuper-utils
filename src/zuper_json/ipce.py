@@ -10,7 +10,7 @@ from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
-from zuper_ipce.register import hash_from_string
+
 from zuper_json.constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, \
     _SpecialForm, ProcessingDict, EncounteredDict
 from zuper_json.my_dict import make_dict, CustomDict
@@ -21,7 +21,7 @@ from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, 
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, ID_ATT, \
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36
-from .pretty import pretty_dict
+from .pretty import pretty_dict, pprint
 from .types import MemoryJSON
 
 
@@ -124,9 +124,13 @@ def dict_to_ipce(ob, globals_, suggest_type):
         for k, v in ob.items():
             vj = object_to_ipce(v, globals_)
             kj = object_to_ipce(k, globals_)
-            h = hash_from_string(json.dumps(kj)).hash
-
-            fv = FV(kj, vj)
+            if isinstance(k, int):
+                h = str(k)
+            else:
+                from zuper_ipce.register import hash_from_string
+                h = hash_from_string(json.dumps(kj)).hash
+            pprint(kj=kj, vj=vj)
+            fv = FV(k, v)
             res[h] = object_to_ipce(fv, globals_)
 
     return res
@@ -322,6 +326,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             if tn in global_symbols:
                 return global_symbols[tn]
             else:
+                print(f'did not find {tn} in {global_symbols}')
                 return schema_to_type_dataclass(schema, global_symbols, encountered)
 
         assert False, schema  # pragma: no cover
@@ -948,8 +953,9 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         ptype = schema_to_type(v, global_symbols, encountered)
         fields.append((pname, ClassVar[ptype], field()))
 
+    unsafe_hash = True
     T = make_dataclass(cls_name, fields, bases=(), namespace=None, init=True, repr=True, eq=True, order=False,
-                       unsafe_hash=False, frozen=False)
+                       unsafe_hash=unsafe_hash, frozen=False)
 
     for pname, v in res.get(X_CLASSATTS, {}).items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:

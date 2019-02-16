@@ -96,8 +96,6 @@ def get_List_arg(x):
     assert is_List(x)
     return x.__args__[0]
 
-def is_finiteTuple(x):
-    pass
 
 
 def get_Type_arg(x):

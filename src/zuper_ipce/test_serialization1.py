@@ -16,7 +16,6 @@ from zuper_json.test_utils import assert_object_roundtrip
 from .test_utils import with_private_register
 
 
-
 @dataclass
 class Empty:
     ...
@@ -140,6 +139,24 @@ def test_ser_forward1():
 def test_ser_forward2():
     n1 = Empty()
     assert_object_roundtrip(n1, symbols)
+
+
+@with_private_register
+def test_ser_dict_object():
+    @dataclass(frozen=True, unsafe_hash=True)
+    class L:
+        x: int
+        y: int
+
+    @dataclass
+    class M:
+        a: Dict[L, str]
+
+    d = {L(0, 0): 'one',
+         L(1, 1): 'two'}
+    m = M(d)
+    symbols2 = {L.__qualname__: L}
+    assert_object_roundtrip(m, symbols2)
 
 
 from nose.tools import raises, assert_equal

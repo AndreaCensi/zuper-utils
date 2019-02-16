@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import *
+from typing import NewType, List
 
-from typing import NewType, Tuple, List
-
-from zuper_json.test_utils import relies_on_missing_features, assert_type_roundtrip
-from .test_utils import assert_object_roundtrip, with_private_register
+from .test_utils import relies_on_missing_features, assert_type_roundtrip, assert_object_roundtrip, \
+    with_private_register
 
 
 @relies_on_missing_features
@@ -34,17 +33,6 @@ def test_not_implemented_set_2():
     assert_object_roundtrip(e, {})  # pragma: no cover
 
 
-#
-# @with_private_register
-# def test_not_implemented_dict_complex1():
-#     @dataclass
-#     class MyClass:
-#         f: Dict[int, int]
-#
-#     e = MyClass({1: 2})
-#     assert_object_roundtrip(e, {})
-
-
 @with_private_register
 def test_not_implemented_list_1():
     @dataclass
@@ -55,7 +43,6 @@ def test_not_implemented_list_1():
     assert_object_roundtrip(e, {})
 
 
-# @relies_on_missing_features
 @with_private_register
 def test_not_implemented_float_1():
     @dataclass

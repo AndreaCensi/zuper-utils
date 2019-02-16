@@ -6,6 +6,7 @@ class CustomDict(dict):
 
     def __setitem__(self, key, val):
         K, V = self.__dict_type__
+
         if not isinstance(key, K):
             msg = f'Invalid key; expected {K}, got {type(key)}'
             raise ValueError(msg)

@@ -1,5 +1,4 @@
 import json
-import sys
 import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
@@ -7,11 +6,11 @@ from unittest import SkipTest
 
 from nose.tools import assert_equal
 
-from zuper_json.json_utils import json_dump
 from . import logger
+from .constants import PYTHON_36
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .pretty import pretty_dict, pprint
-from .constants import PYTHON_36
+
 
 def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     # resolve_types(T)
@@ -70,7 +69,7 @@ def assert_equivalent_types(T1: type, T2: type):
                 if m1 is T1 or m2 is T2: continue
                 assert_equivalent_types(m1, m2)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         pass  # XX
     else:
         if isinstance(T1, typing._GenericAlias):
@@ -95,10 +94,17 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
     y1 = object_to_ipce(x1, use_globals)
 
-    from zuper_ipce.register import store_json, recall_json
-    h1 = store_json(y1)
-    y1b = recall_json(h1)
-    assert y1b == y1
+    x1b = ipce_to_object(y1, use_globals)
+
+    x1bj = object_to_ipce(x1b, use_globals)
+
+    if False:
+        from zuper_ipce.register import store_json, recall_json
+        h1 = store_json(y1)
+        y1b = recall_json(h1)
+        assert y1b == y1
+        h2 = store_json(x1bj)
+        assert h1==h2
     # print('---original')
 
     # print('---recalled')
@@ -106,7 +112,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
     # print(register.pretty_print())
 
-    x1b = ipce_to_object(y1, use_globals)
+
     # print(x1b)
     # assert isinstance(x1b, Office)
 
@@ -114,9 +120,9 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     # print(register.string_from_hash(h1))
     # print(register.G)
 
-    x1bj = object_to_ipce(x1b, use_globals)
-    h2 = store_json(x1bj)
-    if h1 != h2:  # pragma: no cover
+
+
+    if y1 != x1bj:  # pragma: no cover
         msg = pretty_dict('Round trip not obtained', dict(x1bj=json.dumps(x1bj, indent=2),
                                                           y1=json.dumps(y1, indent=2)))
 
@@ -191,6 +197,6 @@ def relies_on_missing_features(f):
 
 
 def with_private_register(f):
+    return f
     from zuper_ipce.test_utils import with_private_register as other
     return other(f)
-
