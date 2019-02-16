@@ -10,4 +10,13 @@ setup(name='zuper_utils',
                   'zj = zuper_json.zj:zj_main'
             ]
       },
-      )
+      install_requires=[
+            'pybase64',
+            'PyContracts',
+            'IPython',
+            'validate_email',
+            'mypy_extensions',
+            'nose',
+            'coverage',
+        ],
+      ) 
