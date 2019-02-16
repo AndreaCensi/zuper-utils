@@ -4,11 +4,11 @@ from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, NewType, ClassVar, cast, Union, \
     _SpecialForm, Generic, List, Tuple, Callable
 
+from contracts import check_isinstance
 from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
-from contracts import check_isinstance
 from zuper_json.my_dict import make_dict, CustomDict
 from zuper_json.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from zuper_json.register import hash_from_string
@@ -17,8 +17,8 @@ from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, 
     get_Dict_name_K_V, is_Tuple
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
-    ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS
-from .pretty import pretty_dict, pprint
+    ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL
+from .pretty import pretty_dict
 from .types import MemoryJSON
 
 JSONSchema = NewType('JSONSchema', dict)
@@ -67,11 +67,11 @@ def object_to_ipce_(ob, globals_: GlobalsDict, suggest_type: Type = None) -> Mem
     if isinstance(ob, list):
         # msg = 'Do not support lists yet'
         # raise TypeError(msg)
-        suggest_type_l = None # ZXX
+        suggest_type_l = None  # ZXX
         return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
 
     if isinstance(ob, tuple):
-        suggest_type_l = None # ZXX
+        suggest_type_l = None  # ZXX
         return [object_to_ipce(_, globals_, suggest_type_l) for _ in ob]
         # msg = 'Do not support tuples yet'
         # raise TypeError(msg)
@@ -128,7 +128,7 @@ def dict_to_ipce(ob, globals_, suggest_type):
         K, V = suggest_type.__args__
     elif issubclass(suggest_type, CustomDict):
         K, V = suggest_type.__dict_type__
-    else: # pragma: no cover
+    else:  # pragma: no cover
         assert False, suggest_type
     # T = suggest_type or type(ob)
     res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
@@ -151,25 +151,16 @@ def dict_to_ipce(ob, globals_, suggest_type):
 def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
                    expect_type=None) -> object:
     encountered = encountered or {}
-    if isinstance(mj, (int, str, float)):
+    if isinstance(mj, (int, str, float, bool)):
         return mj
 
     if isinstance(mj, list):
-
         if expect_type and is_Tuple(expect_type):
-            seq = []
-            for i, ob in enumerate(mj):
-                expect_type_i = expect_type.__args__[i]
-                seq.append(ipce_to_object(ob, global_symbols, encountered, expect_type=expect_type_i))
-
-            return tuple(seq)
-
+            return deserialize_tuple(expect_type, mj, global_symbols, encountered)
         else:
             seq = [ipce_to_object(_, global_symbols, encountered) for _ in mj]
             return seq
 
-        # msg = 'Do not support lists.'
-        # raise TypeError(msg)
 
     assert isinstance(mj, dict)
 
@@ -183,14 +174,13 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
         # raise NotImplementedError(msg)
         return schema_to_type(mj, global_symbols, encountered)
 
-
     K = schema_to_type(sa, global_symbols, encountered)
 
     assert isinstance(K, type), K
 
-    if K is type:
-        # we expect a schema
-        return schema_to_type(mj, global_symbols, encountered)
+    # if K is type:
+    #     # we expect a schema
+    #     return schema_to_type(mj, global_symbols, encountered)
 
     if K is bytes:
         data = mj['base64']
@@ -198,42 +188,52 @@ def ipce_to_object(mj: MemoryJSON, global_symbols, encountered: dict = None,
         assert isinstance(res, bytes)
         return res
 
-
     if issubclass(K, dict):
-        attrs = {}
-        for k, v in mj.items():
-            if k == SCHEMA_ATT:
-                continue
-            attrs[k] = ipce_to_object(v, global_symbols, encountered)
-
-
-        return deserialize_Dict(K, attrs)
+        return deserialize_Dict(K, mj, global_symbols, encountered)
 
     if is_dataclass(K):
-        # some data classes might have no annotations ("Empty")
-        anns = getattr(K, '__annotations__', {})
+        return deserialize_dataclass(K, mj, global_symbols, encountered)
 
-        attrs = {}
-        for k, v in mj.items():
-            if k in anns:
-                expect_type = K.__annotations__[k]
-                attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+    assert False, K  # pragma: no cover
 
-        try:
-            return K(**attrs)
-        except TypeError as e:  # pragma: no cover
-            msg = f'Cannot instantiate type with attrs {attrs}:\n{K}'
-            msg += f'\n\n Bases: {K.__bases__}'
-            anns = getattr(K, '__annotations__', 'none')
-            msg += f"\n{anns}"
-            df = getattr(K, '__dataclass_fields__', 'none')
-            # noinspection PyUnresolvedReferences
-            msg += f'\n{df}'
-            raise TypeError(msg) from e
+def deserialize_tuple(expect_type, mj, global_symbols, encountered):
+    seq = []
+    for i, ob in enumerate(mj):
+        expect_type_i = expect_type.__args__[i]
+        seq.append(ipce_to_object(ob, global_symbols, encountered, expect_type=expect_type_i))
 
-    assert False, K # pragma: no cover
+    return tuple(seq)
 
-def deserialize_Dict(D, attrs):
+def deserialize_dataclass(K, mj, global_symbols, encountered):
+    # some data classes might have no annotations ("Empty")
+    anns = getattr(K, '__annotations__', {})
+
+    attrs = {}
+    for k, v in mj.items():
+        if k in anns:
+            expect_type = K.__annotations__[k]
+            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+
+    try:
+        return K(**attrs)
+    except TypeError as e:  # pragma: no cover
+        msg = f'Cannot instantiate type with attrs {attrs}:\n{K}'
+        msg += f'\n\n Bases: {K.__bases__}'
+        anns = getattr(K, '__annotations__', 'none')
+        msg += f"\n{anns}"
+        df = getattr(K, '__dataclass_fields__', 'none')
+        # noinspection PyUnresolvedReferences
+        msg += f'\n{df}'
+        raise TypeError(msg) from e
+
+
+def deserialize_Dict(D, mj, global_symbols, encountered):
+    attrs = {}
+    for k, v in mj.items():
+        if k == SCHEMA_ATT:
+            continue
+        attrs[k] = ipce_to_object(v, global_symbols, encountered)
+
     # pprint('here', D=D)
     if issubclass(D, CustomDict):
         K, V = D.__dict_type__
@@ -263,7 +263,7 @@ def deserialize_Dict(D, attrs):
         #     msg = pretty_dict("here", dict(K=K, V=V, attrs=attrs))
         #     raise NotImplementedError(msg)
 
-    else: # pragma: no cover
+    else:  # pragma: no cover
         msg = pretty_dict("not sure", dict(D=D, attrs=attrs))
         raise NotImplementedError(msg)
 
@@ -339,19 +339,23 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
         res = Intersection[tuple(args)]
         return res
 
+
+    jsc_type = schema.get(JSC_TYPE, None)
     if schema0 == SCHEMA_BYTES:
         return bytes
 
-    elif schema.get(JSC_TYPE, None) == JSC_STRING:
+    elif jsc_type == JSC_STRING:
         return str
+    elif jsc_type == JSC_BOOL:
+        return bool
 
-    elif schema.get(JSC_TYPE, None) == JSC_NUMBER:
+    elif jsc_type == JSC_NUMBER:
         return Number
 
-    elif schema.get(JSC_TYPE, None) == JSC_INTEGER:
+    elif jsc_type == JSC_INTEGER:
         return int
 
-    elif schema.get(JSC_TYPE, None) == JSC_OBJECT:
+    elif jsc_type == JSC_OBJECT:
         if schema.get(JSC_TITLE, '') == 'Callable':
             return schema_to_type_callable(schema, global_symbols, encountered)
         if schema.get(JSC_TITLE, '').startswith('Dict'):
@@ -366,7 +370,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
                 return schema_to_type_dataclass(schema, global_symbols, encountered)
 
         assert False, schema  # pragma: no cover
-    elif schema.get(JSC_TYPE, None) == "array":
+    elif jsc_type == "array":
         return schema_array_to_type(schema, global_symbols, encountered)
 
     # pprint(schema=schema, schema0=schema0)
@@ -381,7 +385,6 @@ def schema_array_to_type(schema, global_symbols, encountered):
     else:
         args = schema_to_type(items, global_symbols, encountered)
         return Tuple.__getitem__((args, Ellipsis))
-
 
 
 def schema_dict_to_DictType(schema, global_symbols, encountered):
@@ -428,8 +431,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         check_isinstance(schema, dict)
     except BaseException as e:
         m = f'Cannot get schema for {T}'
-        msg = pretty_dict(m, dict(#globals0=globals0,
-                                  #globals=globals_,
+        msg = pretty_dict(m, dict(  # globals0=globals0,
+                # globals=globals_,
                 processing=processing))
         raise type(e)(msg) from e
 
@@ -463,7 +466,7 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
         K, V = T.__args__
     elif issubclass(T, CustomDict):
         K, V = T.__dict_type__
-    else: # pragma: no cover
+    else:  # pragma: no cover
         assert False
 
     res: JSONSchema = {JSC_TYPE: JSC_OBJECT}
@@ -546,6 +549,10 @@ def schema_to_type_callable(schema: JSONSchema, global_symbols: GlobalsDict, enc
 def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     if T is str:
         res: JSONSchema = {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID}
+        return res
+
+    if T is bool:
+        res: JSONSchema = {JSC_TYPE: JSC_BOOL, SCHEMA_ATT: SCHEMA_ID}
         return res
 
     if T is Number:
@@ -896,7 +903,6 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
             m = f'Could not resolve the TypeVar {t}'
             msg = pretty_dict(m, debug_info2())
             raise CannotResolveTypeVar(msg)
-
 
     assert False, t  # pragma: no cover
 
