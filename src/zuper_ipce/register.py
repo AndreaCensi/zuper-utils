@@ -10,10 +10,10 @@ from typing import Tuple, Dict, Iterator, Optional
 
 import networkx as nx
 
-from .constants import LINKS
-from .json_utils import json_dump
-from .pretty import pretty_dict
-from .types import Hash, CanonicalJSONString, MemoryJSON
+from zuper_json.constants import LINKS
+from zuper_json.json_utils import json_dump
+from zuper_json.pretty import pretty_dict
+from zuper_json.types import Hash, CanonicalJSONString, MemoryJSON
 
 
 @dataclass

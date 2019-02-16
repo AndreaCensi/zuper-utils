@@ -14,14 +14,14 @@ from nose.tools import assert_in
 
 from zuper_json.my_dict import make_dict, CustomDict
 from zuper_json.my_intersection import is_Intersection, get_Intersection_args, Intersection
-from zuper_json.register import hash_from_string
+from zuper_ipce.register import hash_from_string
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
     get_Dict_name_K_V, is_Tuple
 from .constants import SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, \
     ID_ATT, JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL
-from .pretty import pretty_dict, pprint
+from .pretty import pretty_dict
 from .types import MemoryJSON
 
 JSONSchema = NewType('JSONSchema', dict)
@@ -254,6 +254,7 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         else:
             ob = D()
             for k, v in attrs.items():
+                # noinspection PyUnresolvedReferences
                 ob[v.real_key] = v.value
             return ob
         # if V.__name__.startswith('FakeValues'):
@@ -393,12 +394,14 @@ def schema_array_to_type(schema, global_symbols, encountered):
         if PYTHON_36:
             return typing.Tuple[args]
         else:
+            # noinspection PyArgumentList
             return Tuple.__getitem__(args)
     else:
         args = schema_to_type(items, global_symbols, encountered)
         if PYTHON_36:
             return typing.Tuple[args, ...]
         else:
+            # noinspection PyArgumentList
             return Tuple.__getitem__((args, Ellipsis))
 
 
@@ -506,11 +509,11 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
         return res
 
 
-def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    # res: JSONSchema = {}
-    # res[ATT_PYTHON_NAME] = T.__qualname__
-    # res[SCHEMA_ATT] = SCHEMA_ID
-    raise NotImplementedError()
+# def type_Type_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+#     # res: JSONSchema = {}
+#     # res[ATT_PYTHON_NAME] = T.__qualname__
+#     # res[SCHEMA_ATT] = SCHEMA_ID
+#     raise NotImplementedError()
 
 
 def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
@@ -627,9 +630,9 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
     if is_Tuple(T):
         return Tuple_to_schema(T, globals_, processing)
-
-    if is_Type(T):
-        return type_Type_to_schema(T, globals_, processing)
+    #
+    # if is_Type(T):
+    #     return type_Type_to_schema(T, globals_, processing)
 
     assert isinstance(T, type), T
 
@@ -696,8 +699,10 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
 
     typevars: Tuple[TypeVar, ...] = tuple(typevars)
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         base = Generic.__getitem__(typevars)
     else:
+        # noinspection PyUnresolvedReferences
         base = Generic.__class_getitem__(typevars)
 
     fields = []  # (name, type, Field)

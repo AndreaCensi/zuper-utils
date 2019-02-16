@@ -6,6 +6,8 @@ from typing import Union,  Any, Dict
 
 PYTHON_36 = sys.version_info[1] == 6
 
+
+# noinspection PyProtectedMember
 def is_optional(x):
     if PYTHON_36:
         return  isinstance(x, typing._Union) and x.__args__[-1] is type(None)
@@ -66,6 +68,7 @@ def is_Any(x):
 
 def is_ClassVar(x):
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         return isinstance(x, typing._ClassVar)
     else:
         return isinstance(x, typing._GenericAlias) and (x.__origin__ is typing.ClassVar)
@@ -82,6 +85,7 @@ def get_ClassVar_arg(x):
 
 def is_Type(x):
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
     else:
         return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
@@ -89,6 +93,7 @@ def is_Type(x):
 
 def is_Tuple(x):
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         return isinstance(x, typing.TupleMeta)
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Tuple')
@@ -104,6 +109,7 @@ def get_Type_arg(x):
 
 def is_Callable(x):
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         return isinstance(x, typing.CallableMeta)
     else:
         return getattr(x, '_name', None) == 'Callable'
@@ -126,6 +132,7 @@ def get_MyNamedArg_name(x):
 
 def is_Dict(T: Any):
     if PYTHON_36:
+        # noinspection PyUnresolvedReferences
         return isinstance(T, typing.GenericMeta) and T.__origin__ is typing.Dict
     else:
         return isinstance(T, typing._GenericAlias) and T._name == 'Dict'

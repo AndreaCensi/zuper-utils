@@ -4,19 +4,19 @@ import typing
 from typing import TypeVar, Generic, Dict
 
 from zuper_json.my_dict import make_dict
-from zuper_json.pretty import pprint
 from .zeneric2 import ZenericFix
-
-
 
 PYTHON_36 = sys.version_info[1] == 6
 
 if PYTHON_36:
     from typing import GenericMeta
+
     previous_getitem = GenericMeta.__getitem__
 else:
     from typing import _GenericAlias
+
     previous_getitem = _GenericAlias.__getitem__
+
 
 class Alias1:
 
@@ -27,7 +27,9 @@ class Alias1:
             if K is not str:
                 return make_dict(K, V)
 
+        # noinspection PyArgumentList
         return previous_getitem(self, params)
+
 
 if PYTHON_36:
     from typing import GenericMeta
@@ -36,6 +38,8 @@ if PYTHON_36:
     # print(Generic.__getitem__)
 
     old_one = GenericMeta.__getitem__
+
+
     class P36Generic:
         def __getitem__(self, params):
             # pprint('P36', params=params, self=self)
@@ -47,17 +51,17 @@ if PYTHON_36:
                 if K is not str:
                     return make_dict(K, V)
 
+            # noinspection PyArgumentList
             return old_one(self, params)
-    GenericMeta.__getitem__ = P36Generic.__getitem__
 
+
+    GenericMeta.__getitem__ = P36Generic.__getitem__
 
     # Generic.__getitem__ = ZenericFix.__class_getitem__
     # GenericMeta.__getitem__ = ZenericFix.__class_getitem__
 else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
-
-
 
 Dict.__getitem__ = Alias1.__getitem__
 

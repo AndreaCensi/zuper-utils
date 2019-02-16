@@ -1,11 +1,8 @@
-import functools
 import json
-import os
 import sys
 import typing
-from contextlib import contextmanager
 # noinspection PyUnresolvedReferences
-from typing import _eval_type
+from contextlib import contextmanager
 from unittest import SkipTest
 
 from nose.tools import assert_equal
@@ -13,8 +10,9 @@ from nose.tools import assert_equal
 from . import logger
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .pretty import pretty_dict, pprint
-from .register import ConcreteRegister, use_register, store_json, recall_json, IPFSDagRegister
+
 PYTHON_36 = sys.version_info[1] == 6
+
 
 def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     # resolve_types(T)
@@ -74,9 +72,10 @@ def assert_equivalent_types(T1: type, T2: type):
                 assert_equivalent_types(m1, m2)
 
     if PYTHON_36:
-        pass # XX
+        pass  # XX
     else:
         if isinstance(T1, typing._GenericAlias):
+            # noinspection PyUnresolvedReferences
             for z1, z2 in zip(T1.__args__, T2.__args__):
                 assert_equivalent_types(z1, z2)
 
@@ -97,17 +96,16 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
     y1 = object_to_ipce(x1, use_globals)
 
+    from zuper_ipce.register import store_json, recall_json
     h1 = store_json(y1)
     y1b = recall_json(h1)
-
+    assert y1b == y1
     # print('---original')
 
     # print('---recalled')
     # print(json_dump(y1b))
 
     # print(register.pretty_print())
-
-    assert y1b == y1
 
     x1b = ipce_to_object(y1, use_globals)
     # print(x1b)
@@ -158,44 +156,6 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     return locals()
 
 
-def with_private_register(f):
-    def f2(*args, **kwargs):
-        with private_register(f.__name__):
-            return f(*args, **kwargs)
-
-    f2.__name__ = f.__name__
-    return f2
-
-
-r = IPFSDagRegister()
-
-
-@functools.lru_cache(128)
-def get_test_register(fn):
-    # print(f'Creating new register {fn}')
-
-    register = ConcreteRegister(fn, parent=r)
-
-    return register
-
-
-@contextmanager
-def private_register(name):
-    delete = False
-    d = '.registers'
-    if not os.path.exists(d):  # pragma: no cover
-        os.makedirs(d)
-
-    fn = os.path.join(d, f'{name}.db')
-
-    if delete:  # pragma: no cover
-        if os.path.exists(fn):
-            os.unlink(fn)
-    register = get_test_register(fn)
-    with use_register(register):
-        yield
-
-
 from functools import wraps
 from nose.plugins.attrib import attr
 from nose.plugins.skip import SkipTest
@@ -229,3 +189,9 @@ def relies_on_missing_features(f):
         fail("test passed but marked as work in progress")
 
     return attr('relies_on_missing_features')(run_test)
+
+
+def with_private_register(f):
+    from zuper_ipce.test_utils import with_private_register as other
+    return other(f)
+

@@ -1,10 +1,10 @@
 from typing import Iterator, Tuple
 
-from .constants import LINKS
-from .json_utils import json_dump
-from .pretty import pretty_dict
-from .register import hash_from_string
-from .types import MemoryJSON, CanonicalJSONString, Hash
+from zuper_json.constants import LINKS
+from zuper_json.json_utils import json_dump
+from zuper_json.pretty import pretty_dict
+from zuper_ipce.register import hash_from_string
+from zuper_json.types import MemoryJSON, CanonicalJSONString, Hash
 
 
 def assert_regular_memory_json(x):
@@ -101,7 +101,7 @@ def assert_good_canonical(x):
 
 
 def assert_reconstruct(original, x):
-    from .register import _substitute
+    from zuper_ipce.register import _substitute
     recon = _substitute(x)
     if (recon != original):  # pragma: no cover
         # print(register.pretty_print())

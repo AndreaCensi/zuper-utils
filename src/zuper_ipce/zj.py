@@ -3,9 +3,9 @@ import json
 import sys
 from typing import *
 
-from .ipce import ipce_to_object, object_to_ipce
+from zuper_json.ipce import ipce_to_object, object_to_ipce
 from .register import ConcreteRegister, store_json, recall_json, use_register, IPFSDagRegister
-from .types import Hash
+from zuper_json.types import Hash
 
 
 def read_arguments(args: Sequence[str]) -> Iterator[str]:

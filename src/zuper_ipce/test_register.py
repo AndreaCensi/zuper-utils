@@ -1,10 +1,10 @@
 from nose.tools import raises
 
-from .as_json import to_canonical_json
-from .json_utils import json_dump
-from .register import get_register, get_links_prefix, IPFSDagRegister, ConcreteRegister
-from .test_utils import with_private_register
-from .types import Hash, CanonicalJSONString
+from zuper_ipce.as_json import to_canonical_json
+from zuper_json.json_utils import json_dump
+from zuper_ipce.register import get_register, get_links_prefix, IPFSDagRegister, ConcreteRegister
+from zuper_json.test_utils import with_private_register
+from zuper_json.types import Hash, CanonicalJSONString
 
 
 @raises(KeyError)

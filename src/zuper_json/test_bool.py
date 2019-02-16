@@ -13,15 +13,3 @@ def test_bool1():
 
     assert_object_roundtrip(a, {})
     assert_type_roundtrip(M, {})
-
-# @with_private_register
-# def test_tuples1():
-#
-#     @dataclass
-#     class M:
-#         a: Tuple[int, str]
-#
-#     a = M((1,'32'))
-#
-#     assert_object_roundtrip(a, {})
-#     assert_type_roundtrip(M, {})

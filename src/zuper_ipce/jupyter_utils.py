@@ -3,8 +3,8 @@ from typing import Set, Dict, NewType, Any
 
 from IPython.display import Javascript, display, HTML
 
-from .register import get_register
-from .types import Hash
+from zuper_ipce.register import get_register, get_links_prefix
+from zuper_json.types import Hash
 
 
 def vis_display(data, element, options):
@@ -117,7 +117,7 @@ def transitive_closure_without_schema(heads: Set[Hash]) -> Set[Hash]:
     """
         Traverse to get all the nodes, ignoring schemas.
     """
-    register = get_register()
+    # register = get_register()
     open: Set[Hash] = set()
     closed: Set[Hash] = set()
     open.update(heads)
@@ -126,7 +126,7 @@ def transitive_closure_without_schema(heads: Set[Hash]) -> Set[Hash]:
         one = open.pop()
         print(one)
         closed.add(one)
-        for prefix, h in register.get_links_prefix(one):
+        for prefix, h in get_links_prefix(one):
             if prefix != ('$schema',):
                 if h not in closed:
                     open.add(h)

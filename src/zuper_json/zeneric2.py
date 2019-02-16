@@ -1,9 +1,11 @@
-# ss
+
 # noinspection PyProtectedMember
 import sys
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, Field, _FIELDS
-from typing import Dict, Type, TypeVar, Any, _eval_type, ClassVar, Sequence
+from typing import Dict, Type, TypeVar, Any,  ClassVar, Sequence
+# noinspection PyUnresolvedReferences
+from typing import _eval_type
 
 try:
     from typing import ForwardRef
@@ -12,7 +14,7 @@ except ImportError:
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
 from .constants import GENERIC_ATT, BINDINGS_ATT
-from .pretty import pretty_dict, pprint
+from .pretty import pretty_dict
 
 
 def as_tuple(x):
@@ -29,7 +31,9 @@ def get_type_spec(types) -> Dict[str, Type]:
         res[x.__name__] = x.__bound__ or Any
     return res
 
+
 PYTHON_36 = sys.version_info[1] == 6
+
 
 class ZenericFix:
     class CannotInstantiate(TypeError):
@@ -64,7 +68,7 @@ class ZenericFix:
 
         gp = type(name, (GenericProxy,), {'__getitem__': GenericProxy.__class_getitem__})
 
-        setattr(gp, '__getitem__',  GenericProxy.__class_getitem__)
+        setattr(gp, '__getitem__', GenericProxy.__class_getitem__)
         setattr(gp, GENERIC_ATT, get_type_spec(types))
         return gp
 
@@ -109,6 +113,7 @@ def resolve_types(T, l):
 
 
 from dataclasses import is_dataclass
+
 
 def make_type(cls: type, types, types2: Sequence) -> type:
     # pprint('make_type', types=types, types2=types2)
