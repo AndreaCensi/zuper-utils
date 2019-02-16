@@ -5,3 +5,4 @@ validate_email
 mypy_extensions
 nose
 coverage
+PyContracts
