@@ -669,9 +669,6 @@ def schema_Intersection(T, globals_, processing):
     return res
 
 
-# class MyTypeVar(TypeVar):
-#     def __repr__(self):
-#         return f'~{self.__name__}(<:{self.__bound__}'
 
 def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: dict) -> Type:
     assert res[JSC_TYPE] == JSC_OBJECT

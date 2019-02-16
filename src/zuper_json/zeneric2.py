@@ -66,9 +66,9 @@ class ZenericFix:
 
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
-        gp = type(name, (GenericProxy,), {'__getitem__': GenericProxy.__class_getitem__})
+        gp = type(name, (GenericProxy,), {}) #'__getitem__': GenericProxy.__class_getitem__})
 
-        setattr(gp, '__getitem__', GenericProxy.__class_getitem__)
+        # setattr(gp, '__getitem__', GenericProxy.__class_getitem__)
         setattr(gp, GENERIC_ATT, get_type_spec(types))
         return gp
 
