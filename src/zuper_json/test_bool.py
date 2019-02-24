@@ -13,3 +13,19 @@ def test_bool1():
 
     assert_object_roundtrip(a, {})
     assert_type_roundtrip(M, {})
+
+
+
+
+@with_private_register
+def test_none1():
+    assert_type_roundtrip(type(None), {})
+
+    @dataclass
+    class M:
+        a: type(None)
+
+    a = M(None)
+
+    assert_object_roundtrip(a, {})
+    assert_type_roundtrip(M, {})

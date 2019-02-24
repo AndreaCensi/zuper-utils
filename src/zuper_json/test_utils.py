@@ -18,8 +18,8 @@ def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
     schema = type_to_schema(T, use_globals)
     print(json.dumps(schema, indent=2))
     T2 = schema_to_type(schema, {}, {})
-    pprint("T", **getattr(T, '__dict__', {}))
-    pprint("T2", **getattr(T2, '__dict__', {}))
+    pprint(f"T ({T})", **getattr(T, '__dict__', {}))
+    pprint(f"T2 ({T2})", **getattr(T2, '__dict__', {}))
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
     assert_equal(schema, schema0)
@@ -80,7 +80,8 @@ def assert_equivalent_types(T1: type, T2: type):
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())
 
-
+import cbor2 as cbor
+from json import JSONEncoder
 def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     """
 
@@ -93,10 +94,14 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
     """
 
     y1 = object_to_ipce(x1, use_globals)
+    y1_cbor = cbor.dumps(y1)
+    y1 =  cbor.loads(y1_cbor)
 
+    print(json.dumps(y1, indent=2))
     x1b = ipce_to_object(y1, use_globals)
 
     x1bj = object_to_ipce(x1b, use_globals)
+
 
     if False:
         from zuper_ipce.register import store_json, recall_json

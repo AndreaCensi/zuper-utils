@@ -20,5 +20,7 @@ setup(name='zuper_utils',
             'coverage',
             'networkx',
             'dataclasses',
+            'jsonschema',
+            'pydot',
         ],
       )

@@ -7,7 +7,7 @@ from .constants import PYTHON_36
 
 try:
     from typing import ForwardRef
-except ImportError:
+except ImportError: # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
@@ -22,7 +22,7 @@ def as_tuple(x):
 def get_type_spec(types) -> Dict[str, Type]:
     res = {}
     for x in types:
-        if not isinstance(x, TypeVar):
+        if not isinstance(x, TypeVar): # pragma: no cover
             msg = f'Not sure what happened - but did you import zuper_json? {(x, types)}'
             raise ValueError(msg)
 
@@ -103,7 +103,7 @@ def resolve_types(T, l):
         for k, v in T.__annotations__.items():
             try:
                 T.__annotations__[k] = _eval_type(v, g, l)
-            except TypeError as e:
+            except TypeError as e:  # pragma: no cover
                 raise TypeError(f'could not resolve {k} = {v}') from e
 
 
@@ -171,7 +171,7 @@ def make_type(cls: type, types, types2: Sequence) -> type:
     def __post_init__(self):
         # print('Doing post init check')
         for k, v in new_annotations.items():
-            if is_ClassVar(k): continue
+            if is_ClassVar(v): continue
             if isinstance(v, type):
                 val = getattr(self, k)
                 if not isinstance(val, v) and type(val).__name__ != v.__name__:

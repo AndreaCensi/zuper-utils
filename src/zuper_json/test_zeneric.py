@@ -130,7 +130,6 @@ def test_more():
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
 
-# @known_failure
 @with_private_register
 def test_more2():
     X = TypeVar('X')
@@ -162,7 +161,32 @@ def test_more2():
 
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-    assert_object_roundtrip(x, {'Entity': Entity11})
+    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2})
+
+
+
+@with_private_register
+def test_more2b():
+    X = TypeVar('X')
+    Y = TypeVar('Y')
+
+    @dataclass
+    class Entity12(Generic[X]):
+        data0: X
+
+        parent: Optional["Entity12[X]"] = None
+
+    @dataclass
+    class Entity13(Generic[Y]):
+        parent: Optional[Entity12[Y]] = None
+
+    EI = Entity12[int]
+
+    E2I = Entity13[int]
+    x = E2I(parent=EI(data0=4))
+    # print(json.dumps(type_to_schema(type(x), {}), indent=2))
+    # print(type(x).__name__)
+    assert_object_roundtrip(x, {'Entity12': Entity12, 'Entity13': Entity13})
 
 
 from typing import ClassVar, Type

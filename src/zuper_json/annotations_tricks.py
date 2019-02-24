@@ -32,11 +32,17 @@ def get_union_types(x):
     return tuple(x.__args__)
 
 
+def _check_valid_arg(x):
+    if isinstance(x, str): # pragma: no cover
+        msg = f'The annotations must be resolved: {x!r}'
+        raise ValueError(msg)
+
 def is_forward_ref(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         return isinstance(x, typing._ForwardRef)
     else:
-
         return isinstance(x, typing.ForwardRef)
 
 
@@ -45,6 +51,8 @@ def get_forward_ref_arg(x) -> str:
     return x.__forward_arg__
 
 def is_Any(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         return str(x) == 'typing.Any'
     else:
@@ -52,7 +60,9 @@ def is_Any(x):
         return isinstance(x, typing._SpecialForm) and x._name == 'Any'
 
 
+
 def is_ClassVar(x):
+    _check_valid_arg(x)
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._ClassVar)
@@ -70,6 +80,8 @@ def get_ClassVar_arg(x):
 
 
 def is_Type(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
@@ -78,6 +90,8 @@ def is_Type(x):
 
 
 def is_Tuple(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.TupleMeta)
@@ -86,6 +100,8 @@ def is_Tuple(x):
 
 
 def is_List(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
@@ -104,6 +120,8 @@ def get_Type_arg(x):
 
 
 def is_Callable(x):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.CallableMeta)
@@ -123,12 +141,14 @@ def get_MyNamedArg_name(x):
     return getattr(x, NAME_ARG)
 
 
-def is_Dict(T: Any):
+def is_Dict(x: Any):
+    _check_valid_arg(x)
+
     if PYTHON_36: # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return isinstance(T, typing.GenericMeta) and T.__origin__ is typing.Dict
+        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
     else:
-        return isinstance(T, typing._GenericAlias) and T._name == 'Dict'
+        return isinstance(x, typing._GenericAlias) and x._name == 'Dict'
 
 
 def get_Dict_name(T):

@@ -1,5 +1,7 @@
 from typing import ClassVar, Tuple
 
+from zuper_json.annotations_tricks import get_Dict_name_K_V
+
 
 class CustomDict(dict):
     __dict_type__: ClassVar[Tuple[type, type]]
@@ -19,10 +21,7 @@ class CustomDict(dict):
 def make_dict(K, V) -> type:
     attrs = {'__dict_type__': (K, V)}
 
-    from .annotations_tricks import name_for_type_like
-    KN = name_for_type_like(K)
-    VN = name_for_type_like(V)
-    name = f'Dict[{KN},{VN}]'
+    name = get_Dict_name_K_V(K, V)
 
     res = type(name, (CustomDict,), attrs)
     return res

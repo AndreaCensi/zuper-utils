@@ -1,3 +1,3 @@
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 from . import monkey_patching_typing
 from .logging import logger

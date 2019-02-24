@@ -173,18 +173,14 @@ def test_abnormal_no_schema():
     ipce_to_object({}, {})
 
 
-# @raises(TypeError)
-def test_abnormal_no_lists():
+def test_lists():
     ipce_to_object([], {})
 
 
-@raises(TypeError)
-def test_abnormal_no_nulls():
+def test_nulls():
     object_to_ipce(None, {})
 
-
-# @raises(TypeError)
-def test_abnormal_no_lists_2():
+def test_lists_2():
     object_to_ipce([1], {})
 
 
@@ -422,3 +418,9 @@ def test_to_canonical_no_none_values():
 def test_cannot_resolve():
     X = TypeVar('X')
     eval_field(X, {}, {})
+
+@raises(AssertionError)
+def test_random_json():
+    """ Invalid because of $schema """
+    data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
+    ipce_to_object(data, {})

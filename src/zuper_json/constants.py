@@ -39,6 +39,7 @@ X_PYTHON_MODULE_ATT = '__module__'
 ATT_PYTHON_NAME = '__qualname__'
 SCHEMA_BYTES: JSONSchema = {JSC_TYPE: JSC_OBJECT,
                             SCHEMA_ATT: SCHEMA_ID,
+                            # "title": "bytes",
                             JSC_PROPERTIES: {"base64": {JSC_TYPE: JSC_STRING}}}
 NAME_ARG = '__name_arg__'  # XXX: repeated
 

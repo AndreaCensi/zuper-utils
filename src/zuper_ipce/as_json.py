@@ -1,6 +1,6 @@
 from typing import Iterator, Tuple
 
-from zuper_ipce.ipce_constants import LINKS
+from .ipce_constants import LINKS
 from zuper_json.json_utils import json_dump
 from zuper_json.pretty import pretty_dict
 from .register import hash_from_string
