@@ -1,7 +1,6 @@
 comptest_package=zuper_json,zuper_ipce
 coverage_include='*src/zuper_json*'
-coveralls_repo_token=ssssYp4i32KwzL4s6C76DfjJ3e6NqUgkXsv0X
-
+coveralls_repo_token=5eha7C63Y0403x9LRaGscdqQet7yC3WoR
 
 
 all:

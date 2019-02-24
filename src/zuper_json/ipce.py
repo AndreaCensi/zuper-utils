@@ -242,13 +242,10 @@ def deserialize_tuple(expect_type, mj, global_symbols, encountered):
     return tuple(seq)
 
 
-from .logging import logger
-
-
 def deserialize_dataclass(K, mj, global_symbols, encountered):
     global_symbols = dict(global_symbols)
     global_symbols[K.__name__] = K
-    logger.debug(global_symbols)
+    # logger.debug(global_symbols)
 
     # logger.debug(f'Deserializing object of type {K}')
     # logger.debug(f'mj: \n' + json.dumps(mj, indent=2))
