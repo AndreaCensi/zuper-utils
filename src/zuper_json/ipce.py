@@ -70,7 +70,10 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
     if isinstance(ob, bytes):
         res = pybase64.b64encode(ob)
         res = str(res, encoding='ascii')
-        return {'base64': res, SCHEMA_ATT: SCHEMA_BYTES}
+        ob = {'base64': res}
+        if with_schema:
+            ob[SCHEMA_ATT] = SCHEMA_BYTES
+        return ob
 
     if isinstance(ob, dict):
         return dict_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
@@ -107,6 +110,8 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
             # else:
             #     print('v is None but not optional: %s %s' % (ann, (ann).__dict__))
         try:
+            if is_optional(ann):
+                ann = get_optional_type(ann)
             res[k] = object_to_ipce(v, globals_, suggest_type=ann, with_schema=with_schema)
         except BaseException as e:
             msg = f'Cannot serialize attribute {k}  = {v}'
@@ -149,15 +154,17 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
     # pprint('suggest_type ', suggest_type=suggest_type)
     if is_Dict(suggest_type):
         K, V = suggest_type.__args__
-    elif issubclass(suggest_type, CustomDict):
+    elif isinstance(suggest_type, type) and issubclass(suggest_type, CustomDict):
         K, V = suggest_type.__dict_type__
     else:  # pragma: no cover
         assert False, suggest_type
 
-    res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
+    if with_schema:
+        res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
+
     if issubclass(K, str):
         for k, v in ob.items():
-            res[k] = object_to_ipce(v, globals_, suggest_type=None)
+            res[k] = object_to_ipce(v, globals_, suggest_type=None, with_schema=with_schema)
     else:
         FV = FakeValues[K, V]
         for k, v in ob.items():
@@ -170,7 +177,7 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
                 h = hash_from_string(json.dumps(kj)).hash
             pprint(kj=kj, vj=vj)
             fv = FV(k, v)
-            res[h] = object_to_ipce(fv, globals_)
+            res[h] = object_to_ipce(fv, globals_, with_schema=with_schema)
 
     return res
 
@@ -203,9 +210,7 @@ def ipce_to_object(mj: MemoryJSON,
             # logger.debug('expect type %s' % expect_type)
             # check_isinstance(expect_type, type)
             K = expect_type
-
         else:
-
             msg = f'Cannot find a schema and expect_type=None.\n{mj}'
             raise ValueError(msg)
 
@@ -260,10 +265,12 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
         if k in anns:
             expect_type = K.__annotations__[k]
             expect_type = resolve_all(expect_type, global_symbols)
-            #
-            # if isinstance(expect_type, str):
-            #     expect_type = eval_just_string(expect_type, global_symbols)
-            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+
+            try:
+                attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+            except BaseException as e:
+                msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
+                raise Exception(msg) from e
 
     for k, T in anns.items():
         T = resolve_all(T, global_symbols)
@@ -293,12 +300,6 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
 
 
 def deserialize_Dict(D, mj, global_symbols, encountered):
-    attrs = {}
-    for k, v in mj.items():
-        if k == SCHEMA_ATT:
-            continue
-        attrs[k] = ipce_to_object(v, global_symbols, encountered)
-
     if isinstance(D, type) and issubclass(D, CustomDict):
         K, V = D.__dict_type__
         ob = D()
@@ -307,8 +308,14 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         D2 = make_dict(K, V)
         ob = D2()
     else:  # pragma: no cover
-        msg = pretty_dict("not sure", dict(D=D, attrs=attrs))
+        msg = pretty_dict("not sure", dict(D=D))
         raise NotImplementedError(msg)
+
+    attrs = {}
+    for k, v in mj.items():
+        if k == SCHEMA_ATT:
+            continue
+        attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=V)
 
     if issubclass(K, str):
         ob.update(attrs)
