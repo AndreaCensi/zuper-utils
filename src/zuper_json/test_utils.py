@@ -4,8 +4,10 @@ import typing
 from contextlib import contextmanager
 from unittest import SkipTest
 
+import cbor2 as cbor
 from nose.tools import assert_equal
 
+from zuper_json.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from . import logger
 from .constants import PYTHON_36
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
@@ -80,9 +82,8 @@ def assert_equivalent_types(T1: type, T2: type):
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())
 
-import cbor2 as cbor
-from json import JSONEncoder
-def assert_object_roundtrip(x1, use_globals, expect_equality=True):
+
+def assert_object_roundtrip(x1, use_globals, expect_equality=True,works_without_schema=True):
     """
 
         expect_equality: if __eq__ is preserved
@@ -95,13 +96,16 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
     y1 = object_to_ipce(x1, use_globals)
     y1_cbor = cbor.dumps(y1)
-    y1 =  cbor.loads(y1_cbor)
+    y1 = cbor.loads(y1_cbor)
 
-    print(json.dumps(y1, indent=2))
+    y1e = encode_bytes_before_json_serialization(y1)
+    y1es = json.dumps(y1e, indent=2)
+    y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
+    y1eslo = ipce_to_object(y1esl, use_globals)
+
     x1b = ipce_to_object(y1, use_globals)
 
     x1bj = object_to_ipce(x1b, use_globals)
-
 
     if False:
         from zuper_ipce.register import store_json, recall_json
@@ -109,23 +113,9 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
         y1b = recall_json(h1)
         assert y1b == y1
         h2 = store_json(x1bj)
-        assert h1==h2
-    # print('---original')
+        assert h1 == h2
 
-    # print('---recalled')
-    # print(json.dumps(y1b, indent=2))
-
-    # print(register.pretty_print())
-
-
-    # print(x1b)
-    # assert isinstance(x1b, Office)
-
-    #
-    # print(register.string_from_hash(h1))
-    # print(register.G)
-
-
+    check_equality(x1, x1b, expect_equality)
 
     if y1 != x1bj:  # pragma: no cover
         msg = pretty_dict('Round trip not obtained', dict(x1bj=json.dumps(x1bj, indent=2),
@@ -133,10 +123,26 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
 
         raise AssertionError(msg)
 
+    # once again, without schema
+    if works_without_schema:
+        z1 = object_to_ipce(x1, use_globals, with_schema=False)
+        z2 = cbor.loads(cbor.dumps(z1))
+        u1 = ipce_to_object(z2, use_globals, expect_type=type(x1))
+        check_equality(x1, u1, expect_equality)
+
+    return locals()
+
+
+def check_equality(x1, x1b, expect_equality):
+
     if isinstance(x1b, type) and isinstance(x1, type):
         logger.warning('Skipping type equality check for %s and %s' % (x1b, x1))
     else:
-
+        #
+        # if isinstance(x1, np.ndarray):
+        #     assert allclose(x1b, x1)
+        # else:
+        # print('x1: %s' % x1)
         eq1 = (x1b == x1)
         eq2 = (x1 == x1b)
         # test object equality
@@ -162,8 +168,6 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True):
             if eq1 and eq2:  # pragma: no cover
                 msg = 'You did not expect equality but they actually are'
                 raise Exception(msg)
-
-    return locals()
 
 
 from functools import wraps

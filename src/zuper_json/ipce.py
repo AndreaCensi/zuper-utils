@@ -1,23 +1,30 @@
+import inspect
 import json
+import traceback
 import typing
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union, \
     Generic, List, Tuple, Callable
 
+import base58
+import cbor2
+import numpy as np
 import pybase64
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
-from contracts import check_isinstance
+from contracts import check_isinstance, raise_desc
 from jsonschema.validators import validator_for, validate
+from zuper_json.base64_utils import decode_bytes_base64, is_encoded_bytes_base64
+from zuper_json.hdf import numpy_from_dict, dict_from_numpy
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
     get_Dict_name_K_V, is_Tuple, get_List_arg, is_List
 from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm, \
     ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, GENERIC_ATT, BINDINGS_ATT, JSC_INTEGER, ID_ATT, \
-    JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36
+    JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36, JSC_TITLE_HDF
 from .my_dict import make_dict, CustomDict
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .pretty import pretty_dict, pprint
@@ -68,18 +75,26 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
         return [object_to_ipce(_, globals_, suggest_type=suggest_type_l, with_schema=with_schema) for _ in ob]
 
     if isinstance(ob, bytes):
-        res = pybase64.b64encode(ob)
-        res = str(res, encoding='ascii')
-        ob = {'base64': res}
-        if with_schema:
-            ob[SCHEMA_ATT] = SCHEMA_BYTES
         return ob
+        # encode_bytes_base64(ob)
+        # res = pybase64.b64encode(ob)
+        # res = str(res, encoding='ascii')
+        # ob = {'base64': res}
+        # if with_schema:
+        #     ob[SCHEMA_ATT] = SCHEMA_BYTES
+        # return ob
 
     if isinstance(ob, dict):
         return dict_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
     if isinstance(ob, type):
         return type_to_schema(ob, globals_, processing={})
+
+    if isinstance(ob, np.ndarray):
+        res = dict_from_numpy(ob)
+        if with_schema:
+            res[SCHEMA_ATT] = type_numpy_to_schema(type(ob), globals_, {})
+        return res
 
     return serialize_dataclass(ob, globals_, with_schema=with_schema)
 
@@ -125,7 +140,6 @@ def resolve_all(T, globals_):
         Returns either a type or a genericalias
 
 
-    :param ann:
     :return:
     """
     if isinstance(T, type):
@@ -153,6 +167,7 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
     res = {}
     # pprint('suggest_type ', suggest_type=suggest_type)
     if is_Dict(suggest_type):
+        # noinspection PyUnresolvedReferences
         K, V = suggest_type.__args__
     elif isinstance(suggest_type, type) and issubclass(suggest_type, CustomDict):
         K, V = suggest_type.__dict_type__
@@ -173,21 +188,30 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
             if isinstance(k, int):
                 h = str(k)
             else:
-                from zuper_ipce.register import hash_from_string
-                h = hash_from_string(json.dumps(kj)).hash
+
+                h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
+                # from zuper_ipce.register import hash_from_string
+                # h = hash_from_string(json.dumps(kj)).hash
             pprint(kj=kj, vj=vj)
             fv = FV(k, v)
             res[h] = object_to_ipce(fv, globals_, with_schema=with_schema)
 
     return res
 
+def get_sha256_base58(contents):
+    import hashlib
+    m = hashlib.sha256()
+    m.update(contents)
+    s = m.digest()
+    return base58.b58encode(s)
 
 def ipce_to_object(mj: MemoryJSON,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
     encountered = encountered or {}
-    if isinstance(mj, (int, str, float, bool, type(None))):
+
+    if isinstance(mj, (int, float, bool, type(None))):
         return mj
 
     if isinstance(mj, list):
@@ -196,6 +220,31 @@ def ipce_to_object(mj: MemoryJSON,
         else:
             seq = [ipce_to_object(_, global_symbols, encountered) for _ in mj]
             return seq
+
+    if expect_type is np.ndarray:
+        return numpy_from_dict(mj)
+
+    if expect_type is bytes:
+        if isinstance(mj, bytes):
+            return mj
+        elif isinstance(mj, dict):
+
+            data = mj['base64']
+            res = pybase64.b64decode(data)
+            assert isinstance(res, bytes)
+            return res
+        elif isinstance(mj, str) and is_encoded_bytes_base64(mj):
+            return decode_bytes_base64(mj)
+        else:
+            assert False, mj
+
+    # note str at the end, because it could be encoded bytes/array
+
+    if isinstance(mj, str):
+        if is_encoded_bytes_base64(mj):
+            return decode_bytes_base64(mj)
+        else:
+            return mj
 
     assert isinstance(mj, dict), type(mj)
 
@@ -223,19 +272,42 @@ def ipce_to_object(mj: MemoryJSON,
                               encountered,
                               expect_type=K)
 
-    if K is bytes:
-        data = mj['base64']
-        res = pybase64.b64decode(data)
-        assert isinstance(res, bytes)
-        return res
-
     if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K):
         return deserialize_Dict(K, mj, global_symbols, encountered)
 
     if is_dataclass(K):
         return deserialize_dataclass(K, mj, global_symbols, encountered)
 
+    if is_union(K):
+        errors = []
+        for T in get_union_types(K):
+            try:
+                return ipce_to_object(mj,
+                                      global_symbols,
+                                      encountered,
+                                      expect_type=T)
+            except BaseException as e:
+                errors.append(e)
+        msg = f'Cannot deserialize with any of {get_union_types(K)}'
+        msg += '\n'.join(str(e) for e in errors)
+        raise Exception(msg)
+
     assert False, (type(K), K)  # pragma: no cover
+
+
+# def serialize_hdf(ob: np.ndarray):
+#     b = bytes_from_numpy(ob)
+#     return encode_bytes_base64(b)
+
+# def deserialize_hdf(mj, global_symbols, encountered):
+#     if isinstance(mj, bytes):
+#         data = mj
+#     elif isinstance(mj, str):
+#         data = decode_bytes_base64(mj)
+#     else:
+#         msg = f'Expected either bytes or string, instead got {type(mj)}: {mj}'
+#         assert False, msg
+#     return numpy_from_bytes(data)
 
 
 def deserialize_tuple(expect_type, mj, global_symbols, encountered):
@@ -263,13 +335,21 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
     attrs = {}
     for k, v in mj.items():
         if k in anns:
-            expect_type = K.__annotations__[k]
+            expect_type = anns[k]
             expect_type = resolve_all(expect_type, global_symbols)
+            if is_optional(expect_type):
+                expect_type = get_optional_type(expect_type)
+
+            if inspect.isabstract(expect_type):
+                msg = f'Trying to instantiate abstract class {expect_type} for field "{k}" of class {K}'
+
+                raise_desc(Exception, msg, annotation=anns[k])
 
             try:
                 attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
+                msg += f'\nvalue: {v!r}'
                 raise Exception(msg) from e
 
     for k, T in anns.items():
@@ -312,10 +392,17 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         raise NotImplementedError(msg)
 
     attrs = {}
+
+    FV = FakeValues[K, V]
+
     for k, v in mj.items():
         if k == SCHEMA_ATT:
             continue
-        attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=V)
+
+        if issubclass(K, str):
+            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=V)
+        else:
+            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=FV)
 
     if issubclass(K, str):
         ob.update(attrs)
@@ -393,11 +480,17 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
         return res
 
     jsc_type = schema.get(JSC_TYPE, None)
+    jsc_title = schema.get(JSC_TITLE, None)
     if schema0 == SCHEMA_BYTES:
         return bytes
 
     if jsc_type == JSC_STRING:
-        return str
+        if jsc_title == JSC_TITLE_HDF:
+            return np.ndarray
+        elif jsc_title == "bytes":
+            return bytes
+        else:
+            return str
     elif jsc_type == "null":
         return type(None)
     elif jsc_type == JSC_BOOL:
@@ -515,6 +608,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         msg = pretty_dict(m, dict(  # globals0=globals0,
                 # globals=globals_,
                 processing=processing))
+        msg += '\n' + traceback.format_exc()
         raise type(e)(msg) from e
     except BaseException as e:
         m = f'Cannot get schema for {T}'
@@ -705,8 +799,18 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_dataclass(T):
         return type_dataclass_to_schema(T, globals_, processing)
 
+    if T is np.ndarray:
+        return type_numpy_to_schema(T, globals_, processing)
+
     msg = 'Cannot interpret this type. (not a dataclass): %s' % T
     raise ValueError(msg)
+
+
+def type_numpy_to_schema(T, globals_, processing) -> JSONSchema:
+    res: JSONSchema = {SCHEMA_ATT: SCHEMA_ID}
+    res[JSC_TYPE] = JSC_STRING
+    res[JSC_TITLE] = JSC_TITLE_HDF
+    return res
 
 
 def schema_Intersection(T, globals_, processing):
@@ -814,7 +918,11 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
         if is_ClassVar(t):
             continue
 
-        result = eval_field(t, globals2, processing2)
+        try:
+            result = eval_field(t, globals2, processing2)
+        except BaseException as e:
+            msg = f'Cannot evaluate field "{name}" of class {T} annotated as {t}'
+            raise Exception(msg) from e
         assert isinstance(result, Result), result
         properties[name] = result.schema
         if not result.optional:

@@ -3,6 +3,7 @@ from dataclasses import dataclass, Field, _FIELDS
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type
 
+
 from .constants import PYTHON_36
 
 try:
@@ -116,7 +117,12 @@ def make_type(cls: type, types, types2: Sequence) -> type:
     # black magic
     for t2 in types2:
         if isinstance(t2, TypeVar):
-            return cls
+            # from zuper_json import logger
+            # logger.debug(f'trying to instantiate {cls} ({types}) with {t2}')
+            name = cls.__name__
+            cls2 = type(name, (cls,), {})
+            setattr(cls2, GENERIC_ATT, get_type_spec(types2))
+            return cls2
 
     bindings = {T: U for T, U in zip(types, types2)}
     for T, U in bindings.items():

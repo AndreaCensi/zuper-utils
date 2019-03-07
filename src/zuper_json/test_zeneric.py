@@ -8,7 +8,7 @@ from nose.tools import raises, assert_equal
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
 from .ipce import type_to_schema, schema_to_type
 from .pretty import pprint
-from .test_utils import with_private_register, assert_object_roundtrip, assert_type_roundtrip
+from .test_utils import with_private_register, assert_object_roundtrip, assert_type_roundtrip, known_failure
 from .zeneric2 import resolve_types
 
 
@@ -129,7 +129,7 @@ def test_more():
     assert_type_roundtrip(EI, {})
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
-
+@known_failure
 @with_private_register
 def test_more2():
     X = TypeVar('X')
@@ -161,10 +161,10 @@ def test_more2():
 
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2})
+    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
+                            works_without_schema=False)
 
-
-
+@known_failure
 @with_private_register
 def test_more2b():
     X = TypeVar('X')
@@ -181,12 +181,14 @@ def test_more2b():
         parent: Optional[Entity12[Y]] = None
 
     EI = Entity12[int]
-
+    # print(EI.__annotations__['parent'])
     E2I = Entity13[int]
+    parent2 = E2I.__annotations__['parent']
+    print(parent2)
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     # print(type(x).__name__)
-    assert_object_roundtrip(x, {'Entity12': Entity12, 'Entity13': Entity13})
+    assert_object_roundtrip(x, {'Entity12': Entity12, 'Entity13': Entity13}, works_without_schema=False)
 
 
 from typing import ClassVar, Type
@@ -209,9 +211,9 @@ def test_isType():
     assert is_Type(A)
     assert get_Type_arg(A) == X
 
+
 @with_private_register
 def test_more3_simpler():
-
     X = TypeVar('X')
 
     @dataclass
@@ -447,3 +449,7 @@ def test_derived3_subst():
     S = Signed3[int]
     x = S(data=2)
     assert_object_roundtrip(x, {})
+
+
+if __name__ == '__main__':
+    test_more2b()

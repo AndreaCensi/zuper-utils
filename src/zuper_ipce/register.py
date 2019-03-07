@@ -13,7 +13,8 @@ import networkx as nx
 from zuper_ipce.ipce_constants import LINKS
 from zuper_json.json_utils import json_dump
 from zuper_json.pretty import pretty_dict
-from zuper_json.types import Hash, CanonicalJSONString, MemoryJSON
+from zuper_json.types import Hash, MemoryJSON
+from zuper_ipce.constants import CanonicalJSONString
 
 
 @dataclass
