@@ -1,33 +1,31 @@
-from io import BytesIO
-
 import numpy as np
-import zlib
 
 from contracts import check_isinstance
 
 
-def bytes_from_numpy(a: np.ndarray) -> bytes:
-    import h5py
-    io = BytesIO()
-    with h5py.File(io) as f:
-        # f.setdefault("compression", "lzo")
-        f['value'] = a
-    uncompressed = io.getvalue()
-
-    compressed_data = zlib.compress(uncompressed)
-    return compressed_data
-
-
-def numpy_from_bytes(b: bytes) -> np.ndarray:
-    b = zlib.decompress(b)
-    import h5py
-    io = BytesIO(b)
-    with h5py.File(io) as f:
-        # f.setdefault("compression", "lzw")
-        a = f['value']
-        res = np.array(a)
-        return res
-
+#
+#
+# def bytes_from_numpy(a: np.ndarray) -> bytes:
+#     import h5py
+#     io = BytesIO()
+#     with h5py.File(io) as f:
+#         # f.setdefault("compression", "lzo")
+#         f['value'] = a
+#     uncompressed = io.getvalue()
+#
+#     compressed_data = zlib.compress(uncompressed)
+#     return compressed_data
+#
+#
+# def numpy_from_bytes(b: bytes) -> np.ndarray:
+#     b = zlib.decompress(b)
+#     import h5py
+#     io = BytesIO(b)
+#     with h5py.File(io) as f:
+#         # f.setdefault("compression", "lzw")
+#         a = f['value']
+#         res = np.array(a)
+#         return res
 
 
 def dict_from_numpy(x: np.ndarray) -> dict:

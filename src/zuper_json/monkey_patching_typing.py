@@ -33,9 +33,6 @@ class Alias1:
 if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
 
-    # print(GenericMeta.__getitem__)
-    # print(Generic.__getitem__)
-
     old_one = GenericMeta.__getitem__
 
 
@@ -56,8 +53,6 @@ if PYTHON_36:  # pragma: no cover
 
     GenericMeta.__getitem__ = P36Generic.__getitem__
 
-    # Generic.__getitem__ = ZenericFix.__class_getitem__
-    # GenericMeta.__getitem__ = ZenericFix.__class_getitem__
 else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
