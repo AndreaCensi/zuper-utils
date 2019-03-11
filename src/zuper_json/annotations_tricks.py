@@ -162,7 +162,9 @@ def get_Dict_name_K_V(K, V):
 
 
 def name_for_type_like(x):
-    if isinstance(x, type):
+    if is_Any(x):
+        return 'Any'
+    elif isinstance(x, type):
         return x.__name__
     elif isinstance(x, typing.TypeVar):
         return x.__name__

@@ -10,11 +10,11 @@ from typing import Tuple, Dict, Iterator, Optional
 
 import networkx as nx
 
+from zuper_ipce.constants import CanonicalJSONString
 from zuper_ipce.ipce_constants import LINKS
 from zuper_json.json_utils import json_dump
 from zuper_json.pretty import pretty_dict
 from zuper_json.types import Hash, MemoryJSON
-from zuper_ipce.constants import CanonicalJSONString
 
 
 @dataclass
@@ -49,7 +49,7 @@ class IPFSDagRegister(Register):
 
         try:
             os.unlink(fn)
-        except OSError: # pragma: no cover
+        except OSError:  # pragma: no cover
             pass
         return HashResult(h, {})
 
@@ -353,8 +353,29 @@ def get_register() -> ConcreteRegister:
 @contextmanager
 def use_register(register: ConcreteRegister):
     # print(f'using register {register}')
-    data.stack.append(register)
+    push_register(register)
     try:
         yield
     finally:
-        data.stack.pop()
+        pop_register()
+
+
+def push_register(register):
+    data.stack.append(register)
+
+
+def pop_register():
+    data.stack.pop()
+
+
+def get_cbor_dag_hash(ob):
+    """ Returns a base58 string of a CID pointing to ob expressed in CBOR format"""
+    import cbor2
+    import hashlib
+    import multihash
+    from cid.cid import make_cid
+    ob_cbor = cbor2.dumps(ob)
+    ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
+    mh = multihash.encode(digest=ob_cbor_hash, code=18)
+    cid = make_cid(1, 'dag-cbor', mh)
+    return cid.encode().decode('ascii')

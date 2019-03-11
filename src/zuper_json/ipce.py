@@ -1,5 +1,4 @@
 import inspect
-import json
 import traceback
 import typing
 from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
@@ -14,8 +13,9 @@ import pybase64
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
-from contracts import check_isinstance, raise_desc
+from contracts import check_isinstance, raise_desc, indent
 from jsonschema.validators import validator_for, validate
+from zuper_json import logger
 from zuper_json.base64_utils import decode_bytes_base64, is_encoded_bytes_base64
 from zuper_json.hdf import numpy_from_dict, dict_from_numpy
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
@@ -27,7 +27,7 @@ from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, Globa
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36, JSC_TITLE_HDF
 from .my_dict import make_dict, CustomDict
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
-from .pretty import pretty_dict, pprint
+from .pretty import pretty_dict
 from .types import MemoryJSON
 
 
@@ -163,10 +163,15 @@ def resolve_all(T, globals_):
 
 
 def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
-    assert suggest_type is not None
+    # assert suggest_type is not None
     res = {}
     # pprint('suggest_type ', suggest_type=suggest_type)
-    if is_Dict(suggest_type):
+    if (suggest_type is None) or is_Any(suggest_type):
+        K = Any
+        V = Any
+        # TODO: should we look for more specific types?
+        suggest_type = Dict[Any, Any]
+    elif is_Dict(suggest_type):
         # noinspection PyUnresolvedReferences
         K, V = suggest_type.__args__
     elif isinstance(suggest_type, type) and issubclass(suggest_type, CustomDict):
@@ -177,7 +182,7 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
     if with_schema:
         res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
 
-    if issubclass(K, str):
+    if isinstance(K, type) and issubclass(K, str):
         for k, v in ob.items():
             res[k] = object_to_ipce(v, globals_, suggest_type=None, with_schema=with_schema)
     else:
@@ -188,15 +193,15 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
             if isinstance(k, int):
                 h = str(k)
             else:
-
                 h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
                 # from zuper_ipce.register import hash_from_string
                 # h = hash_from_string(json.dumps(kj)).hash
-            pprint(kj=kj, vj=vj)
+            # pprint(kj=kj, vj=vj)
             fv = FV(k, v)
             res[h] = object_to_ipce(fv, globals_, with_schema=with_schema)
 
     return res
+
 
 def get_sha256_base58(contents):
     import hashlib
@@ -205,11 +210,14 @@ def get_sha256_base58(contents):
     s = m.digest()
     return base58.b58encode(s)
 
+
 def ipce_to_object(mj: MemoryJSON,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
     encountered = encountered or {}
+
+    logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
 
     if isinstance(mj, (int, float, bool, type(None))):
         return mj
@@ -254,9 +262,10 @@ def ipce_to_object(mj: MemoryJSON,
     if SCHEMA_ATT in mj:
         sa = mj[SCHEMA_ATT]
         K = schema_to_type(sa, global_symbols, encountered)
+        logger.debug(f' loaded K = {K} from {mj}')
     else:
         if expect_type is not None:
-            # logger.debug('expect type %s' % expect_type)
+            logger.debug('expect_type = %s' % expect_type)
             # check_isinstance(expect_type, type)
             K = expect_type
         else:
@@ -272,9 +281,13 @@ def ipce_to_object(mj: MemoryJSON,
                               encountered,
                               expect_type=K)
 
-    if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K):
-        return deserialize_Dict(K, mj, global_symbols, encountered)
 
+    if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K) or \
+        (isinstance(K, type) and issubclass(K, CustomDict)):
+        logger.info(f'deserialize as dict ')
+        return deserialize_Dict(K, mj, global_symbols, encountered)
+    else:
+        logger.info(f'{K} is not dict ')
     if is_dataclass(K):
         return deserialize_dataclass(K, mj, global_symbols, encountered)
 
@@ -292,7 +305,7 @@ def ipce_to_object(mj: MemoryJSON,
         msg += '\n'.join(str(e) for e in errors)
         raise Exception(msg)
 
-    assert False, (type(K), K)  # pragma: no cover
+    assert False, (type(K), K, mj)  # pragma: no cover
 
 
 # def serialize_hdf(ob: np.ndarray):
@@ -350,6 +363,7 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
                 msg += f'\nvalue: {v!r}'
+                msg += '\n\n' + indent(traceback.format_exc(), '| ')
                 raise Exception(msg) from e
 
     for k, T in anns.items():
@@ -387,6 +401,9 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         K, V = D.__args__
         D2 = make_dict(K, V)
         ob = D2()
+    elif isinstance(D, type) and issubclass(D, dict):
+        K, V = Any, Any
+        ob = D()
     else:  # pragma: no cover
         msg = pretty_dict("not sure", dict(D=D))
         raise NotImplementedError(msg)
@@ -404,7 +421,7 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
         else:
             attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=FV)
 
-    if issubclass(K, str):
+    if isinstance(K, type) and issubclass(K, str):
         ob.update(attrs)
         return ob
     else:
@@ -596,7 +613,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
                 bindings = getattr(K, BINDINGS_ATT, {})
                 for k, v in bindings.items():
-                    if v.__name__ not in globals_:
+                    if hasattr(v, '__name__') and v.__name__ not in globals_:
                         globals_[v.__name__] = v
                     globals_[k.__name__] = v
 
@@ -648,7 +665,7 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
 
     res: JSONSchema = {JSC_TYPE: JSC_OBJECT}
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
-    if issubclass(K, str):
+    if isinstance(K, type) and issubclass(K, str):
         res[JSC_PROPERTIES] = {"$schema": {}}  # XXX
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(V, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID

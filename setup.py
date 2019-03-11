@@ -6,21 +6,26 @@ setup(name='zuper_utils',
 
       zip_safe=False,
       entry_points={
-            'console_scripts': [
-                  'zj = zuper_ipce.zj:zj_main'
-            ]
+          'console_scripts': [
+              'zj = zuper_ipce.zj:zj_main'
+          ]
       },
       install_requires=[
-            'pybase64',
-            'PyContracts',
-            'IPython',
-            'validate_email',
-            'mypy_extensions',
-            'nose',
-            'coverage',
-            'networkx',
-            'dataclasses',
-            'jsonschema',
-            'pydot',
-        ],
+          'pybase64',
+          'PyContracts',
+          'IPython',
+          'validate_email',
+          'mypy_extensions',
+          'nose',
+          'coverage',
+          'networkx',
+          'dataclasses',
+          'jsonschema',
+          'pydot',
+          'multihash',
+          'py-cid',
+          'cbor2',
+          'numpy',
+          'base58',
+      ],
       )
