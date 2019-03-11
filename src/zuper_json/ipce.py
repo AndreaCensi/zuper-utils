@@ -16,6 +16,7 @@ from nose.tools import assert_in
 from contracts import check_isinstance, raise_desc, indent
 from jsonschema.validators import validator_for, validate
 # from zuper_json import logger
+# from zuper_json import logger
 from .base64_utils import decode_bytes_base64, is_encoded_bytes_base64
 from .hdf import numpy_from_dict, dict_from_numpy
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
@@ -91,7 +92,7 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
     if isinstance(ob, type):
         return type_to_schema(ob, globals_, processing={})
 
-    if is_Any(ob) or is_List(ob):
+    if is_Any(ob) or is_List(ob) or is_Dict(ob):
         # TODO: put more here
         return type_to_schema(ob, globals_, processing={})
 
@@ -103,6 +104,7 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
 
     return serialize_dataclass(ob, globals_, with_schema=with_schema)
 
+import dataclasses
 
 def serialize_dataclass(ob, globals_, with_schema: bool):
     globals_ = dict(globals_)
@@ -115,8 +117,9 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
 
     globals_[T.__name__] = K
 
-    annotations = getattr(type(ob), '__annotations__', {})
-    for k, ann in annotations.items():
+    for f in dataclasses.fields(ob):
+        k = f.name
+        ann = f.type
         ann = resolve_all(ann, globals_)
 
         if is_ClassVar(ann):
@@ -193,7 +196,7 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
     else:
         FV = FakeValues[K, V]
         for k, v in ob.items():
-            vj = object_to_ipce(v, globals_)
+            # vj = object_to_ipce(v, globals_)
             kj = object_to_ipce(k, globals_)
             if isinstance(k, int):
                 h = str(k)
@@ -311,6 +314,8 @@ def ipce_to_object(mj: MemoryJSON,
         msg += '\n'.join(str(e) for e in errors)
         raise Exception(msg)
 
+    # if is_Any(K):
+    #     pass
     assert False, (type(K), K, mj)  # pragma: no cover
 
 
@@ -582,7 +587,7 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
     V = schema_to_type(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
     # pprint(f'here:', d=dict(V.__dict__))
     # if issubclass(V, FakeValues):
-    if V.__name__.startswith('FakeValues'):
+    if isinstance(V, type) and V.__name__.startswith('FakeValues'):
         K = V.__annotations__['real_key']
         V = V.__annotations__['value']
     D = make_dict(K, V)
@@ -1003,14 +1008,22 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
 
             if isinstance(the_att, type):
                 classatts[name] = type_to_schema(the_att, globals_, processing)
+
             else:
                 classatts[name] = object_to_ipce(the_att, globals_)
 
         else:
+
+
             result = eval_field(t, globals_, p2)
             if not result.optional:
                 required.append(name)
             properties[name] = result.schema
+
+            if not result.optional:
+                if not isinstance(afield.default, dataclasses._MISSING_TYPE):
+                    # logger.info(f'default for {name} is {afield.default}')
+                    properties[name] ['default'] = object_to_ipce(afield.default, globals_)
 
     if required:  # empty is error
         res[JSC_REQUIRED] = required
@@ -1174,6 +1187,10 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         else:
             _Field = field(default=None)
             ptype = Optional[ptype]
+
+        if 'default' in v:
+            default_value = ipce_to_object(v['default'], global_symbols, expect_type=ptype)
+            _Field.default = default_value
 
         fields.append((pname, ptype, _Field))
 

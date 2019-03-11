@@ -1,3 +1,4 @@
+import dataclasses
 import typing
 from dataclasses import dataclass
 from numbers import Number
@@ -5,6 +6,7 @@ from typing import Generic
 
 from nose.tools import raises, assert_equal
 
+from zuper_json import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
 from .ipce import type_to_schema, schema_to_type
 from .pretty import pprint
@@ -384,6 +386,7 @@ def test_derived1():
 
     S = Signed3[int]
 
+    logger.info(dataclasses.fields(S))
     class Y(S):
         """hello"""
         pass
