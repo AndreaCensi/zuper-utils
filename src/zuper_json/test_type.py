@@ -24,7 +24,6 @@ def test_newtype():
     assert_type_roundtrip(T, symbols)
 
 
-
 def test_dict1():
     c = {}
     assert_object_roundtrip(c, symbols)
@@ -33,6 +32,7 @@ def test_dict1():
 def test_any():
     T = Any
     assert_type_roundtrip(T, symbols)
+
 
 @known_failure
 def test_any2():
@@ -44,7 +44,6 @@ def test_any2():
     assert_object_roundtrip(c, symbols)
 
 
-
 def test_any3():
     @dataclass
     class C:
@@ -52,3 +51,7 @@ def test_any3():
 
     c = C(a=1)
     assert_object_roundtrip(c, symbols)
+
+
+def test_any4():
+    assert_object_roundtrip(Any, symbols)

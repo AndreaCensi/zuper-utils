@@ -1,6 +1,6 @@
 from typing import ClassVar, Tuple
 
-from zuper_json.annotations_tricks import get_Dict_name_K_V
+
 
 
 class CustomDict(dict):
@@ -20,7 +20,7 @@ class CustomDict(dict):
 
 def make_dict(K, V) -> type:
     attrs = {'__dict_type__': (K, V)}
-
+    from zuper_json.annotations_tricks import get_Dict_name_K_V
     name = get_Dict_name_K_V(K, V)
 
     res = type(name, (CustomDict,), attrs)

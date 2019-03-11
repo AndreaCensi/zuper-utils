@@ -184,13 +184,18 @@ def name_for_type_like(x):
 from typing import Tuple
 
 
-@dataclass
+# do not make a dataclass
 class CallableInfo:
     parameters_by_name: Dict[str, Any]
     parameters_by_position: Tuple
     ordering: Tuple[str, ...]
     returns: Any
 
+    def __init__(self, parameters_by_name, parameters_by_position, ordering, returns):
+        self.parameters_by_name = parameters_by_name
+        self.parameters_by_position = parameters_by_position
+        self.ordering = ordering
+        self.returns = returns
 
 def get_Callable_info(x) -> CallableInfo:
     assert is_Callable(x)

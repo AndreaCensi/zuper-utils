@@ -15,9 +15,9 @@ from nose.tools import assert_in
 
 from contracts import check_isinstance, raise_desc, indent
 from jsonschema.validators import validator_for, validate
-from zuper_json import logger
-from zuper_json.base64_utils import decode_bytes_base64, is_encoded_bytes_base64
-from zuper_json.hdf import numpy_from_dict, dict_from_numpy
+# from zuper_json import logger
+from .base64_utils import decode_bytes_base64, is_encoded_bytes_base64
+from .hdf import numpy_from_dict, dict_from_numpy
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
     get_Dict_name_K_V, is_Tuple, get_List_arg, is_List
@@ -32,6 +32,7 @@ from .types import MemoryJSON
 
 
 def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> MemoryJSON:
+    # logger.debug(f'object_to_ipce({ob})')
     res = object_to_ipce_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     # print(indent(json.dumps(res, indent=3), '|', ' res: -'))
     if isinstance(res, dict) and SCHEMA_ATT in res:
@@ -88,6 +89,10 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
         return dict_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
     if isinstance(ob, type):
+        return type_to_schema(ob, globals_, processing={})
+
+    if is_Any(ob) or is_List(ob):
+        # TODO: put more here
         return type_to_schema(ob, globals_, processing={})
 
     if isinstance(ob, np.ndarray):
@@ -217,7 +222,7 @@ def ipce_to_object(mj: MemoryJSON,
                    expect_type: Optional[type] = None) -> object:
     encountered = encountered or {}
 
-    logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
+    # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
 
     if isinstance(mj, (int, float, bool, type(None))):
         return mj
@@ -262,10 +267,10 @@ def ipce_to_object(mj: MemoryJSON,
     if SCHEMA_ATT in mj:
         sa = mj[SCHEMA_ATT]
         K = schema_to_type(sa, global_symbols, encountered)
-        logger.debug(f' loaded K = {K} from {mj}')
+        # logger.debug(f' loaded K = {K} from {mj}')
     else:
         if expect_type is not None:
-            logger.debug('expect_type = %s' % expect_type)
+            # logger.debug('expect_type = %s' % expect_type)
             # check_isinstance(expect_type, type)
             K = expect_type
         else:
@@ -284,10 +289,11 @@ def ipce_to_object(mj: MemoryJSON,
 
     if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K) or \
         (isinstance(K, type) and issubclass(K, CustomDict)):
-        logger.info(f'deserialize as dict ')
+        # logger.info(f'deserialize as dict ')
         return deserialize_Dict(K, mj, global_symbols, encountered)
     else:
-        logger.info(f'{K} is not dict ')
+        pass
+        # logger.info(f'{K} is not dict ')
     if is_dataclass(K):
         return deserialize_dataclass(K, mj, global_symbols, encountered)
 
