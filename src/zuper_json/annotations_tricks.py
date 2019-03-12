@@ -1,5 +1,4 @@
 import typing
-from dataclasses import dataclass
 from typing import Union, Any, Dict
 
 from zuper_json.constants import NAME_ARG
@@ -8,10 +7,11 @@ from .constants import PYTHON_36
 
 # noinspection PyProtectedMember
 def is_optional(x):
-    if PYTHON_36: # pragma: no cover
-        return isinstance(x, typing._Union) and x.__args__[-1] is type(None)
+    if PYTHON_36:  # pragma: no cover
+        return isinstance(x, typing._Union) and len(x.__args__) == 2 and x.__args__[-1] is type(None)
     else:
-        return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and x.__args__[-1] is type(None)
+        return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and len(x.__args__) == 2 and x.__args__[
+            -1] is type(None)
 
 
 def get_optional_type(x):
@@ -21,7 +21,7 @@ def get_optional_type(x):
 
 def is_union(x):
     """ Union[X, None] is not considered a Union"""
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         return not is_optional(x) and isinstance(x, typing._Union)
     else:
         return not is_optional(x) and isinstance(x, typing._GenericAlias) and (x.__origin__ is Union)
@@ -33,14 +33,15 @@ def get_union_types(x):
 
 
 def _check_valid_arg(x):
-    if isinstance(x, str): # pragma: no cover
+    if isinstance(x, str):  # pragma: no cover
         msg = f'The annotations must be resolved: {x!r}'
         raise ValueError(msg)
+
 
 def is_forward_ref(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         return isinstance(x, typing._ForwardRef)
     else:
         return isinstance(x, typing.ForwardRef)
@@ -50,20 +51,20 @@ def get_forward_ref_arg(x) -> str:
     assert is_forward_ref(x)
     return x.__forward_arg__
 
+
 def is_Any(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         return str(x) == 'typing.Any'
     else:
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._SpecialForm) and x._name == 'Any'
 
 
-
 def is_ClassVar(x):
     _check_valid_arg(x)
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._ClassVar)
     else:
@@ -72,7 +73,7 @@ def is_ClassVar(x):
 
 def get_ClassVar_arg(x):
     assert is_ClassVar(x)
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         return x.__type__
     else:
 
@@ -82,7 +83,7 @@ def get_ClassVar_arg(x):
 def is_Type(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
     else:
@@ -92,7 +93,7 @@ def is_Type(x):
 def is_Tuple(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.TupleMeta)
     else:
@@ -102,16 +103,16 @@ def is_Tuple(x):
 def is_List(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'List')
 
+
 def get_List_arg(x):
     assert is_List(x)
     return x.__args__[0]
-
 
 
 def get_Type_arg(x):
@@ -122,7 +123,7 @@ def get_Type_arg(x):
 def is_Callable(x):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.CallableMeta)
     else:
@@ -144,7 +145,7 @@ def get_MyNamedArg_name(x):
 def is_Dict(x: Any):
     _check_valid_arg(x)
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
     else:
@@ -196,6 +197,7 @@ class CallableInfo:
         self.parameters_by_position = parameters_by_position
         self.ordering = ordering
         self.returns = returns
+
 
 def get_Callable_info(x) -> CallableInfo:
     assert is_Callable(x)

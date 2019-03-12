@@ -174,16 +174,20 @@ def dict_to_ipce(ob, globals_, suggest_type: type, with_schema: bool):
     # assert suggest_type is not None
     res = {}
     # pprint('suggest_type ', suggest_type=suggest_type)
-    if (suggest_type is None) or is_Any(suggest_type):
-        K = Any
-        V = Any
-        # TODO: should we look for more specific types?
-        suggest_type = Dict[Any, Any]
-    elif is_Dict(suggest_type):
+
+    if is_Dict(suggest_type):
         # noinspection PyUnresolvedReferences
         K, V = suggest_type.__args__
     elif isinstance(suggest_type, type) and issubclass(suggest_type, CustomDict):
         K, V = suggest_type.__dict_type__
+    elif (suggest_type is None) or is_Any(suggest_type):
+        all_str = all(type(_) is str for _ in ob)
+        if all_str:
+            K = str
+        else:
+            K = Any
+        V = Any
+        suggest_type = Dict[K, V]
     else:  # pragma: no cover
         assert False, suggest_type
 
@@ -761,6 +765,9 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         raise AssertionError(msg)
 
     if is_forward_ref(T):  # pragma: no cover
+        arg = get_forward_ref_arg(T)
+        # if arg == MemoryJSON.__name__:
+        #     return type_to_schema_(MemoryJSON, globals_, processing)
         msg = f'It is not supported to have an ForwardRef here yet: {T}'
         raise ValueError(msg)
 
