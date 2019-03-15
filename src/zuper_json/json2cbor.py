@@ -2,7 +2,9 @@ import json
 import select
 import time
 import traceback
+from io import BufferedReader
 from json import JSONDecodeError
+from typing import Iterator
 
 import cbor2
 
@@ -13,12 +15,15 @@ __all__ = [
     'read_cbor_or_json_objects',
     'json2cbor_main',
     'cbor2json_main',
+    'read_next_either_json_or_cbor',
 ]
 
 
 def json2cbor_main():
-    fo = open('/dev/stdout', 'wb')
-    fi = open('/dev/stdin', 'rb')
+    fo = open('/dev/stdout', 'wb', buffering=0)
+    fi = open('/dev/stdin', 'rb', buffering=0)
+    # noinspection PyTypeChecker
+    fi = BufferedReader(fi, buffer_size=1)
     for j in read_cbor_or_json_objects(fi):
         c = cbor2.dumps(j)
         fo.write(c)
@@ -26,8 +31,10 @@ def json2cbor_main():
 
 
 def cbor2json_main():
-    fo = open('/dev/stdout', 'wb')
-    fi = open('/dev/stdin', 'rb')
+    fo = open('/dev/stdout', 'wb', buffering=0)
+    fi = open('/dev/stdin', 'rb', buffering=0)
+    # noinspection PyTypeChecker
+    fi = BufferedReader(fi, buffer_size=1)
     for j in read_cbor_or_json_objects(fi):
         j = encode_bytes_before_json_serialization(j)
         ob = json.dumps(j)
@@ -37,7 +44,7 @@ def cbor2json_main():
         fo.flush()
 
 
-def read_cbor_or_json_objects(f, timeout=None):
+def read_cbor_or_json_objects(f, timeout=None) -> Iterator:
     """ Reads cbor or line-separated json objects from the binary file f."""
     while True:
         try:

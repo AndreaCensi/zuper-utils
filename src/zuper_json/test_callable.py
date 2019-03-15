@@ -5,52 +5,7 @@ from mypy_extensions import NamedArg
 from nose.tools import assert_equal
 
 from zuper_json.annotations_tricks import is_Callable, get_Callable_info
-from zuper_json.test_utils import with_private_register, assert_type_roundtrip
-
-
-# @dataclass
-
-#
-# def __getitem_inner__(self, params):
-#     import collections
-#     # noinspection PyUnresolvedReferences
-#     from typing import _TypingEmpty, _type_check, _TypingEllipsis
-#     if self.__origin__ is tuple and self._special:
-#         if params == ():
-#             return self.copy_with((_TypingEmpty,))
-#         if not isinstance(params, tuple):
-#             params = (params,)
-#         if len(params) == 2 and params[1] is ...:
-#             msg = "Tuple[t, ...]: t must be a type."
-#             p = _type_check(params[0], msg)
-#             return self.copy_with((p, _TypingEllipsis))
-#         msg = "Tuple[t0, t1, ...]: each t must be a type."
-#         params = tuple(_type_check(p, msg) for p in params)
-#         return self.copy_with(params)
-#     if self.__origin__ is collections.abc.Callable and self._special:
-#         args, result = params
-#         msg = "Callable[args, result]: result must be a type."
-#         result = _type_check(result, msg)
-#         if args is Ellipsis:
-#             return self.copy_with((_TypingEllipsis, result))
-#
-#         msg = "Callable[[arg, ...], result]: each arg must be a type."
-#         args = tuple(_type_check(arg, msg) for arg in args)
-#         params = args + (result,)
-#         return self.copy_with(params)
-#     return _GenericAlias.__getitem__(self, params)
-#
-# Callable.__getitem_inner__ = __getitem_inner__.__get__(Callable, _VariadicGenericAlias)
-
-
-# setattr(Callable, '__getitem_inner__', __getitem_inner__.__get__(None, Callable))
-# from nose.tools import raises
-# import types
-# print(type(Callable))
-# print(Callable.__getitem_inner__)
-# # Callable.__getitem_inner__ = types.MethodType(__getitem_inner__, Callable)
-#
-# print(Callable.__getitem_inner__)
+from zuper_json.test_utils import assert_type_roundtrip
 
 
 def test_detection_1():
@@ -114,21 +69,19 @@ def test_NamedArg_eq():
 
 
 # @raises(TypeError)
-@with_private_register
+
 def test_callable_1():
     T = Callable[[], int]
 
     assert_type_roundtrip(T, {})
 
 
-@with_private_register
 def test_callable_2():
     T = Callable[[NamedArg(int, "A")], int]
 
     assert_type_roundtrip(T, {})
 
 
-@with_private_register
 def test_callable_3():
     T = Callable[[int], int]
 

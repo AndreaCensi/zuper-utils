@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 import numpy as np
 from numpy.testing import assert_allclose
 
-from .hdf import  dict_from_numpy, numpy_from_dict
 from .json_utils import encode_bytes_before_json_serialization
+from .numpy_encoding import dict_from_numpy, numpy_from_dict
 from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 
 
@@ -37,6 +37,7 @@ def test_numpy_02():
     x = np.random.rand(1)
     c = C(x)
     assert_object_roundtrip(c, {})
+
 
 #
 # def test_numpy_03():

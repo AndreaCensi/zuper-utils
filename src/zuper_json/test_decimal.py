@@ -1,12 +1,10 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from .test_utils import relies_on_missing_features, assert_object_roundtrip, \
-    with_private_register
+from .test_utils import relies_on_missing_features, assert_object_roundtrip
 
 
 @relies_on_missing_features
-@with_private_register
 def test_not_implemented_decimal_1():
     @dataclass
     class MyClass:

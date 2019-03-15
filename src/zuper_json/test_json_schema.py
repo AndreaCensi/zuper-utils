@@ -5,7 +5,7 @@ from typing import Optional
 from jsonschema import validate
 
 from .ipce import object_to_ipce
-from .test_utils import with_private_register
+
 
 
 @dataclass
@@ -20,7 +20,6 @@ class AName:
 symbols = {'AName': AName}
 
 
-@with_private_register
 def test_schema1():
     n1 = AName('one', 'two')
     y1 = object_to_ipce(n1, symbols)

@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from typing import List
 
-from .test_utils import assert_object_roundtrip, \
-    with_private_register
+from .test_utils import assert_object_roundtrip
 
 
-@with_private_register
 def test_list_1():
     @dataclass
     class MyClass:

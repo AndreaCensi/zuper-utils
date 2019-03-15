@@ -8,10 +8,9 @@ except ImportError:
     # noinspection PyUnresolvedReferences
     from typing import _ForwardRef as ForwardRef
 
-from .test_utils import assert_object_roundtrip, with_private_register
+from .test_utils import assert_object_roundtrip
 
 
-@with_private_register
 def test_forward1_ok_no_locals_if_using_name():
     # """
     # *USED TO* Fail because there is no "C" in the context
@@ -28,7 +27,6 @@ def test_forward1_ok_no_locals_if_using_name():
     assert_object_roundtrip(e, {})
 
 
-@with_private_register
 def test_forward1():
     @dataclass
     class C:
@@ -39,19 +37,17 @@ def test_forward1():
     assert_object_roundtrip(e, {"C": C})
 
 
-@with_private_register
 def test_forward2():
     @dataclass
     class C:
         a: int
         b: 'Optional[C]' = None
 
+    # noinspection PyTypeChecker
     e = C(12, C(1))
     assert_object_roundtrip(e, {"C": C})
 
 
-
-@with_private_register
 def test_forward3():
     @dataclass
     class C:

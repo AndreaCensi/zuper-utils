@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Tuple, List
 
-from zuper_json.test_utils import assert_object_roundtrip, assert_type_roundtrip, with_private_register
+from zuper_json.test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 symbols = {}
 
-@with_private_register
+
 def test_tuples1():
     @dataclass
     class M:
@@ -31,7 +31,7 @@ def test_list1():
     T = List[str]
     assert_type_roundtrip(T, symbols)
 
-@with_private_register
+
 def test_list2():
     @dataclass
     class M:
@@ -42,7 +42,7 @@ def test_list2():
 
 
 
-# @with_private_register
+# 
 # def test_tuples1():
 #
 #     @dataclass

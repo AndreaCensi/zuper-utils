@@ -10,7 +10,7 @@ from zuper_json import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
 from .ipce import type_to_schema, schema_to_type
 from .pretty import pprint
-from .test_utils import with_private_register, assert_object_roundtrip, assert_type_roundtrip, known_failure
+from .test_utils import  assert_object_roundtrip, assert_type_roundtrip, known_failure
 from .zeneric2 import resolve_types
 
 
@@ -25,7 +25,7 @@ def test_dataclass_can_preserve_init():
     M(x=2)
 
 
-@with_private_register
+
 def test_serialize_generic():
     X = typing.TypeVar('X', bound=Number)
 
@@ -67,7 +67,7 @@ def test_serialize_generic():
     # assert_object_roundtrip(M, {'M': M})
 
 
-@with_private_register
+
 def test_serialize_generic_optional():
     # @dataclass
     # class Animal:
@@ -114,7 +114,7 @@ def test_serialize_generic_optional():
 from typing import Optional, TypeVar
 
 
-@with_private_register
+
 def test_more():
     X = TypeVar('X')
 
@@ -132,7 +132,7 @@ def test_more():
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
 @known_failure
-@with_private_register
+
 def test_more2():
     X = TypeVar('X')
     Y = TypeVar('Y')
@@ -167,7 +167,7 @@ def test_more2():
                             works_without_schema=False)
 
 @known_failure
-@with_private_register
+
 def test_more2b():
     X = TypeVar('X')
     Y = TypeVar('Y')
@@ -214,7 +214,7 @@ def test_isType():
     assert get_Type_arg(A) == X
 
 
-@with_private_register
+
 def test_more3_simpler():
     X = TypeVar('X')
 
@@ -230,7 +230,7 @@ def test_more3_simpler():
     assert_type_roundtrip(C, {})
 
 
-@with_private_register
+
 def test_more3():
     # class Base:
     #     pass
@@ -296,7 +296,7 @@ def test_entity():
     # assert_object_roundtrip(x, {})
 
 
-@with_private_register
+
 def test_classvar1():
     @dataclass
     class C:
@@ -309,7 +309,7 @@ def test_classvar1():
     # assert_equal(C.v, C2.v)
 
 
-@with_private_register
+
 def test_classvar2():
     X = TypeVar('X', bound=int)
 
@@ -328,7 +328,7 @@ def test_classvar2():
 
 
 @raises(TypeError)
-@with_private_register
+
 def test_check_bound():
     @dataclass
     class Animal:
@@ -356,7 +356,7 @@ def test_check_value():
     CG[int](a="a")
 
 
-@with_private_register
+
 def test_signing():
     X = TypeVar('X')
 
@@ -376,7 +376,7 @@ def test_signing():
     assert_object_roundtrip(s, {})
 
 
-@with_private_register
+
 def test_derived1():
     X = TypeVar('X')
 
@@ -396,7 +396,7 @@ def test_derived1():
     assert_type_roundtrip(Y, {})
 
 
-@with_private_register
+
 def test_derived2_no_doc():
     X = TypeVar('X')
 
@@ -412,7 +412,7 @@ def test_derived2_no_doc():
     assert_type_roundtrip(Z, {})
 
 
-@with_private_register
+
 def test_derived2_subst():
     X = TypeVar('X')
 
@@ -441,7 +441,7 @@ def test_derived2_subst():
     assert_type_roundtrip(Y, {})
 
 
-@with_private_register
+
 def test_derived3_subst():
     X = TypeVar('X')
 

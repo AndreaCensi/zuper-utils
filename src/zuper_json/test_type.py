@@ -1,9 +1,8 @@
 import json
 from dataclasses import dataclass
 from typing import *
-from typing import NewType
 
-from zuper_json.ipce import ipce_to_object, type_to_schema, schema_to_type
+from .ipce import ipce_to_object, type_to_schema, schema_to_type
 from .test_utils import relies_on_missing_features, assert_type_roundtrip, assert_object_roundtrip, known_failure
 
 symbols = {}

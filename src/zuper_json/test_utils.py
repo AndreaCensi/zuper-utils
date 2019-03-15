@@ -2,19 +2,20 @@ import json
 import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
+from dataclasses import is_dataclass, fields
 from unittest import SkipTest
 
 import cbor2 as cbor
 from nose.tools import assert_equal
 
-from zuper_json.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from . import logger
 from .constants import PYTHON_36
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
+from .json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from .pretty import pretty_dict, pprint
 
 
-def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
+def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool =True):
     # resolve_types(T)
     schema0 = type_to_schema(T, use_globals)
     schema = type_to_schema(T, use_globals)
@@ -42,10 +43,12 @@ def assert_type_roundtrip(T, use_globals, expect_type_equal=True):
 
         assert_equal(schema, schema2)
         raise AssertionError(msg)
-
+    return T2
 
 def assert_equivalent_types(T1: type, T2: type):
+    print(f'assert_equivalent_types({T1},{T2})')
     if T1 is T2:
+        print('same by equality')
         return
     if hasattr(T1, '__dict__'):
         pprint('compare',
@@ -53,13 +56,35 @@ def assert_equivalent_types(T1: type, T2: type):
                T2n=str(T2),
 
                T1=T1.__dict__, T2=T2.__dict__)
-    assert_equal(T1.__doc__, T2.__doc__)
+    # assert_equal(T1.__doc__, T2.__doc__)__doc__
 
-    for k in ['__name__', '__module__', '__doc__']:
-        assert_equal(getattr(T1, k, ()), getattr(T2, k, ()))
+    if not isinstance(T1, typing.TypeVar):
+        for k in ['__name__', '__module__', '__doc__']:
+            msg = f'Difference for {k} of {T1} ({type(T1)} and {T2} ({type(T2)}'
+            assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
 
-    for k in ['__annotations__']:
-        assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
+    if is_dataclass(T1):
+        assert is_dataclass(T2)
+
+        fields1 = fields(T1)
+        fields2 = fields(T2)
+        
+        fields1 = {_.name: _ for _ in fields1}
+        fields2 = {_.name: _ for _ in fields2}
+
+        if sorted(fields1) != sorted(fields2):
+            msg = f'Different fields: {sorted(fields1)} != {sorted(fields2)}'
+            raise Exception(msg)
+
+        for k in fields1:
+            t1 = fields1[k].type
+            t2 = fields2[k].type
+            print(f'{k}: {t1} {t2}')
+            assert_equivalent_types(t1, t2)
+
+
+    # for k in ['__annotations__']:
+    #     assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
 
     if False:
         if hasattr(T1, 'mro'):
@@ -83,7 +108,7 @@ def assert_equivalent_types(T1: type, T2: type):
     # assert_equal(T1.mro(), T2.mro())
 
 
-def assert_object_roundtrip(x1, use_globals, expect_equality=True,works_without_schema=True):
+def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without_schema=True):
     """
 
         expect_equality: if __eq__ is preserved
@@ -135,7 +160,6 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True,works_without_
 
 
 def check_equality(x1, x1b, expect_equality):
-
     if isinstance(x1b, type) and isinstance(x1, type):
         logger.warning('Skipping type equality check for %s and %s' % (x1b, x1))
     else:
@@ -205,8 +229,8 @@ def relies_on_missing_features(f):
 
     return attr('relies_on_missing_features')(run_test)
 
-
-def with_private_register(f):
-    return f
-    from zuper_ipce.test_utils import with_private_register as other
-    return other(f)
+#
+# def with_private_register(f):
+#     return f
+#     from zuper_ipce.test_utils import with_private_register as other
+#     return other(f)

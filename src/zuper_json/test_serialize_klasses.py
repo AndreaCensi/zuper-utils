@@ -4,10 +4,9 @@ from typing import Dict
 
 from zuper_json.ipce import object_to_ipce
 from zuper_json.pretty import pprint
-from zuper_json.test_utils import assert_type_roundtrip, assert_object_roundtrip, with_private_register
+from zuper_json.test_utils import assert_type_roundtrip, assert_object_roundtrip
 
 
-@with_private_register
 def test_serialize_klasses0():
     assert_type_roundtrip(type, {})
 
@@ -21,7 +20,6 @@ def test_serialize_klasses0():
     assert_object_roundtrip(A, {}, expect_equality=False)  # because of classes
 
 
-@with_private_register
 def test_serialize_klasses1():
     @dataclass
     class MyLanguage:
@@ -38,7 +36,6 @@ def test_serialize_klasses1():
     assert_object_roundtrip(a, {}, expect_equality=False)  # because of classes
 
 
-@with_private_register
 def test_serialize_klasses2():
     @dataclass
     class MyLanguage:

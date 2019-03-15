@@ -1,23 +1,22 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, is_dataclass
 from typing import *
+
 try:
     from typing import ForwardRef
 except ImportError:
     from typing import _ForwardRef as ForwardRef
 
-
 from nose.tools import raises, assert_equal
 
 from .constants import BINDINGS_ATT
-from .test_utils import assert_object_roundtrip, with_private_register
+from .test_utils import assert_object_roundtrip
 from .zeneric2 import NoConstructorImplemented
 
 X = TypeVar('X')
 
 
 @raises(TypeError)
-@with_private_register
 def test_boxed1():
     @dataclass
     class Boxed(Generic[X]):
@@ -28,7 +27,6 @@ def test_boxed1():
     # assert_object_roundtrip(n1, {'Boxed': Boxed})
 
 
-@with_private_register
 def test_boxed2():
     @dataclass
     class BoxedZ(Generic[X]):

@@ -7,13 +7,10 @@ except ImportError:
     from typing import _ForwardRef as ForwardRef
 
 from zuper_json.annotations_tricks import is_Any
-# from zuper_ipce.as_json import to_canonical_json, assert_regular_memory_json, assert_good_canonical
 from zuper_json.constants import SCHEMA_ATT, SCHEMA_ID
-# from zuper_ipce.ipce_constants import LINKS
 from zuper_json.ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
-from zuper_json.test_utils import assert_object_roundtrip, with_private_register
-# from .test_utils import with_private_register
+from zuper_json.test_utils import assert_object_roundtrip
 
 
 @dataclass
@@ -47,7 +44,6 @@ class Office:
     people: Dict[str, Person] = field(default_factory=make_dict(str, Person))
 
 
-@with_private_register
 def test_ser1():
     x1 = Office()
     x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
@@ -55,7 +51,6 @@ def test_ser1():
     assert_object_roundtrip(x1, symbols)
 
 
-@with_private_register
 def test_ser2():
     x1 = Office()
     x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
@@ -104,44 +99,37 @@ symbols = {'Office': Office,
            'Chain': Chain}
 
 
-@with_private_register
 def test_optional_1():
     n1 = Name(first='H', middle='J', last='Wells')
     assert_object_roundtrip(n1, symbols)
 
 
-@with_private_register
 def test_optional_2():
     n1 = Name(first='H', last='Wells')
     assert_object_roundtrip(n1, symbols)
 
 
-@with_private_register
 def test_optional_3():
     n1 = Name(first='H', last='Wells')
     assert_object_roundtrip(n1, {}, expect_equality=True)
 
 
-@with_private_register
 def test_recursive():
     n1 = Chain(value='12')
     assert_object_roundtrip(n1, {'Chain': Chain})
 
 
-@with_private_register
 def test_ser_forward1():
     n1 = FA(value='a', down=FB(12))
     # with private_register('test_forward'):
     assert_object_roundtrip(n1, symbols)
 
 
-@with_private_register
 def test_ser_forward2():
     n1 = Empty()
     assert_object_roundtrip(n1, symbols)
 
 
-@with_private_register
 def test_ser_dict_object():
     @dataclass(frozen=True, unsafe_hash=True)
     class L:
@@ -162,7 +150,6 @@ def test_ser_dict_object():
 from nose.tools import raises, assert_equal
 
 
-@with_private_register
 def test_bytes1():
     n1 = Contents(b'1234')
     assert_object_roundtrip(n1, symbols)
@@ -180,11 +167,9 @@ def test_lists():
 def test_nulls():
     object_to_ipce(None, {})
 
+
 def test_lists_2():
     object_to_ipce([1], {})
-
-
-
 
 
 # @raises(ValueError)
@@ -194,11 +179,7 @@ def test_lists_2():
 #     assert_good_canonical(x)
 
 
-
-
-
 @raises(ValueError)
-@with_private_register
 def test_the_tester_no_links2_in_snd_not2():
     class NotDataClass:
         ...
@@ -257,7 +238,6 @@ def test_any1b():
     assert is_Any(t), t
 
 
-@with_private_register
 def test_any2():
     @dataclass
     class C:
@@ -352,12 +332,12 @@ def test_error2():
     type_to_schema(MyClass, {'M': M})
 
 
-
 # for completeness
 @raises(CannotResolveTypeVar)
 def test_cannot_resolve():
     X = TypeVar('X')
     eval_field(X, {}, {})
+
 
 @raises(AssertionError)
 def test_random_json():

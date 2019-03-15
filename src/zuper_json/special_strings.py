@@ -3,8 +3,9 @@ from typing import NewType, Dict, Callable
 
 
 def valid_email(s):
-    from validate_email import validate_email
-    is_valid = validate_email(s)
+    import validate_email
+
+    is_valid = validate_email.validate_email(s)
 
     if not is_valid:
         msg = f'Invalid email address {s!r}'

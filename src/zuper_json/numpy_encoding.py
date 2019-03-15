@@ -3,6 +3,23 @@ import numpy as np
 from contracts import check_isinstance
 
 
+def dict_from_numpy(x: np.ndarray) -> dict:
+    res = {}
+    res['shape'] = list(x.shape)
+    res['dtype'] = x.dtype.name
+    res['data'] = x.tobytes()
+    return res
+
+
+def numpy_from_dict(d: dict) -> np.ndarray:
+    shape = tuple(d['shape'])
+    dtype = d['dtype']
+    data: bytes = d['data']
+    check_isinstance(data, bytes)
+    a = np.frombuffer(data, dtype=dtype)
+    res = a.reshape(shape)
+    return res
+
 #
 #
 # def bytes_from_numpy(a: np.ndarray) -> bytes:
@@ -26,21 +43,3 @@ from contracts import check_isinstance
 #         a = f['value']
 #         res = np.array(a)
 #         return res
-
-
-def dict_from_numpy(x: np.ndarray) -> dict:
-    res = {}
-    res['shape'] = list(x.shape)
-    res['dtype'] = x.dtype.name
-    res['data'] = x.tobytes()
-    return res
-
-
-def numpy_from_dict(d: dict) -> np.ndarray:
-    shape = tuple(d['shape'])
-    dtype = d['dtype']
-    data: bytes = d['data']
-    check_isinstance(data, bytes)
-    a = np.frombuffer(data, dtype=dtype)
-    res = a.reshape(shape)
-    return res
