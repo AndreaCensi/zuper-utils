@@ -8,7 +8,7 @@ coverage
 PyContracts
 networkx
 dataclasses
-comptests
+comptests>=1.4.33
 pydot
 multihash
 py-cid

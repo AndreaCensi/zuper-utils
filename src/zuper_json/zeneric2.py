@@ -1,14 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, Field, _FIELDS
 # noinspection PyUnresolvedReferences
-from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type
+from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
-
+from contracts import check_isinstance
 from .constants import PYTHON_36
 
 try:
     from typing import ForwardRef
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
@@ -16,14 +16,14 @@ from .constants import GENERIC_ATT, BINDINGS_ATT
 from .pretty import pretty_dict
 
 
-def as_tuple(x):
+def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
 def get_type_spec(types) -> Dict[str, Type]:
     res = {}
     for x in types:
-        if not isinstance(x, TypeVar): # pragma: no cover
+        if not isinstance(x, TypeVar):  # pragma: no cover
             msg = f'Not sure what happened - but did you import zuper_json? {(x, types)}'
             raise ValueError(msg)
 
@@ -40,11 +40,11 @@ class ZenericFix:
         # pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
         types = as_tuple(params)
 
-        if PYTHON_36: # pragma: no cover
+        if PYTHON_36:  # pragma: no cover
             class FakeGenericMeta(ABCMeta):
                 def __getitem__(self, params2):
                     types2 = as_tuple(params2)
-                    return make_type(self, types, types2)
+                    return make_type(self, tuple(types), tuple(types2))
         else:
             FakeGenericMeta = ABCMeta
 
@@ -149,17 +149,32 @@ def make_type(cls: type, types, types2: Sequence) -> type:
             # dict does not have name
             symbols[U.__name__] = U
 
-    if is_dataclass(cls):
-        fields = getattr(cls, _FIELDS)
-        for k, v in fields.items():
-            assert isinstance(v, Field)
-            v.type = eval_type(v.type, bindings, symbols)
+    # if is_dataclass(cls):
+    #     fields = getattr(cls, _FIELDS)
+    #     check_isinstance(fields, dict)
+    #     fields2 = {}
+    #
+    #     for k, v in fields.items():
+    #         check_isinstance(v, Field)
+    #         type2 = eval_type(v.type, bindings, symbols)
+    #         f2 = Field(default=v.default,
+    #                    default_factory=v.default_factory,
+    #                    init=v.init, repr=v.repr, hash=v.hash, compare=v.compare,
+    #                    metadata=v.metadata)
+    #         f2.name = v.name
+    #         f2.type = type2
+    #         fields2[k] = f2
+    #
+    # else:
+    #     fields2 = None
+    #     pass
 
     new_annotations = {}
 
     for k, v in annotations.items():
         if is_ClassVar(v):
             s = get_ClassVar_arg(v)
+            s = eval_type(s, bindings, symbols)
             if is_Type(s):
                 st = get_Type_arg(s)
                 concrete = eval_type(st, bindings, symbols)
@@ -194,6 +209,7 @@ def make_type(cls: type, types, types2: Sequence) -> type:
         # note: need to have set new annotations
         # pprint('creating dataclass from %s' % cls2)
         cls2 = dataclass(cls2)
+        # setattr(cls2, _FIELDS, fields2)
     else:
         # print('Detected that cls = %s not a dataclass' % cls)
 

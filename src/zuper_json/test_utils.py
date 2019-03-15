@@ -3,11 +3,13 @@ import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
 from dataclasses import is_dataclass, fields
+from typing import ForwardRef
 from unittest import SkipTest
 
 import cbor2 as cbor
 from nose.tools import assert_equal
 
+from zuper_json.annotations_tricks import is_Dict
 from . import logger
 from .constants import PYTHON_36
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
@@ -56,9 +58,10 @@ def assert_equivalent_types(T1: type, T2: type):
                T2n=str(T2),
 
                T1=T1.__dict__, T2=T2.__dict__)
-    # assert_equal(T1.__doc__, T2.__doc__)__doc__
 
-    if not isinstance(T1, typing.TypeVar):
+
+    # for these builtin we cannot set/get the attrs
+    if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
         for k in ['__name__', '__module__', '__doc__']:
             msg = f'Difference for {k} of {T1} ({type(T1)} and {T2} ({type(T2)}'
             assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
@@ -101,8 +104,9 @@ def assert_equivalent_types(T1: type, T2: type):
     else:
         if isinstance(T1, typing._GenericAlias):
             # noinspection PyUnresolvedReferences
-            for z1, z2 in zip(T1.__args__, T2.__args__):
-                assert_equivalent_types(z1, z2)
+            if not is_Dict(T1):
+                for z1, z2 in zip(T1.__args__, T2.__args__):
+                    assert_equivalent_types(z1, z2)
 
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())

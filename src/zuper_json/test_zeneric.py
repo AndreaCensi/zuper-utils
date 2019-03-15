@@ -10,7 +10,7 @@ from zuper_json import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
 from .ipce import type_to_schema, schema_to_type
 from .pretty import pprint
-from .test_utils import  assert_object_roundtrip, assert_type_roundtrip, known_failure
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip, known_failure
 from .zeneric2 import resolve_types
 
 
@@ -24,6 +24,27 @@ def test_dataclass_can_preserve_init():
 
     M(x=2)
 
+from dataclasses import fields
+
+def test_serialize_generic_typevar():
+    X = typing.TypeVar('X', bound=Number)
+
+    @dataclass
+    class M1(Generic[X]):
+        """ A generic class """
+        x: X
+
+    M2 = assert_type_roundtrip(M1, {})
+
+    f1 = fields(M1)
+    assert f1[0].type == X
+    # there was a bug with modifying this
+    _ = M1[int]
+    f1b = fields(M1)
+    assert f1b[0].type == X
+    assert f1 == f1b
+
+    # M2 = assert_type_roundtrip(M1, {})
 
 
 def test_serialize_generic():
@@ -65,7 +86,6 @@ def test_serialize_generic():
     assert m2b != m2a
 
     # assert_object_roundtrip(M, {'M': M})
-
 
 
 def test_serialize_generic_optional():
@@ -114,7 +134,6 @@ def test_serialize_generic_optional():
 from typing import Optional, TypeVar
 
 
-
 def test_more():
     X = TypeVar('X')
 
@@ -131,8 +150,8 @@ def test_more():
     assert_type_roundtrip(EI, {})
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
-@known_failure
 
+@known_failure
 def test_more2():
     X = TypeVar('X')
     Y = TypeVar('Y')
@@ -166,8 +185,8 @@ def test_more2():
     assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
                             works_without_schema=False)
 
-@known_failure
 
+@known_failure
 def test_more2b():
     X = TypeVar('X')
     Y = TypeVar('Y')
@@ -214,7 +233,6 @@ def test_isType():
     assert get_Type_arg(A) == X
 
 
-
 def test_more3_simpler():
     X = TypeVar('X')
 
@@ -228,7 +246,6 @@ def test_more3_simpler():
 
     C = MyClass[int, str]
     assert_type_roundtrip(C, {})
-
 
 
 def test_more3():
@@ -296,7 +313,6 @@ def test_entity():
     # assert_object_roundtrip(x, {})
 
 
-
 def test_classvar1():
     @dataclass
     class C:
@@ -307,7 +323,6 @@ def test_classvar1():
     # C2: C = schema_to_type(schema, {}, {})
     #
     # assert_equal(C.v, C2.v)
-
 
 
 def test_classvar2():
@@ -328,7 +343,6 @@ def test_classvar2():
 
 
 @raises(TypeError)
-
 def test_check_bound():
     @dataclass
     class Animal:
@@ -356,7 +370,6 @@ def test_check_value():
     CG[int](a="a")
 
 
-
 def test_signing():
     X = TypeVar('X')
 
@@ -376,7 +389,6 @@ def test_signing():
     assert_object_roundtrip(s, {})
 
 
-
 def test_derived1():
     X = TypeVar('X')
 
@@ -387,6 +399,7 @@ def test_derived1():
     S = Signed3[int]
 
     logger.info(dataclasses.fields(S))
+
     class Y(S):
         """hello"""
         pass
@@ -394,7 +407,6 @@ def test_derived1():
     assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
     assert_equal(Y.__doc__, """hello""")
     assert_type_roundtrip(Y, {})
-
 
 
 def test_derived2_no_doc():
@@ -410,7 +422,6 @@ def test_derived2_no_doc():
         pass
 
     assert_type_roundtrip(Z, {})
-
 
 
 def test_derived2_subst():
@@ -439,7 +450,6 @@ def test_derived2_subst():
         pass
 
     assert_type_roundtrip(Y, {})
-
 
 
 def test_derived3_subst():
