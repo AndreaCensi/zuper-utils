@@ -377,5 +377,7 @@ def get_cbor_dag_hash(ob):
     ob_cbor = cbor2.dumps(ob)
     ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
     mh = multihash.encode(digest=ob_cbor_hash, code=18)
+    # the above returns a bytearray
+    mh = bytes(mh)
     cid = make_cid(1, 'dag-cbor', mh)
     return cid.encode().decode('ascii')

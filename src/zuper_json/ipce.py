@@ -11,7 +11,7 @@ import cbor2
 import numpy as np
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
-
+from decimal import Decimal
 from contracts import check_isinstance, raise_desc, indent
 from jsonschema.validators import validator_for, validate
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
@@ -93,6 +93,9 @@ def object_to_ipce_(ob, globals_: GlobalsDict, with_schema: bool, suggest_type: 
         if with_schema:
             res[SCHEMA_ATT] = type_numpy_to_schema(type(ob), globals_, {})
         return res
+
+    if isinstance(ob, Decimal):
+        return ob
 
     return serialize_dataclass(ob, globals_, with_schema=with_schema)
 
@@ -225,7 +228,7 @@ def ipce_to_object(mj: MemoryJSON,
 
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
 
-    if isinstance(mj, (int, float, bool)):
+    if isinstance(mj, (int, float, bool, Decimal)):
         return mj
 
     if isinstance(mj, list):
@@ -511,6 +514,8 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     if jsc_type == JSC_STRING:
         if jsc_title == JSC_TITLE_BYTES:
             return bytes
+        elif jsc_title == 'decimal':
+            return Decimal
         else:
             return str
     elif jsc_type == JSC_NULL:
@@ -791,6 +796,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
     if T is int:
         res: JSONSchema = {JSC_TYPE: JSC_INTEGER, SCHEMA_ATT: SCHEMA_ID}
+        return res
+
+    if T is Decimal:
+        res: JSONSchema = {JSC_TYPE: JSC_STRING, JSC_TITLE: "decimal", SCHEMA_ATT: SCHEMA_ID}
         return res
 
     if T is bytes:

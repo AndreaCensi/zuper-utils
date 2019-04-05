@@ -148,8 +148,8 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     check_equality(x1, x1b, expect_equality)
 
     if y1 != x1bj:  # pragma: no cover
-        msg = pretty_dict('Round trip not obtained', dict(x1bj=json.dumps(x1bj, indent=2),
-                                                          y1=json.dumps(y1, indent=2)))
+        msg = pretty_dict('Round trip not obtained', dict(x1bj=str(x1bj),
+                                                          y1=str(y1)))
 
         raise AssertionError(msg)
 

@@ -1,9 +1,8 @@
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, Field, _FIELDS
+from dataclasses import dataclass
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
-from contracts import check_isinstance
 from .constants import PYTHON_36
 
 try:
@@ -189,8 +188,11 @@ def make_type(cls: type, types, types2: Sequence) -> type:
     assert '<' not in name2, name2
     assert '~' not in name2, (cls.__dict__, name2)
 
+    original__post_init__ = getattr(cls, '__post_init__', None)
+
     def __post_init__(self):
-        # print('Doing post init check')
+        # s = [(k, type(v)) for k, v in self.__dict__.items()]
+        # print('Doing post init check (%s, %s) ' % (type(self), s))
         for k, v in new_annotations.items():
             if is_ClassVar(v): continue
             if isinstance(v, type):
@@ -198,6 +200,9 @@ def make_type(cls: type, types, types2: Sequence) -> type:
                 if not isinstance(val, v) and type(val).__name__ != v.__name__:
                     msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
                     raise ValueError(msg)
+
+        if original__post_init__ is not None:
+            original__post_init__(self)
 
     d['__post_init__'] = __post_init__
     cls2 = type(name2, (cls,), d)
