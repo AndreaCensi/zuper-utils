@@ -18,7 +18,7 @@ def get_version(filename):
 
 shell_version = get_version(filename='src/zuper_json/__init__.py')
 
-setup(name='zuper_utils',
+setup(name='zuper-utils',
       package_dir={'': 'src'},
       packages=find_packages('src'),
       version=shell_version,
