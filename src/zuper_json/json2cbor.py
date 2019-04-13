@@ -1,3 +1,4 @@
+import io
 import json
 import select
 import time
@@ -56,14 +57,18 @@ def read_cbor_or_json_objects(f, timeout=None) -> Iterator:
             raise
 
 
-def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None):
+def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None) -> dict:
     """ Raises StopIteration if it is EOF.
         Raises TimeoutError if over timeout"""
     fs = [f]
     t0 = time.time()
     intermediate_timeout = 3.0
+
     while True:
-        readyr, readyw, readyx = select.select(fs, [], fs, intermediate_timeout)
+        try:
+            readyr, readyw, readyx = select.select(fs, [], fs, intermediate_timeout)
+        except io.UnsupportedOperation:
+            break
         if readyr:
             break
         elif readyx:
@@ -112,4 +117,53 @@ def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None):
     else:
 
         j = cbor2.load(f)
+
         return j
+
+
+def wait_for_data(f, timeout=None, waiting_for: str = None):
+    """ Raises StopIteration if it is EOF.
+            Raises TimeoutError if over timeout"""
+    # XXX: StopIteration not implemented
+    fs = [f]
+    t0 = time.time()
+    intermediate_timeout = 3.0
+
+    while True:
+        try:
+            readyr, readyw, readyx = select.select(fs, [], fs, intermediate_timeout)
+        except io.UnsupportedOperation:
+            break
+        if readyr:
+            break
+        elif readyx:
+            logger.warning('Exceptional condition on input channel %s' % readyx)
+        else:
+            delta = time.time() - t0
+            if (timeout is not None) and (delta > timeout):
+                msg = 'Timeout after %.1f s.' % delta
+                logger.error(msg)
+                raise TimeoutError(msg)
+            else:
+                msg = 'I have been waiting %.1f s.' % delta
+                if timeout is None:
+                    msg += ' I will wait indefinitely.'
+                else:
+                    msg += ' Timeout will occurr at %.1f s.' % timeout
+                if waiting_for:
+                    msg += '\n' + waiting_for
+                logger.warning(msg)
+
+
+def read_next_cbor(f, timeout=None, waiting_for: str = None) -> dict:
+    """ Raises StopIteration if it is EOF.
+        Raises TimeoutError if over timeout"""
+    wait_for_data(f, timeout, waiting_for)
+
+    try:
+        j = cbor2.load(f)
+        return j
+    except OSError as e:
+        if e.errno == 29:
+            raise StopIteration from None
+        raise

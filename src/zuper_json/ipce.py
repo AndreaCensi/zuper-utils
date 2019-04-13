@@ -134,8 +134,8 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
                 ann = get_optional_type(ann)
             res[k] = object_to_ipce(v, globals_, suggest_type=ann, with_schema=with_schema)
         except BaseException as e:
-            msg = f'Cannot serialize attribute {k}  = {v}'
-            msg += f'\nType {type(ob)} has annotated it as {ann}'
+            msg = f'Cannot serialize attribute {k} = {v} of type {type(k)}.'
+            msg += f'\nThe schema for {type(ob)} says that it should be of type {ann}.'
             raise Exception(msg) from e
     return res
 
@@ -328,7 +328,7 @@ def ipce_to_object(mj: MemoryJSON,
         msg += '\n'.join(str(e) for e in errors)
         raise Exception(msg)
 
-    assert False, (type(K), K, mj)  # pragma: no cover
+    assert False, (type(K), K, mj, expect_type)  # pragma: no cover
 
 
 def deserialize_tuple(expect_type, mj, global_symbols, encountered):
