@@ -1,8 +1,9 @@
+import sys
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
-
+from .logging import logger
 from .constants import PYTHON_36
 
 try:
@@ -197,9 +198,18 @@ def make_type(cls: type, types, types2: Sequence) -> type:
             if is_ClassVar(v): continue
             if isinstance(v, type):
                 val = getattr(self, k)
-                if not isinstance(val, v) and type(val).__name__ != v.__name__:
-                    msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
-                    raise ValueError(msg)
+                try:
+                    if type(val).__name__ != v.__name__ and not isinstance(val, v):
+                        msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
+                        raise ValueError(msg)
+                except TypeError as e:
+                    msg = f'Cannot judge annotation of {k} (supposedly {v}.'
+
+                    if sys.version_info[:2] == (3, 6):
+                        # FIXME: warn
+                        continue
+                    logger.error(msg)
+                    raise TypeError(msg) from e
 
         if original__post_init__ is not None:
             original__post_init__(self)

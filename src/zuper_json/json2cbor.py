@@ -86,7 +86,7 @@ def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None) -> d
                 else:
                     msg += ' Timeout will occurr at %.1f s.' % timeout
                 if waiting_for:
-                    msg += '\n' + waiting_for
+                    msg += ' ' + waiting_for
                 logger.warning(msg)
 
     first = f.peek(1)[:1]
@@ -151,7 +151,7 @@ def wait_for_data(f, timeout=None, waiting_for: str = None):
                 else:
                     msg += ' Timeout will occurr at %.1f s.' % timeout
                 if waiting_for:
-                    msg += '\n' + waiting_for
+                    msg += ' ' + waiting_for
                 logger.warning(msg)
 
 
