@@ -233,8 +233,8 @@ def test_not_dict_naked():
 
 
 def test_any1b():
-    schema: JSONSchema = {}
-    t = schema_to_type(schema, {}, encountered={})
+    res = cast(JSONSchema, {})
+    t = schema_to_type(res, {}, encountered={})
     assert is_Any(t), t
 
 
@@ -249,7 +249,7 @@ def test_any2():
 
 @raises(CannotFindSchemaReference)
 def test_invalid_schema():
-    schema: JSONSchema = {"$ref": "not-existing"}
+    schema = cast(JSONSchema, {"$ref": "not-existing"})
     schema_to_type(schema, {}, {})
 
 

@@ -1,9 +1,9 @@
 from dataclasses import is_dataclass
 from typing import *
 
-from contracts import indent
-from zuper_json.annotations_tricks import is_Any, is_Dict
-from zuper_json.my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value
+from zuper_commons.text import indent
+from .annotations_tricks import is_Any
+from .my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value
 
 
 def can_be_used_as(T1, T2) -> Tuple[bool, str]:

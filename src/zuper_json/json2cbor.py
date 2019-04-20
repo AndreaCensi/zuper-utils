@@ -9,7 +9,7 @@ from typing import Iterator
 
 import cbor2
 
-from zuper_json.json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
+from .json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 from . import logger
 
 __all__ = [

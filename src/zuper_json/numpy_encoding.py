@@ -1,6 +1,6 @@
 import numpy as np
 
-from contracts import check_isinstance
+from zuper_commons.types import check_isinstance
 
 
 def dict_from_numpy(x: np.ndarray) -> dict:

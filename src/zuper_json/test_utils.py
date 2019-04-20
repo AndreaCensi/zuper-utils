@@ -105,6 +105,7 @@ def assert_equivalent_types(T1: type, T2: type):
         if isinstance(T1, typing._GenericAlias):
             # noinspection PyUnresolvedReferences
             if not is_Dict(T1):
+                # noinspection PyUnresolvedReferences
                 for z1, z2 in zip(T1.__args__, T2.__args__):
                     assert_equivalent_types(z1, z2)
 
@@ -138,7 +139,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     x1bj = object_to_ipce(x1b, use_globals)
 
     if False:
-        from zuper_ipce.register import store_json, recall_json
+        from zuper_ipce import store_json, recall_json
         h1 = store_json(y1)
         y1b = recall_json(h1)
         assert y1b == y1

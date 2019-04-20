@@ -32,7 +32,6 @@ setup(name='zuper-utils',
       },
       install_requires=[
           'pybase64',
-          'PyContracts',
           'IPython',
           'validate_email',
           'mypy_extensions',

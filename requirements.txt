@@ -5,7 +5,6 @@ validate_email
 mypy_extensions
 nose
 coverage
-PyContracts
 networkx
 dataclasses
 comptests>=1.4.33

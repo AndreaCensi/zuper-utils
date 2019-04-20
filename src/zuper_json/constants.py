@@ -1,4 +1,4 @@
-from typing import NewType, Dict, Any
+from typing import NewType, Dict, Any, cast
 
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
@@ -49,6 +49,6 @@ PYTHON_37 = sys.version_info[1] == 7
 
 JSC_TITLE_NUMPY = 'numpy'
 JSC_TITLE_BYTES = 'bytes'
-SCHEMA_BYTES: JSONSchema = {JSC_TYPE: JSC_STRING,
+SCHEMA_BYTES = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
                             JSC_TITLE: JSC_TITLE_BYTES,
-                            SCHEMA_ATT: SCHEMA_ID}
+                            SCHEMA_ATT: SCHEMA_ID})

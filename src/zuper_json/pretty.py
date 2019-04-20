@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any, TypeVar
 
-from contracts import indent
+from zuper_commons.text import indent
 
 
 def pprint(msg=None, **kwargs):
