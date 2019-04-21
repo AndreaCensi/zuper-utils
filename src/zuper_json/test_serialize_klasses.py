@@ -2,9 +2,9 @@
 from dataclasses import dataclass
 from typing import Dict
 
-from zuper_json.ipce import object_to_ipce
-from zuper_json.pretty import pprint
-from zuper_json.test_utils import assert_type_roundtrip, assert_object_roundtrip
+from .ipce import object_to_ipce
+from .pretty import pprint
+from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 
 
 def test_serialize_klasses0():

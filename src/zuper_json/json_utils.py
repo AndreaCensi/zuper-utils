@@ -1,6 +1,6 @@
 import json
 
-from zuper_json.base64_utils import encode_bytes_base64, is_encoded_bytes_base64, decode_bytes_base64
+from .base64_utils import encode_bytes_base64, is_encoded_bytes_base64, decode_bytes_base64
 
 
 def json_dump(x) -> str:

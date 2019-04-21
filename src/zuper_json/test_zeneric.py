@@ -1,17 +1,20 @@
 import dataclasses
 import typing
-from dataclasses import dataclass
+
 from numbers import Number
 from typing import Generic
 
+import yaml
 from nose.tools import raises, assert_equal
 
 from zuper_json import logger
-from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
+from zuper_json.constants import enable_type_checking
+from zuper_json.monkey_patching_typing import my_dataclass
+from zuper_json.zeneric2 import resolve_types, dataclass
+from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
 from .ipce import type_to_schema, schema_to_type
 from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip, known_failure
-from .zeneric2 import resolve_types
 
 
 @raises(TypeError)
@@ -24,7 +27,9 @@ def test_dataclass_can_preserve_init():
 
     M(x=2)
 
+
 from dataclasses import fields
+
 
 def test_serialize_generic_typevar():
     X = typing.TypeVar('X', bound=Number)
@@ -141,14 +146,50 @@ def test_more():
     class Entity0(Generic[X]):
         data0: X
 
-        parent: Optional["Entity0[X]"] = None
+        parent: "Optional[Entity0[X]]" = None
 
-    EI = Entity0[int]
-    x = EI(data0=3, parent=EI(data0=4))
+    resolve_types(Entity0)
+
+    print(Entity0.__annotations__['parent'].__repr__())
+    assert not isinstance(Entity0.__annotations__['parent'], str)
+    # raise Exception()
+    schema = type_to_schema(Entity0, {}, {})
+    print(yaml.dump(schema))
+    T = schema_to_type(schema, {}, {})
+    print(T.__annotations__)
 
     assert_type_roundtrip(Entity0, {})
+
+    EI = Entity0[int]
+
+    assert_equal(EI.__annotations__['parent'].__args__[0].__name__, 'Entity0[int]')
     assert_type_roundtrip(EI, {})
+
+    x = EI(data0=3, parent=EI(data0=4))
+
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
+
+
+def test_more_direct():
+    # language=yaml
+    schema = yaml.load("""
+$id: http://invalid.json-schema.org/Entity0[X]#
+$schema: http://json-schema.org/draft-07/schema#
+__module__: zuper_json.zeneric2
+__qualname__: test_more.<locals>.Entity0
+definitions:
+  X: {$id: 'http://invalid.json-schema.org/Entity0[X]/X#', $schema: 'http://json-schema.org/draft-07/schema#'}
+description: 'Entity0[X](data0: ~X, parent: ''Optional[Entity0[X]]'' = None)'
+properties:
+  data0: {$ref: 'http://invalid.json-schema.org/Entity0[X]/X#'}
+  parent: {$ref: 'http://invalid.json-schema.org/Entity0[X]#'}
+required: [data0]
+title: Entity0[X]
+type: object    
+    
+    """)
+    T = schema_to_type(schema, {}, {})
+    print(T.__annotations__)
 
 
 @known_failure
@@ -160,7 +201,7 @@ def test_more2():
     class Entity11(Generic[X]):
         data0: X
 
-        parent: Optional["Entity11[X]"] = None
+        parent: "Optional[Entity11[X]]" = None
 
     type_to_schema(Entity11, {})
 
@@ -186,7 +227,6 @@ def test_more2():
                             works_without_schema=False)
 
 
-@known_failure
 def test_more2b():
     X = TypeVar('X')
     Y = TypeVar('Y')
@@ -195,7 +235,7 @@ def test_more2b():
     class Entity12(Generic[X]):
         data0: X
 
-        parent: Optional["Entity12[X]"] = None
+        parent: "Optional[Entity12[X]]" = None
 
     @dataclass
     class Entity13(Generic[Y]):
@@ -270,9 +310,9 @@ def test_more3():
     C = MyClass[int, str]
     assert_type_roundtrip(C, {})
     # print(f'Annotations for C: {C.__annotations__}')
-    assert_equal(C.__annotations__['XT'], ClassVar[Type])
+    assert_equal(C.__annotations__['XT'], ClassVar[Type[int]])
     assert_equal(C.XT, int)
-    assert_equal(C.__annotations__['YT'], ClassVar[Type])
+    assert_equal(C.__annotations__['YT'], ClassVar[Type[str]])
     assert_equal(C.YT, str)
 
     schema = type_to_schema(C, {})
@@ -289,20 +329,27 @@ def test_more3():
 def test_entity():
     X = TypeVar('X')
 
-    @dataclass
+    @my_dataclass
     class SecurityModel2:
         # guid: Any
         owner: str
         arbiter: str
 
-    @dataclass
+    @my_dataclass
     class Entity2(Generic[X]):
         data0: X
         guid: str
 
         security_model: SecurityModel2
-        parent: Optional["Entity2[X]"] = None
-        forked: Optional["Entity2[X]"] = None
+        parent: "Optional[Entity2[X]]" = None
+        forked: "Optional[Entity2[X]]" = None
+
+
+
+    T = type_to_schema(Entity2, {}, {})
+    C = schema_to_type(T, {}, {})
+    print(yaml.dump(T))
+    print(C.__annotations__)
 
     # resolve_types(Entity2, locals())
     # assert_type_roundtrip(Entity2, locals())
@@ -311,6 +358,26 @@ def test_entity():
     assert_type_roundtrip(Entity2_int, {})
 
     # assert_object_roundtrip(x, {})
+
+
+def test_entity0():
+    # language=yaml
+    schema = yaml.load("""
+$id: http://invalid.json-schema.org/Entity2[X]#
+$schema: http://json-schema.org/draft-07/schema#
+definitions:
+  X: {$id: 'http://invalid.json-schema.org/Entity2[X]/X#', $schema: 'http://json-schema.org/draft-07/schema#'}
+description: 
+properties:
+  parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#'}
+required: [data0, guid, security_model]
+title: Entity2[X]
+type: object    
+    """)
+    C = schema_to_type(schema, {}, {})
+    print(C.__annotations__)
+
+    assert not is_forward_ref(C.__annotations__['parent'].__args__[0])
 
 
 def test_classvar1():
@@ -361,13 +428,14 @@ def test_check_bound():
     #
 
 
-@raises(ValueError, TypeError)  # typerror in 3.6
-def test_check_value():
-    @dataclass
-    class CG(Generic[()]):
-        a: int
+if enable_type_checking:
+    @raises(ValueError, TypeError)  # typerror in 3.6
+    def test_check_value():
+        @dataclass
+        class CG(Generic[()]):
+            a: int
 
-    CG[int](a="a")
+        CG[int](a="a")
 
 
 def test_signing():
@@ -435,9 +503,8 @@ def test_derived2_subst():
         data: X
         parent: Optional['Signed3[X]'] = None
 
-    print(Signed3.mro())
-    Signed3[int]
-    resolve_types(Signed3, locals())
+    _ = Signed3[int]
+    # resolve_types(Signed3, locals())
 
     S = Signed3[int]
 
@@ -449,6 +516,18 @@ def test_derived2_subst():
     class Y(S):
         pass
 
+    pprint(**Y.__annotations__)
+
+    schema = type_to_schema(Y, {}, {})
+    print(yaml.dump(schema))
+    TY = schema_to_type(schema, {}, {})
+
+    pprint('annotations', **TY.__annotations__)
+    P = TY.__annotations__['parent']
+    assert not is_forward_ref(P)
+
+    # raise Exception()
+    # raise Exception()
     assert_type_roundtrip(Y, {})
 
 
@@ -465,4 +544,4 @@ def test_derived3_subst():
 
 
 if __name__ == '__main__':
-    test_more2b()
+    test_entity()

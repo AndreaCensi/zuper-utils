@@ -34,7 +34,8 @@ JSC_DEFINITIONS = 'definitions'
 Z_ATT_LSIZE = 'lsize'
 Z_ATT_TSIZE = 'tsize'
 
-GENERIC_ATT = '__generic__'
+# GENERIC_ATT = '__generic__'
+GENERIC_ATT2 = '__generic2__'
 BINDINGS_ATT = '__binding__'
 INTERSECTION_ATT = '__intersection__'
 X_PYTHON_MODULE_ATT = '__module__'
@@ -50,5 +51,7 @@ PYTHON_37 = sys.version_info[1] == 7
 JSC_TITLE_NUMPY = 'numpy'
 JSC_TITLE_BYTES = 'bytes'
 SCHEMA_BYTES = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
-                            JSC_TITLE: JSC_TITLE_BYTES,
-                            SCHEMA_ATT: SCHEMA_ID})
+                                 JSC_TITLE: JSC_TITLE_BYTES,
+                                 SCHEMA_ATT: SCHEMA_ID})
+
+enable_type_checking = False

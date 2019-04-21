@@ -3,7 +3,7 @@ from typing import *
 
 from nose.tools import raises
 
-from zuper_json.ipce import make_dict, type_to_schema
+from .ipce import make_dict, type_to_schema
 from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 

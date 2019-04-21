@@ -1,19 +1,67 @@
 import sys
+import typing
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
+
+from zuper_commons.text import indent, pretty_dict
+from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
-from .constants import PYTHON_36
 
 try:
     from typing import ForwardRef
 except ImportError:  # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
-from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like
-from .constants import GENERIC_ATT, BINDINGS_ATT
-from .pretty import pretty_dict
+from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
+    is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
+    get_union_types
+
+
+def loglevel(f):
+    def f2(*args, **kwargs):
+        RecLogger.levels += 1
+        if RecLogger.levels >= 10:
+            raise AssertionError()
+        try:
+            return f(*args, **kwargs)
+        finally:
+            RecLogger.levels -= 1
+
+    return f2
+
+
+class RecLogger:
+    levels = 0
+    prefix: Tuple[str, ...]
+    count = 0
+
+    def __init__(self, prefix=None):
+        if prefix is None:
+            prefix = (str(RecLogger.count),)
+        RecLogger.count += 1
+        self.prefix = prefix
+
+    def p(self, s):
+        p = '  ' * RecLogger.levels + ':'
+        # p = '/'.join(('root',) + self.prefix) + ':'
+        print(indent(s, p))
+
+    def pp(self, msg, **kwargs):
+        self.p(pretty_dict(msg, kwargs))
+
+    def child(self, name=None):
+        name = name or '-'
+        prefix = self.prefix + (name,)
+        return RecLogger(prefix)
+
+
+def get_name_without_brackets(name: str) -> str:
+    if '[' in name:
+        return name[:name.index('[')]
+    else:
+        return name
 
 
 def as_tuple(x) -> Tuple:
@@ -44,9 +92,23 @@ class ZenericFix:
             class FakeGenericMeta(ABCMeta):
                 def __getitem__(self, params2):
                     types2 = as_tuple(params2)
-                    return make_type(self, tuple(types), tuple(types2))
+
+                    if types == types2:
+                        return cls
+
+                    bindings = {}
+                    for T, U in zip(types, types2):
+                        bindings[T] = U
+                        if T.__bound__ is not None and isinstance(T.__bound__, type):
+                            if not issubclass(U, T.__bound__):
+                                msg = (f'For type parameter "{T.__name__}", expected a'
+                                       f'subclass of "{T.__bound__.__name__}", found {U}.')
+                                raise TypeError(msg)
+
+                    return make_type(cls, bindings)
+
         else:
-            FakeGenericMeta = ABCMeta
+            FakeGenericMeta = MyABC
 
         class GenericProxy(metaclass=FakeGenericMeta):
 
@@ -56,144 +118,357 @@ class ZenericFix:
 
             @classmethod
             def __class_getitem__(cls, params2):
-                # pprint('ZenericFix', cls=cls, params2=params2)
                 types2 = as_tuple(params2)
-                return make_type(cls, types, types2)
+
+                bindings = {}
+
+                if types == types2:
+                    return cls
+
+                for T, U in zip(types, types2):
+                    bindings[T] = U
+                    if T.__bound__ is not None and isinstance(T.__bound__, type):
+                        if not issubclass(U, T.__bound__):
+                            msg = (f'For type parameter "{T.__name__}", expected a'
+                                   f'subclass of "{T.__bound__.__name__}", found {U}.')
+                            raise TypeError(msg)
+
+                return make_type(cls, bindings)
 
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
-        gp = type(name, (GenericProxy,), {})  # '__getitem__': GenericProxy.__class_getitem__})
+        gp = type(name, (GenericProxy,), {GENERIC_ATT2: types})
+        # setattr(gp, '__name__', name)
+        setattr(gp, GENERIC_ATT2, types)
 
-        # setattr(gp, '__getitem__', GenericProxy.__class_getitem__)
-        setattr(gp, GENERIC_ATT, get_type_spec(types))
         return gp
+
+
+class MyABC(ABCMeta):
+
+    def __new__(mcls, name, bases, namespace, **kwargs):
+        # logger.info('name: %s' % name)
+        # logger.info('namespace: %s' % namespace)
+        # logger.info('bases: %s' % str(bases))
+        # if bases:
+        #     logger.info('bases[0]: %s' % str(bases[0].__dict__))
+
+        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+        # logger.info(name)
+        # logger.info(bases)
+
+        # logger.info(kwargs)
+        # logger.info(mcls.__dict__)
+        if GENERIC_ATT2 in namespace:
+            spec = namespace[GENERIC_ATT2]
+        # elif 'types_' in namespace:
+        #     spec = namespace['types_']
+        elif bases and GENERIC_ATT2 in bases[0].__dict__:
+            spec = bases[0].__dict__[GENERIC_ATT2]
+        else:
+            spec = {}
+
+        if spec:
+            name0 = get_name_without_brackets(name)
+            name = f'{name0}[%s]' % (",".join(name_for_type_like(_) for _ in spec))
+            setattr(cls, '__name__', name)
+        else:
+            pass
+
+        setattr(cls, '__module__', mcls.__module__)
+        # logger.info('spec: %s' % spec)
+        return cls
 
 
 class NoConstructorImplemented(TypeError):
     pass
 
 
-def eval_type(T, bindings0: Dict[str, Any], symbols: Dict[str, Any]):
-    if T in bindings0:
-        return bindings0[T]
-    if hasattr(T, '__args__'):
-        T.__args__ = tuple(eval_type(_, bindings0, symbols) for _ in T.__args__)
-
-    if isinstance(T, type):
-        return T
-    info = lambda: dict(bindings=bindings0,
-                        symbols=symbols)
-    bindings = dict(bindings0)
-
-    try:
-        res = _eval_type(T, bindings, symbols)
-        # pprint('eval_type', T=T, bindings0=bindings0, symbols=symbols, res=res)
-        return res
-    except BaseException as e:  # pragma: no cover
-        m = f'Cannot eval type {T!r}'
-        msg = pretty_dict(m, info())
-        raise TypeError(msg) from e
+from typing import Optional, Union
 
 
-def resolve_types(T, l):
+def get_default_attrs():
+    return dict(Any=Any, Optional=Optional, Union=Union)
+
+
+#
+# @loglevel
+# def eval_type(T, bindings0: Dict[str, Any], symbols0: Dict[str, Any]):
+#     symbols = dict(symbols0)
+#     symbols.update(get_default_attrs())
+#
+#     if T in bindings0:
+#         return bindings0[T]
+#     if T in symbols0:
+#         return symbols0[T]
+#
+#     if isinstance(T, str):
+#         try:
+#             return eval(T, symbols, {})
+#         except NameError:
+#             msg = f'Could not resolve {T!r} with {symbols0} {bindings0}'
+#             raise NameError(msg) from None
+#
+#     if isinstance(T, type):
+#         return T
+#
+#     info = lambda: dict(bindings=bindings0,
+#                         symbols=symbols)
+#     bindings = dict(bindings0)
+#
+#     if is_forward_ref(T):
+#         arg = get_forward_ref_arg(T)
+#         return eval_type(arg, bindings0, symbols0)
+#
+#     if is_optional(T):
+#         arg = get_optional_type(T)
+#         return Optional[eval_type(arg, bindings0, symbols0)]
+#
+#     if is_List(T):
+#         arg = get_List_arg(T)
+#         return typing.List[eval_type(arg, bindings0, symbols0)]
+#
+#     if hasattr(T, '__args__'):
+#         T.__args__ = tuple(eval_type(_, bindings0, symbols) for _ in T.__args__)
+#
+#     try:
+#         res = _eval_type(T, bindings, symbols)
+#         # pprint('eval_type', T=T, bindings0=bindings0, symbols=symbols, res=res)
+#         return res
+#     except BaseException as e:  # pragma: no cover
+#         m = f'Cannot eval type {T!r}'
+#         msg = pretty_dict(m, info())
+#         raise TypeError(msg) from e
+#
+
+@loglevel
+def resolve_types(T):
+    assert is_dataclass(T)
+    rl = RecLogger()
+    rl.p(f'resolving types for {T!r}')
     # g = dict(globals())
-    g = {}
-    if hasattr(T, '__name__'):
-        g[T.__name__] = T
-    if hasattr(T, '__annotations__'):
-        for k, v in T.__annotations__.items():
-            try:
-                T.__annotations__[k] = _eval_type(v, g, l)
-            except TypeError as e:  # pragma: no cover
-                raise TypeError(f'could not resolve {k} = {v}') from e
+    # g = {}
+    # locals_ = {}
+    #
+    # if hasattr(T, GENERIC_ATT):
+    #     for k, v in getattr(T, GENERIC_ATT).items():
+    #         g[k] = TypeVar(k)
+    # if hasattr(T, '__name__'):
+    #     g[get_name_without_brackets(T.__name__)] = T
+    #
+    # g['Optional'] = typing.Optional
+    # g['Any'] = Any
+    # g['Union'] = typing.Union
+    # # print('globals: %s' % g)
+    symbols = {}
+    symbols[T.__name__] = T
+    name_without = get_name_without_brackets(T.__name__)
+
+    class Fake:
+        def __getitem__(self, item):
+            n = name_for_type_like(item)
+            complete = f'{name_without}[{n}]'
+            if complete in symbols:
+                return symbols[complete]
+            # noinspection PyUnresolvedReferences
+            return cls[item]
+
+    if name_without not in symbols:
+        symbols[name_without] = Fake()
+    else:
+        pass
+
+    for x in getattr(T, GENERIC_ATT2, ()):
+        if hasattr(x, '__name__'):
+            symbols[x.__name__] = x
+
+    annotations = getattr(T, '__annotations__', {})
+
+    for k, v in annotations.items():
+        try:
+            r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
+            rl.p(f'{k!r} -> {v!r} -> {r!r}')
+            annotations[k] = r
+        except NameError as e:
+            msg = f'Cannot resolve names for attribute "{k}": {e}'
+            logger.warning(msg)
+            continue
+        except TypeError as e:
+            msg = f'Cannot resolve type for attribute "{k}".'
+
+            raise TypeError(msg) from e
+    for f in fields(T):
+        f.type = annotations[f.name]
 
 
 from dataclasses import is_dataclass
 
 
-def make_type(cls: type, types, types2: Sequence) -> type:
-    # pprint('make_type', types=types, types2=types2)
-    # print('cls %s dataclass? %s' % (cls, is_dataclass(cls)))
-    # black magic
-    for t2 in types2:
-        if isinstance(t2, TypeVar):
-            # from zuper_json import logger
-            # logger.debug(f'trying to instantiate {cls} ({types}) with {t2}')
-            name = cls.__name__
-            cls2 = type(name, (cls,), {})
-            setattr(cls2, GENERIC_ATT, get_type_spec(types2))
-            return cls2
+@loglevel
+def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already=None):
+    rl = rl or RecLogger()
+    # rl.p(f'Replacing typevars {cls}')
+    # rl.p(f'   bindings {bindings}')
+    # rl.p(f'   symbols {symbols}')
 
-    bindings = {T: U for T, U in zip(types, types2)}
-    for T, U in bindings.items():
-        if T.__bound__ is not None and isinstance(T.__bound__, type):
-            if not issubclass(U, T.__bound__):
-                msg = (f'For type parameter "{T.__name__}", expected a'
-                       f'subclass of "{T.__bound__.__name__}", found {U}.')
-                raise TypeError(msg)
+    already = already or {}
 
-    d = {'need': lambda: None}
+    if id(cls) in already:
+        return already[id(cls)]
+
+    elif cls in bindings:
+        return bindings[cls]
+
+    elif isinstance(cls, str):
+        if cls in symbols:
+            return symbols[cls]
+        g = dict(get_default_attrs())
+        g.update(symbols)
+        # for t, u in zip(types, types2):
+        #     g[t.__name__] = u
+        #     g[u.__name__] = u
+        g0 = dict(g)
+        try:
+            return eval(cls, g, {})
+        except NameError as e:
+            msg = f'Cannot resolve {cls!r}\ng: {g0}'
+            raise NameError(msg) from e
+
+    elif hasattr(cls, '__annotations__'):
+        return make_type(cls, bindings)
+    elif is_Type(cls):
+        x = get_Type_arg(cls)
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        return Type[r]
+    elif is_ClassVar(cls):
+        x = get_ClassVar_arg(cls)
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        return typing.ClassVar[r]
+    elif is_List(cls):
+        arg = get_List_arg(cls)
+        return typing.List[
+            replace_typevars(arg, bindings=bindings, already=already, symbols=symbols, rl=rl.child('list arg'))]
+    elif is_optional(cls):
+        x = get_optional_type(cls)
+        return typing.Optional[
+            replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('optional arg'))]
+    elif is_union(cls):
+        xs = get_union_types(cls)
+        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+                   for _ in xs)
+        return typing.Union[ys]
+
+    elif is_forward_ref(cls):
+        T = get_forward_ref_arg(cls)
+        return replace_typevars(T, bindings=bindings, already=already, symbols=symbols, rl=rl.child('forward '))
+    else:
+        return cls
+
+
+cache_enabled = True
+
+cache = {}
+
+
+@loglevel
+def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> type:
+    if not bindings:
+        return cls
+    cache_key = (str(cls), str(bindings))
+    if cache_enabled:
+        if cache_key in cache:
+            return cache[cache_key]
+
+    rl = rl or RecLogger()
+    generic_att2 = getattr(cls, GENERIC_ATT2, ())
+    assert isinstance(generic_att2, tuple)
+    rl.p(f'make_type for {cls.__name__}')
+    rl.p(f'  dataclass {is_dataclass(cls)}')
+    rl.p(f'  bindings: {bindings}')
+    rl.p(f'  generic_att: {generic_att2}')
+
+
+    symbols = {}
 
     annotations = getattr(cls, '__annotations__', {})
+    name_without = get_name_without_brackets(cls.__name__)
 
+    def param_name(x):
+        x2 = replace_typevars(x, bindings=bindings, symbols=symbols, rl=rl.child('param_name'))
+        return name_for_type_like(x2)
+
+    if generic_att2:
+        name2 = '%s[%s]' % (name_without, ",".join(param_name(_) for _ in generic_att2))
+    else:
+        name2 = name_without
+    rl.p('  name2: %s' % name2)
+    try:
+        cls2 = type(name2, (cls,), {'need': lambda: None})
+    except TypeError as e:
+        msg = f'Cannot instantiate from {cls!r}'
+        raise TypeError(msg) from e
+
+    symbols[name2] = cls2
+    symbols[cls.__name__] = cls2  # also MyClass[X] should resolve to the same
+    cache[cache_key] = cls2
+    #
     class Fake:
-        # pass
-
         def __getitem__(self, item):
-            return ForwardRef(f'{cls.__name__}[{item.__name__}]')
+            n = name_for_type_like(item)
+            complete = f'{name_without}[{n}]'
+            if complete in symbols:
+                return symbols[complete]
+            # noinspection PyUnresolvedReferences
+            return cls[item]
 
-    symbols = {cls.__name__: Fake()}
+    if name_without not in symbols:
+        symbols[name_without] = Fake()
+    else:
+        pass
+
     for T, U in bindings.items():
         symbols[T.__name__] = U
         if hasattr(U, '__name__'):
             # dict does not have name
             symbols[U.__name__] = U
 
-    # if is_dataclass(cls):
-    #     fields = getattr(cls, _FIELDS)
-    #     check_isinstance(fields, dict)
-    #     fields2 = {}
-    #
-    #     for k, v in fields.items():
-    #         check_isinstance(v, Field)
-    #         type2 = eval_type(v.type, bindings, symbols)
-    #         f2 = Field(default=v.default,
-    #                    default_factory=v.default_factory,
-    #                    init=v.init, repr=v.repr, hash=v.hash, compare=v.compare,
-    #                    metadata=v.metadata)
-    #         f2.name = v.name
-    #         f2.type = type2
-    #         fields2[k] = f2
-    #
-    # else:
-    #     fields2 = None
-    #     pass
+    # first of all, replace the bindings in the generic_att
+
+    generic_att2_new = tuple(
+            replace_typevars(_, bindings=bindings, symbols=symbols, rl=rl.child('attribute')) for _ in generic_att2)
+
+    rl.p(f'  generic_att2_new: {generic_att2_new}')
+
+    # pprint(f'\n\n{cls.__name__}')
+    # pprint(f'binding', bindings=str(bindings))
+    # pprint(f'symbols', **symbols)
 
     new_annotations = {}
 
-    for k, v in annotations.items():
+    for k, v0 in annotations.items():
+        # v = eval_type(v0, bindings, symbols)
+        # if hasattr(v, GENERIC_ATT):
+        v = replace_typevars(v0, bindings=bindings, symbols=symbols, rl=rl.child(f'ann {k}'))
+        # print(f'{v0!r} -> {v!r}')
         if is_ClassVar(v):
             s = get_ClassVar_arg(v)
-            s = eval_type(s, bindings, symbols)
+            # s = eval_type(s, bindings, symbols)
             if is_Type(s):
                 st = get_Type_arg(s)
-                concrete = eval_type(st, bindings, symbols)
-                new_annotations[k] = ClassVar[Type]
-                d[k] = concrete
+                # concrete = eval_type(st, bindings, symbols)
+                concrete = st
+                new_annotations[k] = ClassVar[Type[st]]
+                setattr(cls2, k, concrete)
             else:
                 new_annotations[k] = ClassVar[s]
         else:
-            new_annotations[k] = eval_type(v, bindings, symbols)
+            new_annotations[k] = v
 
-    name2 = '%s[%s]' % (cls.__name__, ",".join(name_for_type_like(_) for _ in types2))
-    assert '<' not in name2, name2
-    assert '~' not in name2, (cls.__dict__, name2)
-
+    # pprint('  new annotations', **new_annotations)
     original__post_init__ = getattr(cls, '__post_init__', None)
 
     def __post_init__(self):
-        # s = [(k, type(v)) for k, v in self.__dict__.items()]
-        # print('Doing post init check (%s, %s) ' % (type(self), s))
+
         for k, v in new_annotations.items():
             if is_ClassVar(v): continue
             if isinstance(v, type):
@@ -201,7 +476,8 @@ def make_type(cls: type, types, types2: Sequence) -> type:
                 try:
                     if type(val).__name__ != v.__name__ and not isinstance(val, v):
                         msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
-                        raise ValueError(msg)
+                        logger.warning(msg)
+                        # raise ValueError(msg)
                 except TypeError as e:
                     msg = f'Cannot judge annotation of {k} (supposedly {v}.'
 
@@ -214,12 +490,11 @@ def make_type(cls: type, types, types2: Sequence) -> type:
         if original__post_init__ is not None:
             original__post_init__(self)
 
-    d['__post_init__'] = __post_init__
-    cls2 = type(name2, (cls,), d)
-
+    setattr(cls2, '__post_init__', __post_init__)
     # important: do it before dataclass
     cls2.__annotations__ = new_annotations
 
+    # logger.info('new annotations: %s' % new_annotations)
     if is_dataclass(cls):
         # note: need to have set new annotations
         # pprint('creating dataclass from %s' % cls2)
@@ -241,10 +516,15 @@ def make_type(cls: type, types, types2: Sequence) -> type:
         setattr(cls2, '__init__', init_placeholder)
 
     cls2.__module__ = cls.__module__
+    setattr(cls2, '__name__', name2)
     setattr(cls2, BINDINGS_ATT, bindings)
 
-    setattr(cls2, GENERIC_ATT, None)
+    setattr(cls2, GENERIC_ATT2, generic_att2_new)
 
     setattr(cls2, '__post_init__', __post_init__)
+
+    rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
+    rl.p(f'     dataclass {is_dataclass(cls2)}')
+
 
     return cls2

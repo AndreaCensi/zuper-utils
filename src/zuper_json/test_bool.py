@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from zuper_json.test_utils import assert_object_roundtrip, assert_type_roundtrip
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
 def test_bool1():

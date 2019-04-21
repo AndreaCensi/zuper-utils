@@ -1,16 +1,18 @@
 from dataclasses import dataclass, field
 from typing import *
 
+from zuper_json.monkey_patching_typing import my_dataclass
+
 try:
     from typing import ForwardRef
 except ImportError:
     from typing import _ForwardRef as ForwardRef
 
-from zuper_json.annotations_tricks import is_Any
-from zuper_json.constants import SCHEMA_ATT, SCHEMA_ID
-from zuper_json.ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
+from .annotations_tricks import is_Any
+from .constants import SCHEMA_ATT, SCHEMA_ID
+from .ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
-from zuper_json.test_utils import assert_object_roundtrip
+from .test_utils import assert_object_roundtrip
 
 
 @dataclass
@@ -48,7 +50,7 @@ def test_ser1():
     x1 = Office()
     x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
 
-    assert_object_roundtrip(x1, symbols)
+    assert_object_roundtrip(x1, get_symbols())
 
 
 def test_ser2():
@@ -75,38 +77,38 @@ class Chain:
     down: Optional['Chain'] = None
 
 
-@dataclass
-class FA:
-    """ Describes a Name with optional middle name"""
-    value: str
+def get_symbols():
+    @dataclass
+    class FA:
+        """ Describes a Name with optional middle name"""
+        value: str
 
-    down: 'FB'
+        down: 'FB'
 
+    @dataclass
+    class FB:
+        mine: int
 
-@dataclass
-class FB:
-    mine: int
-
-
-symbols = {'Office': Office,
-           'Person': Person,
-           'Address': Address,
-           'Name': Name,
-           'Contents': Contents,
-           'Empty': Empty,
-           'FA': FA,
-           'FB': FB,
-           'Chain': Chain}
+    symbols = {'Office': Office,
+               'Person': Person,
+               'Address': Address,
+               'Name': Name,
+               'Contents': Contents,
+               'Empty': Empty,
+               'FA': FA,
+               'FB': FB,
+               'Chain': Chain}
+    return symbols
 
 
 def test_optional_1():
     n1 = Name(first='H', middle='J', last='Wells')
-    assert_object_roundtrip(n1, symbols)
+    assert_object_roundtrip(n1, get_symbols())
 
 
 def test_optional_2():
     n1 = Name(first='H', last='Wells')
-    assert_object_roundtrip(n1, symbols)
+    assert_object_roundtrip(n1, get_symbols())
 
 
 def test_optional_3():
@@ -120,17 +122,41 @@ def test_recursive():
 
 
 def test_ser_forward1():
+    symbols = get_symbols()
+    FA = symbols['FA']
+    FB = symbols['FB']
+
     n1 = FA(value='a', down=FB(12))
     # with private_register('test_forward'):
-    assert_object_roundtrip(n1, symbols)
+    assert_object_roundtrip(n1, get_symbols())
 
 
 def test_ser_forward2():
     n1 = Empty()
-    assert_object_roundtrip(n1, symbols)
+    assert_object_roundtrip(n1, get_symbols())
 
 
 def test_ser_dict_object():
+    @dataclass
+    class M:
+        x: int
+        y: int
+
+    @dataclass()
+    class P:
+        x: int
+        y: int
+
+    @dataclass(unsafe_hash=True)
+    class N:
+        x: int
+        y: int
+
+    @dataclass(frozen=True)
+    class O:
+        x: int
+        y: int
+
     @dataclass(frozen=True, unsafe_hash=True)
     class L:
         x: int
@@ -152,7 +178,7 @@ from nose.tools import raises, assert_equal
 
 def test_bytes1():
     n1 = Contents(b'1234')
-    assert_object_roundtrip(n1, symbols)
+    assert_object_roundtrip(n1, get_symbols())
 
 
 @raises(ValueError)
@@ -185,24 +211,24 @@ def test_the_tester_no_links2_in_snd_not2():
         ...
 
     T = NotDataClass
-    type_to_schema(T, symbols)
+    type_to_schema(T, get_symbols())
 
 
 @raises(AssertionError)
 def test_not_optional():
     T = Optional[int]
-    type_to_schema(T, symbols)
+    type_to_schema(T, get_symbols())
 
 
 def test_not_union0():
     T = Union[int, str]
-    type_to_schema(T, symbols)
+    type_to_schema(T, {})
 
 
 @raises(ValueError)
 def test_not_str1():
     # noinspection PyTypeChecker
-    type_to_schema('T', symbols)
+    type_to_schema('T', {})
 
 
 @raises(ValueError)
@@ -269,7 +295,7 @@ def test_forward_ref1():
     type_to_schema(ForwardRef('AA'), {})
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_forward_ref2():
     @dataclass
     class MyClass:
@@ -279,7 +305,7 @@ def test_forward_ref2():
     type_to_schema(MyClass, {})
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_forward_ref3():
     @dataclass
     class MyClass:
@@ -290,7 +316,7 @@ def test_forward_ref3():
     type_to_schema(MyClass, {})
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_forward_ref4():
     class Other:
         pass
@@ -303,33 +329,53 @@ def test_forward_ref4():
     type_to_schema(MyClass, {'Other': Other})
 
 
-@raises(NotImplementedError)
+# @raises(NotImplementedError)
 def test_error1():
-    def f():
-        raise NotImplementedError()
+    try:
+        def f():
+            raise NotImplementedError()
 
-    @dataclass
-    class MyClass:
-        f: Optional['f()']
+        @dataclass
+        class MyClass:
+            f: Optional['f()']
 
-    # do not put MyClass
-    type_to_schema(MyClass, {'f': f})
+        # do not put MyClass
+        type_to_schema(MyClass, {'f': f})
+    except (TypeError, NotImplementedError, NameError):
+        pass
+    else:
+        raise AssertionError()
 
 
-def test_error2():
+def test_2_ok():
     X = TypeVar('X')
 
-    @dataclass
+    @my_dataclass
     class M(Generic[X]):
         x: X
-        # raise Exception()
 
-    @dataclass
+    @my_dataclass
     class MyClass:
         f: "Optional[M[int]]"
 
-    # do not put MyClass
-    type_to_schema(MyClass, {'M': M})
+    # do not put M
+    type_to_schema(MyClass, {'M': M})  # <---- note
+
+
+@raises(TypeError)
+def test_2_error():
+    X = TypeVar('X')
+
+    @my_dataclass
+    class M(Generic[X]):
+        x: X
+
+    @my_dataclass
+    class MyClass:
+        f: "Optional[M[int]]"
+
+    # do not put M
+    type_to_schema(MyClass, {})  # <---- note
 
 
 # for completeness
@@ -344,3 +390,7 @@ def test_random_json():
     """ Invalid because of $schema """
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
     ipce_to_object(data, {})
+
+
+if __name__ == '__main__':
+    test_error2()

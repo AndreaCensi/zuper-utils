@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple, List
 
-from zuper_json.test_utils import assert_object_roundtrip, assert_type_roundtrip
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 symbols = {}
 

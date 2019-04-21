@@ -3,8 +3,8 @@ from typing import *
 
 from nose.tools import raises
 
-from zuper_json.ipce import ipce_to_object
-from zuper_json.my_intersection import Intersection
+from .ipce import ipce_to_object
+from .my_intersection import Intersection
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 

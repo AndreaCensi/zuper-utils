@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, is_dataclass
+from zuper_json.zeneric2 import dataclass
+from dataclasses import is_dataclass
 from typing import *
 
 try:
@@ -98,16 +99,20 @@ def test_boxed_can_with_dataclass():
 
     CanBeInstantiated(inside="12")
 
+class Animal(metaclass=ABCMeta):
+    @abstractmethod
+    def verse(self):
+        """verse"""
 
-def _do_parametric(decorator=lambda _: _):
-    class Animal(metaclass=ABCMeta):
-        @abstractmethod
-        def verse(self):
-            """verse"""
 
+class Dog(Animal):
+    def verse(self):
+        return 'wof'
+
+@raises(NoConstructorImplemented)
+def test_parametric_zeneric():
     A = TypeVar('A', bound=Animal)
 
-    @decorator
     class Parametric(Generic[A]):
         inside: A
         AT: ClassVar[Type[A]]
@@ -118,11 +123,7 @@ def _do_parametric(decorator=lambda _: _):
             a.verse()
 
             assert (self.AT is getattr(T, BINDINGS_ATT)[A])
-            assert (self.AT is Specific)
-
-    class Dog(Animal):
-        def verse(self):
-            return 'wof'
+            assert (self.AT is Specific), (self.AT, id(self.AT), Specific, id(Specific))
 
     fido = Dog()
     PDog = Parametric[Dog]
@@ -132,10 +133,45 @@ def _do_parametric(decorator=lambda _: _):
     p.check_knows_type(Dog)
 
 
-@raises(NoConstructorImplemented)
-def test_parametric_zeneric():
-    _do_parametric(lambda _: _)
-
-
 def test_parametric_zeneric_dataclass():
-    _do_parametric(dataclass)
+    A = TypeVar('A', bound=Animal)
+
+    @dataclass
+    class Parametric(Generic[A]):
+        inside: A
+        AT: ClassVar[Type[A]]
+
+        def check_knows_type(self, Specific):
+            T = type(self)
+            a: A = type(self).AT()
+            a.verse()
+
+            assert (self.AT is getattr(T, BINDINGS_ATT)[A])
+            assert (self.AT is Specific), (self.AT, id(self.AT), Specific, id(Specific))
+
+    fido = Dog()
+    PDog = Parametric[Dog]
+    assert 'inside' not in PDog.__dict__, PDog.__dict__
+    assert 'AT' in PDog.__dict__, PDog.__dict__
+    p = PDog(inside=fido)
+    p.check_knows_type(Dog)
+
+#
+# # @raises(NoConstructorImplemented)
+# def test_parametric_zeneric():
+#     try:
+#         _do_parametric(lambda _: _)
+#     except NoConstructorImplemented:
+#         print('ok test_parametric_zeneric')
+#     else:
+#         pass
+#         # raise AssertionError
+#
+#
+# def test_parametric_zeneric_dataclass():
+#     _do_parametric(dataclass)
+#     print('ok test_parametric_zeneric_dataclass')
+
+if __name__ == '__main__':
+    test_parametric_zeneric_dataclass()
+    test_parametric_zeneric()

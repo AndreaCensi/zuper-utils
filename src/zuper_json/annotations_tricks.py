@@ -1,7 +1,7 @@
 import typing
 from typing import Union, Any, Dict
 
-from zuper_json.constants import NAME_ARG
+from .constants import NAME_ARG
 from .constants import PYTHON_36
 
 

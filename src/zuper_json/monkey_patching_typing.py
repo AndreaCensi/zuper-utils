@@ -1,3 +1,4 @@
+from zuper_json import logger
 from .constants import PYTHON_36
 import dataclasses
 import typing
@@ -5,7 +6,7 @@ from typing import TypeVar, Generic, Dict
 
 from .my_dict import make_dict
 
-from .zeneric2 import ZenericFix
+from .zeneric2 import ZenericFix, resolve_types
 
 if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
@@ -144,14 +145,30 @@ def remember_created_class(res):
     k = (res.__module__, res.__name__)
     RegisteredClasses.klasses[k] = res
 
-
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
+    logger.info(f'dataclass ({_cls})')
+    def wrap(cls):
+        return my_dataclass_(cls, init=init, repr=repr, eq=eq, order=order, unsafe_hash=unsafe_hash, frozen=frozen)
+
+    # See if we're being called as @dataclass or @dataclass().
+    if _cls is None:
+        # We're called with parens.
+        return wrap
+
+    # We're called as @dataclass without parens.
+    return wrap(_cls)
+
+
+def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
+                 unsafe_hash=False, frozen=False):
+    logger.info(f'dataclass ({_cls})')
     # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
-
+    assert dataclasses.is_dataclass(res)
+    resolve_types(res)
     # res.__doc__  = res.__doc__.replace(' ', '')
     return res
 

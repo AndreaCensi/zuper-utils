@@ -9,29 +9,34 @@ from unittest import SkipTest
 import cbor2 as cbor
 from nose.tools import assert_equal
 
-from zuper_json.annotations_tricks import is_Dict
+from zuper_json.zeneric2 import loglevel, RecLogger
 from . import logger
+from .annotations_tricks import is_Dict
 from .constants import PYTHON_36
 from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
 from .json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
-from .pretty import pretty_dict, pprint
+from .pretty import pretty_dict
 
 
-def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool =True):
+def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
+    assert T is not None
+    rl = RecLogger()
     # resolve_types(T)
     schema0 = type_to_schema(T, use_globals)
     schema = type_to_schema(T, use_globals)
-    print(json.dumps(schema, indent=2))
+    rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
     T2 = schema_to_type(schema, {}, {})
-    pprint(f"T ({T})", **getattr(T, '__dict__', {}))
-    pprint(f"T2 ({T2})", **getattr(T2, '__dict__', {}))
+    rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
+    print()
+    rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
+    print()
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
     assert_equal(schema, schema0)
     if expect_type_equal:
         # assert_same_types(T, T)
         # assert_same_types(T2, T)
-        assert_equivalent_types(T, T2)
+        assert_equivalent_types(T, T2,assume_yes=set())
 
     schema2 = type_to_schema(T2, use_globals)
     if schema != schema2:
@@ -47,68 +52,92 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool =True):
         raise AssertionError(msg)
     return T2
 
-def assert_equivalent_types(T1: type, T2: type):
-    print(f'assert_equivalent_types({T1},{T2})')
-    if T1 is T2:
-        print('same by equality')
+
+@loglevel
+def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
+    key = (id(T1), id(T2))
+    if key in assume_yes:
         return
-    if hasattr(T1, '__dict__'):
-        pprint('compare',
-               T1n=str(T1),
-               T2n=str(T2),
+    assume_yes = set(assume_yes)
+    assume_yes.add(key)
+    rl = rl or RecLogger()
+    try:
+        # print(f'assert_equivalent_types({T1},{T2})')
+        if T1 is T2:
+            rl.p('same by equality')
+            return
+        if hasattr(T1, '__dict__'):
+            rl.pp('comparing',
+                  T1=f'{T1!r}',
+                  T2=f'{T2!r}',
 
-               T1=T1.__dict__, T2=T2.__dict__)
+                  T1_dict=T1.__dict__, T2_dict=T2.__dict__)
 
+        # for these builtin we cannot set/get the attrs
+        if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
+            for k in ['__name__', '__module__', '__doc__']:
+                msg = f'Difference for {k} of {T1} ({type(T1)} and {T2} ({type(T2)}'
+                assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
 
-    # for these builtin we cannot set/get the attrs
-    if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
-        for k in ['__name__', '__module__', '__doc__']:
-            msg = f'Difference for {k} of {T1} ({type(T1)} and {T2} ({type(T2)}'
-            assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
+        if is_dataclass(T1):
+            assert is_dataclass(T2)
 
-    if is_dataclass(T1):
-        assert is_dataclass(T2)
+            fields1 = fields(T1)
+            fields2 = fields(T2)
 
-        fields1 = fields(T1)
-        fields2 = fields(T2)
-        
-        fields1 = {_.name: _ for _ in fields1}
-        fields2 = {_.name: _ for _ in fields2}
+            fields1 = {_.name: _ for _ in fields1}
+            fields2 = {_.name: _ for _ in fields2}
 
-        if sorted(fields1) != sorted(fields2):
-            msg = f'Different fields: {sorted(fields1)} != {sorted(fields2)}'
-            raise Exception(msg)
+            if sorted(fields1) != sorted(fields2):
+                msg = f'Different fields: {sorted(fields1)} != {sorted(fields2)}'
+                raise Exception(msg)
 
-        for k in fields1:
-            t1 = fields1[k].type
-            t2 = fields2[k].type
-            print(f'{k}: {t1} {t2}')
-            assert_equivalent_types(t1, t2)
+            for k in fields1:
+                t1 = fields1[k].type
+                t2 = fields2[k].type
+                rl.pp(f'checking the fields {k}',
+                      t1=f'{t1!r}',
+                      t2=f'{t2!r}',
+                      t1_ann=f'{T1.__annotations__[k]!r}',
+                      t2_ann=f'{T2.__annotations__[k]!r}')
 
+                try:
+                    assert_equivalent_types(t1, t2, assume_yes=assume_yes)
+                except BaseException as e:
+                    msg = f'Could not establish the field {k!r} to be equivalent'
+                    msg += f'\n t1 = {t1!r}'
+                    msg += f'\n t2 = {t2!r}'
+                    msg += f'\n t1_ann = {T1.__annotations__[k]!r}'
+                    msg += f'\n t2_ann = {T2.__annotations__[k]!r}'
+                    raise Exception(msg) from e
 
-    # for k in ['__annotations__']:
-    #     assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
+        # for k in ['__annotations__']:
+        #     assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
 
-    if False:
-        if hasattr(T1, 'mro'):
-            if len(T1.mro()) != len(T2.mro()):
-                msg = pretty_dict('Different mros', dict(T1=T1.mro(), T2=T2.mro()))
-                raise AssertionError(msg)
+        if False:
+            if hasattr(T1, 'mro'):
+                if len(T1.mro()) != len(T2.mro()):
+                    msg = pretty_dict('Different mros', dict(T1=T1.mro(), T2=T2.mro()))
+                    raise AssertionError(msg)
 
-            for m1, m2 in zip(T1.mro(), T2.mro()):
-                if m1 is T1 or m2 is T2: continue
-                assert_equivalent_types(m1, m2)
+                for m1, m2 in zip(T1.mro(), T2.mro()):
+                    if m1 is T1 or m2 is T2: continue
+                    assert_equivalent_types(m1, m2)
 
-    if PYTHON_36:  # pragma: no cover
-        pass  # XX
-    else:
-        if isinstance(T1, typing._GenericAlias):
-            # noinspection PyUnresolvedReferences
-            if not is_Dict(T1):
+        if PYTHON_36:  # pragma: no cover
+            pass  # XX
+        else:
+            if isinstance(T1, typing._GenericAlias):
                 # noinspection PyUnresolvedReferences
-                for z1, z2 in zip(T1.__args__, T2.__args__):
-                    assert_equivalent_types(z1, z2)
-
+                if not is_Dict(T1):
+                    # noinspection PyUnresolvedReferences
+                    for z1, z2 in zip(T1.__args__, T2.__args__):
+                        assert_equivalent_types(z1, z2, assume_yes=assume_yes)
+    except BaseException as e:
+        msg = f'Could not establish the two types to be equivalent.'
+        msg += f'\n T1 = {id(T1)} {T1!r}'
+        msg += f'\n T2 = {id(T2)} {T2!r}'
+        raise Exception(msg) from e
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())
 
@@ -138,13 +167,13 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
 
     x1bj = object_to_ipce(x1b, use_globals)
 
-    if False:
-        from zuper_ipce import store_json, recall_json
-        h1 = store_json(y1)
-        y1b = recall_json(h1)
-        assert y1b == y1
-        h2 = store_json(x1bj)
-        assert h1 == h2
+    # if False:
+    #     from zuper_ipce import store_json, recall_json
+    #     h1 = store_json(y1)
+    #     y1b = recall_json(h1)
+    #     assert y1b == y1
+    #     h2 = store_json(x1bj)
+    #     assert h1 == h2
 
     check_equality(x1, x1b, expect_equality)
 

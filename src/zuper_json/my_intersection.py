@@ -1,10 +1,10 @@
-from zuper_json.constants import INTERSECTION_ATT
+from .constants import INTERSECTION_ATT
 from .constants import PYTHON_36
 from dataclasses import dataclass, is_dataclass
 
 
 def Intersection_item(cls, params):
-    from zuper_json.zeneric2 import as_tuple
+    from .zeneric2 import as_tuple
     types = as_tuple(params)
     name = f'Intersection[{",".join(_.__name__ for _ in types)}]'
 

@@ -4,8 +4,8 @@ from typing import Callable
 from mypy_extensions import NamedArg
 from nose.tools import assert_equal
 
-from zuper_json.annotations_tricks import is_Callable, get_Callable_info
-from zuper_json.test_utils import assert_type_roundtrip
+from .annotations_tricks import is_Callable, get_Callable_info
+from .test_utils import assert_type_roundtrip
 
 
 def test_detection_1():
