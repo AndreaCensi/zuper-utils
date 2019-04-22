@@ -22,8 +22,8 @@ from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type
 def loglevel(f):
     def f2(*args, **kwargs):
         RecLogger.levels += 1
-        if RecLogger.levels >= 10:
-            raise AssertionError()
+        # if RecLogger.levels >= 10:
+        #     raise AssertionError()
         try:
             return f(*args, **kwargs)
         finally:
@@ -242,10 +242,10 @@ def get_default_attrs():
 #
 
 @loglevel
-def resolve_types(T):
+def resolve_types(T, locals_=None):
     assert is_dataclass(T)
     rl = RecLogger()
-    rl.p(f'resolving types for {T!r}')
+    # rl.p(f'resolving types for {T!r}')
     # g = dict(globals())
     # g = {}
     # locals_ = {}
@@ -260,7 +260,7 @@ def resolve_types(T):
     # g['Any'] = Any
     # g['Union'] = typing.Union
     # # print('globals: %s' % g)
-    symbols = {}
+    symbols = dict(locals_ or {})
     symbols[T.__name__] = T
     name_without = get_name_without_brackets(T.__name__)
 
@@ -287,7 +287,7 @@ def resolve_types(T):
     for k, v in annotations.items():
         try:
             r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
-            rl.p(f'{k!r} -> {v!r} -> {r!r}')
+            # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
         except NameError as e:
             msg = f'Cannot resolve names for attribute "{k}": {e}'
@@ -298,6 +298,10 @@ def resolve_types(T):
 
             raise TypeError(msg) from e
     for f in fields(T):
+        if not f.name in annotations:
+            # msg = f'Cannot get annotation for field {f.name!r}'
+            # logger.warning(msg)
+            continue
         f.type = annotations[f.name]
 
 
@@ -382,10 +386,10 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
     rl = rl or RecLogger()
     generic_att2 = getattr(cls, GENERIC_ATT2, ())
     assert isinstance(generic_att2, tuple)
-    rl.p(f'make_type for {cls.__name__}')
-    rl.p(f'  dataclass {is_dataclass(cls)}')
-    rl.p(f'  bindings: {bindings}')
-    rl.p(f'  generic_att: {generic_att2}')
+    # rl.p(f'make_type for {cls.__name__}')
+    # rl.p(f'  dataclass {is_dataclass(cls)}')
+    # rl.p(f'  bindings: {bindings}')
+    # rl.p(f'  generic_att: {generic_att2}')
 
 
     symbols = {}
@@ -401,7 +405,7 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
         name2 = '%s[%s]' % (name_without, ",".join(param_name(_) for _ in generic_att2))
     else:
         name2 = name_without
-    rl.p('  name2: %s' % name2)
+    # rl.p('  name2: %s' % name2)
     try:
         cls2 = type(name2, (cls,), {'need': lambda: None})
     except TypeError as e:
@@ -437,7 +441,7 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
     generic_att2_new = tuple(
             replace_typevars(_, bindings=bindings, symbols=symbols, rl=rl.child('attribute')) for _ in generic_att2)
 
-    rl.p(f'  generic_att2_new: {generic_att2_new}')
+    # rl.p(f'  generic_att2_new: {generic_att2_new}')
 
     # pprint(f'\n\n{cls.__name__}')
     # pprint(f'binding', bindings=str(bindings))
@@ -523,8 +527,8 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
 
     setattr(cls2, '__post_init__', __post_init__)
 
-    rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
-    rl.p(f'     dataclass {is_dataclass(cls2)}')
-
+    # rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
+    # rl.p(f'     dataclass {is_dataclass(cls2)}')
+    #
 
     return cls2

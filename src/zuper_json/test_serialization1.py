@@ -5,7 +5,7 @@ from zuper_json.monkey_patching_typing import my_dataclass
 
 try:
     from typing import ForwardRef
-except ImportError:
+except ImportError: # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_Any

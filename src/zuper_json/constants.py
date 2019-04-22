@@ -50,6 +50,12 @@ PYTHON_37 = sys.version_info[1] == 7
 
 JSC_TITLE_NUMPY = 'numpy'
 JSC_TITLE_BYTES = 'bytes'
+JSC_TITLE_DECIMAL = 'decimal'
+JSC_TITLE_FLOAT = 'float'
+JSC_TITLE_DATETIME = 'datetime'
+JSC_TITLE_CALLABLE = 'Callable'
+JSC_TITLE_TYPE = 'type'
+
 SCHEMA_BYTES = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
                                  JSC_TITLE: JSC_TITLE_BYTES,
                                  SCHEMA_ATT: SCHEMA_ID})

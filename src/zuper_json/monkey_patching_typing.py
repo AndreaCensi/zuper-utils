@@ -147,7 +147,7 @@ def remember_created_class(res):
 
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
-    logger.info(f'dataclass ({_cls})')
+
     def wrap(cls):
         return my_dataclass_(cls, init=init, repr=repr, eq=eq, order=order, unsafe_hash=unsafe_hash, frozen=frozen)
 
@@ -162,7 +162,7 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
-    logger.info(f'dataclass ({_cls})')
+
     # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)

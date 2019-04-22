@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from .base64_utils import encode_bytes_base64, is_encoded_bytes_base64, decode_bytes_base64
 
@@ -43,6 +44,8 @@ def encode_bytes_before_json_serialization(x0):
     def f(x):
         if isinstance(x, bytes):
             return encode_bytes_base64(x)
+        elif isinstance(x, datetime):
+            return x.isoformat()
         elif isinstance(x, Decimal):
             return DECIMAL_PREFIX + str(x)
         else:

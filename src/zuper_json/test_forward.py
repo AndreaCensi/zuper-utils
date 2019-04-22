@@ -4,7 +4,7 @@ from typing import *
 try:
     # noinspection PyUnresolvedReferences
     from typing import ForwardRef
-except ImportError:
+except ImportError: # pragma: no cover
     # noinspection PyUnresolvedReferences
     from typing import _ForwardRef as ForwardRef
 

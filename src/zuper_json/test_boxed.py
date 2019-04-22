@@ -5,7 +5,7 @@ from typing import *
 
 try:
     from typing import ForwardRef
-except ImportError:
+except ImportError: # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
 from nose.tools import raises, assert_equal
