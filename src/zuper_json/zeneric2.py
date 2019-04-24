@@ -1,5 +1,7 @@
 import sys
+import traceback
 import typing
+import warnings
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields
 # noinspection PyUnresolvedReferences
@@ -241,8 +243,25 @@ def get_default_attrs():
 #         raise TypeError(msg) from e
 #
 
+
+class Fake:
+    def __init__(self, myt, symbols):
+        self.myt = myt
+        self.name_without = get_name_without_brackets(myt.__name__)
+        self.symbols = symbols
+
+    def __getitem__(self, item):
+        n = name_for_type_like(item)
+        complete = f'{self.name_without}[{n}]'
+        if complete in self.symbols:
+            return self.symbols[complete]
+        # noinspection PyUnresolvedReferences
+        return self.myt[item]
+
+
+
 @loglevel
-def resolve_types(T, locals_=None):
+def resolve_types(T, locals_=None, refs=()):
     assert is_dataclass(T)
     rl = RecLogger()
     # rl.p(f'resolving types for {T!r}')
@@ -261,22 +280,16 @@ def resolve_types(T, locals_=None):
     # g['Union'] = typing.Union
     # # print('globals: %s' % g)
     symbols = dict(locals_ or {})
-    symbols[T.__name__] = T
-    name_without = get_name_without_brackets(T.__name__)
 
-    class Fake:
-        def __getitem__(self, item):
-            n = name_for_type_like(item)
-            complete = f'{name_without}[{n}]'
-            if complete in symbols:
-                return symbols[complete]
-            # noinspection PyUnresolvedReferences
-            return cls[item]
+    for t in (T,) + refs:
 
-    if name_without not in symbols:
-        symbols[name_without] = Fake()
-    else:
-        pass
+        symbols[t.__name__] = t
+        name_without = get_name_without_brackets(t.__name__)
+
+        if name_without not in symbols:
+            symbols[name_without] = Fake(t, symbols)
+        else:
+            pass
 
     for x in getattr(T, GENERIC_ATT2, ()):
         if hasattr(x, '__name__'):
@@ -290,7 +303,9 @@ def resolve_types(T, locals_=None):
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
         except NameError as e:
-            msg = f'Cannot resolve names for attribute "{k}": {e}'
+            msg = f'resolve_type({T.__name__}): Cannot resolve names for attribute "{k}".'
+            msg += f'\n symbols: {symbols}'
+            msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
             logger.warning(msg)
             continue
         except TypeError as e:
@@ -333,9 +348,10 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         #     g[u.__name__] = u
         g0 = dict(g)
         try:
-            return eval(cls, g, {})
+            return eval(cls, g)
         except NameError as e:
-            msg = f'Cannot resolve {cls!r}\ng: {g0}'
+            msg = f'Cannot resolve {cls!r}\ng: {list(g0)}'
+            # msg += 'symbols: {list(g0)'
             raise NameError(msg) from e
 
     elif hasattr(cls, '__annotations__'):
@@ -480,7 +496,7 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
                 try:
                     if type(val).__name__ != v.__name__ and not isinstance(val, v):
                         msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
-                        logger.warning(msg)
+                        warnings.warn(msg, stacklevel=3)
                         # raise ValueError(msg)
                 except TypeError as e:
                     msg = f'Cannot judge annotation of {k} (supposedly {v}.'

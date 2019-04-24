@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import inspect
 import traceback
 import typing
@@ -239,11 +240,26 @@ def get_sha256_base58(contents):
     return base58.b58encode(s)
 
 
+ids2cid = {}
+
+
 @loglevel
 def ipce_to_object(mj: MemoryJSON,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
+    res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
+    if id(mj) in ids2cid:
+        pass
+        # ids2cid[id(res)] = ids2cid[id(mj)]
+        # setattr(res, '__ipde_cid_attr__', ids2cid[id(mj)])
+    return res
+
+
+def ipce_to_object_(mj: MemoryJSON,
+                    global_symbols,
+                    encountered: Optional[dict] = None,
+                    expect_type: Optional[type] = None) -> object:
     encountered = encountered or {}
 
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
@@ -284,7 +300,6 @@ def ipce_to_object(mj: MemoryJSON,
 
     if expect_type is np.ndarray:
         return numpy_from_dict(mj)
-
 
     assert isinstance(mj, dict), type(mj)
 
@@ -460,19 +475,34 @@ class CannotResolveTypeVar(ValueError):
     pass
 
 
+schema_cache: Dict[Any, Union[type, _SpecialForm]] = {}
+
+
+def schema_hash(k):
+    ob_cbor = cbor2.dumps(k)
+    ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
+    return ob_cbor_hash
+
+
 def schema_to_type(schema0: JSONSchema,
                    global_symbols: Dict,
-                   encountered: Dict) -> Union[Type, _SpecialForm]:
+                   encountered: Dict) -> Union[type, _SpecialForm]:
+    h = schema_hash([schema0, list(global_symbols), list(encountered)])
+    if h in schema_cache:
+        # logger.info(f'cache hit for {schema0}')
+        return schema_cache[h]
+
     res = schema_to_type_(schema0, global_symbols, encountered)
     if ID_ATT in schema0:
         schema_id = schema0[ID_ATT]
         encountered[schema_id] = res
         # print(f'Found {schema_id} -> {res}')
 
+    schema_cache[h] = res
     return res
 
 
-def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> Union[Type, _SpecialForm]:
+def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> Union[type, _SpecialForm]:
     # pprint('schema_to_type_', schema0=schema0)
     encountered = encountered or {}
     info = dict(global_symbols=global_symbols, encountered=encountered)
@@ -611,8 +641,6 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
     # if JSC_DESCRIPTION in schema:
     #     setattr(D, '__doc__', schema[JSC_DESCRIPTION])
     return D
-
-
 
 
 def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) -> JSONSchema:
@@ -1104,7 +1132,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     return res
 
 
-if typing.TYPE_CHECKING: # pragma: no cover
+if typing.TYPE_CHECKING:  # pragma: no cover
     from .monkey_patching_typing import original_dataclass
 else:
     from dataclasses import dataclass as original_dataclass
@@ -1284,7 +1312,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
     try:
         T = make_dataclass(cls_name, fields, bases=(), namespace=None, init=True, repr=True, eq=True, order=False,
                            unsafe_hash=unsafe_hash, frozen=False)
-    except TypeError: # pragma: no cover
+    except TypeError:  # pragma: no cover
         from . import logger
         msg = 'Cannot make dataclass with fields:'
         for f in fields:

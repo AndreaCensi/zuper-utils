@@ -9,5 +9,5 @@ networkx
 dataclasses
 comptests>=1.4.33
 pydot
-multihash
+py-multihash
 py-cid
