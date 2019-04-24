@@ -1,3 +1,4 @@
+import hashlib
 import inspect
 import traceback
 import typing
@@ -447,15 +448,30 @@ class CannotResolveTypeVar(ValueError):
     pass
 
 
+schema_cache: Dict[Any, Union[type, _SpecialForm]] = {}
+
+
+def schema_hash(k):
+    ob_cbor = cbor2.dumps(k)
+    ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
+    return ob_cbor_hash
+
+
 def schema_to_type(schema0: JSONSchema,
                    global_symbols: Dict,
-                   encountered: Dict) -> Union[Type, _SpecialForm]:
+                   encountered: Dict) -> Union[type, _SpecialForm]:
+    h = schema_hash([schema0, list(global_symbols), list(encountered)])
+    if h in schema_cache:
+        # logger.info(f'cache hit for {schema0}')
+        return schema_cache[h]
+
     res = schema_to_type_(schema0, global_symbols, encountered)
     if ID_ATT in schema0:
         schema_id = schema0[ID_ATT]
         encountered[schema_id] = res
         # print(f'Found {schema_id} -> {res}')
 
+    schema_cache[h] = res
     return res
 
 
