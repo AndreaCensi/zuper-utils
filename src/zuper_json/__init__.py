@@ -1,4 +1,4 @@
-__version__ = '2.0.2'
+__version__ = '3.0.1'
 from .logging import logger
 
 logger.info(f'zj {__version__}')
