@@ -115,6 +115,7 @@ def make_type(cls: type, types, types2: Sequence) -> type:
     # pprint('make_type', types=types, types2=types2)
     # print('cls %s dataclass? %s' % (cls, is_dataclass(cls)))
     # black magic
+
     for t2 in types2:
         if isinstance(t2, TypeVar):
             # from zuper_json import logger
@@ -191,25 +192,27 @@ def make_type(cls: type, types, types2: Sequence) -> type:
 
     original__post_init__ = getattr(cls, '__post_init__', None)
 
+    enable_check = False
     def __post_init__(self):
         # s = [(k, type(v)) for k, v in self.__dict__.items()]
         # print('Doing post init check (%s, %s) ' % (type(self), s))
-        for k, v in new_annotations.items():
-            if is_ClassVar(v): continue
-            if isinstance(v, type):
-                val = getattr(self, k)
-                try:
-                    if type(val).__name__ != v.__name__ and not isinstance(val, v):
-                        msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
-                        raise ValueError(msg)
-                except TypeError as e:
-                    msg = f'Cannot judge annotation of {k} (supposedly {v}.'
+        if enable_check:
+            for k, v in new_annotations.items():
+                if is_ClassVar(v): continue
+                if isinstance(v, type):
+                    val = getattr(self, k)
+                    try:
+                        if type(val).__name__ != v.__name__ and not isinstance(val, v):
+                            msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
+                            raise ValueError(msg)
+                    except TypeError as e:
+                        msg = f'Cannot judge annotation of {k} (supposedly {v}.'
 
-                    if sys.version_info[:2] == (3, 6):
-                        # FIXME: warn
-                        continue
-                    logger.error(msg)
-                    raise TypeError(msg) from e
+                        if sys.version_info[:2] == (3, 6):
+                            # FIXME: warn
+                            continue
+                        logger.error(msg)
+                        raise TypeError(msg) from e
 
         if original__post_init__ is not None:
             original__post_init__(self)
