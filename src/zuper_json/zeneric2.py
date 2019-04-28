@@ -186,11 +186,13 @@ class NoConstructorImplemented(TypeError):
     pass
 
 
-from typing import Optional, Union
+from typing import Optional, Union, List, Set
 
 
 def get_default_attrs():
-    return dict(Any=Any, Optional=Optional, Union=Union)
+    return dict(Any=Any, Optional=Optional, Union=Union, Tuple=Tuple,
+                List=List, Set=Set,
+                Dict=Dict)
 
 
 #
@@ -257,7 +259,6 @@ class Fake:
             return self.symbols[complete]
         # noinspection PyUnresolvedReferences
         return self.myt[item]
-
 
 
 @loglevel
@@ -407,7 +408,6 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
     # rl.p(f'  bindings: {bindings}')
     # rl.p(f'  generic_att: {generic_att2}')
 
-
     symbols = {}
 
     annotations = getattr(cls, '__annotations__', {})
@@ -431,6 +431,7 @@ def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> 
     symbols[name2] = cls2
     symbols[cls.__name__] = cls2  # also MyClass[X] should resolve to the same
     cache[cache_key] = cls2
+
     #
     class Fake:
         def __getitem__(self, item):

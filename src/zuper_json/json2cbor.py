@@ -8,14 +8,17 @@ from json import JSONDecodeError
 from typing import Iterator
 
 import cbor2
+import yaml
 
-from .json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 from . import logger
+from .json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 
 __all__ = [
     'read_cbor_or_json_objects',
     'json2cbor_main',
     'cbor2json_main',
+    'cbor2yaml_main',
+    'read_next_cbor',
     'read_next_either_json_or_cbor',
 ]
 
@@ -34,11 +37,21 @@ def json2cbor_main():
 def cbor2json_main():
     fo = open('/dev/stdout', 'wb', buffering=0)
     fi = open('/dev/stdin', 'rb', buffering=0)
-    # noinspection PyTypeChecker
-    fi = BufferedReader(fi, buffer_size=1)
-    for j in read_cbor_or_json_objects(fi):
+
+    for j in read_cbor_objects(fi):
         j = encode_bytes_before_json_serialization(j)
         ob = json.dumps(j)
+        ob = ob.encode('utf-8')
+        fo.write(ob)
+        fo.write(b'\n')
+        fo.flush()
+
+
+def cbor2yaml_main():
+    fo = open('/dev/stdout', 'wb')
+    fi = open('/dev/stdin', 'rb')
+    for j in read_cbor_objects(fi):
+        ob = yaml.dump(j)
         ob = ob.encode('utf-8')
         fo.write(ob)
         fo.write(b'\n')
@@ -50,6 +63,18 @@ def read_cbor_or_json_objects(f, timeout=None) -> Iterator:
     while True:
         try:
             ob = read_next_either_json_or_cbor(f, timeout=timeout)
+            yield ob
+        except StopIteration:
+            break
+        except TimeoutError:
+            raise
+
+
+def read_cbor_objects(f, timeout=None) -> Iterator:
+    """ Reads cbor or line-separated json objects from the binary file f."""
+    while True:
+        try:
+            ob = read_next_cbor(f, timeout=timeout)
             yield ob
         except StopIteration:
             break

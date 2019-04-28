@@ -19,8 +19,8 @@ from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
-from zuper_json.subcheck import can_be_used_as
-from zuper_json.zeneric2 import get_name_without_brackets, replace_typevars, loglevel, RecLogger
+from .subcheck import can_be_used_as
+from .zeneric2 import get_name_without_brackets, replace_typevars, loglevel, RecLogger
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
     get_Dict_name_K_V, is_Tuple, get_List_arg, is_List
@@ -34,10 +34,10 @@ from .my_dict import make_dict, CustomDict
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
-from .types import MemoryJSON
+from .types import IPCE
 
 
-def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> MemoryJSON:
+def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'object_to_ipce({ob})')
     res = object_to_ipce_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     # print(indent(json.dumps(res, indent=3), '|', ' res: -'))
@@ -68,7 +68,7 @@ def object_to_ipce_(ob,
                     globals_: GlobalsDict,
                     with_schema: bool,
                     suggest_type: Type = None,
-                    ) -> MemoryJSON:
+                    ) -> IPCE:
     trivial = (bool, int, str, float, type(None), bytes, Decimal, datetime.datetime)
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
@@ -244,7 +244,7 @@ ids2cid = {}
 
 
 @loglevel
-def ipce_to_object(mj: MemoryJSON,
+def ipce_to_object(mj: IPCE,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
@@ -256,7 +256,7 @@ def ipce_to_object(mj: MemoryJSON,
     return res
 
 
-def ipce_to_object_(mj: MemoryJSON,
+def ipce_to_object_(mj: IPCE,
                     global_symbols,
                     encountered: Optional[dict] = None,
                     expect_type: Optional[type] = None) -> object:
@@ -646,7 +646,12 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
 def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) -> JSONSchema:
     # pprint('type_to_schema', T=T)
     globals_ = dict(globals0)
+    processing = processing or {}
     try:
+        if hasattr(T, '__name__') and T.__name__ in processing:
+            return processing[T.__name__]
+            # res =  cast(JSONSchema, {REF_ATT: refname})
+            # return res
         if T is type:
             res = cast(JSONSchema, {REF_ATT: SCHEMA_ID,
                                     JSC_TITLE: JSC_TITLE_TYPE
@@ -676,13 +681,14 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                         globals_[v.__name__] = v
                     globals_[k.__name__] = v
 
-        processing = processing or {}
         schema = type_to_schema_(T, globals_, processing)
         check_isinstance(schema, dict)
     except NotImplementedError:  # pragma: no cover
         raise
     except (ValueError, AssertionError) as e:
         m = f'Cannot get schema for {T}'
+        if hasattr(T, '__name__'):
+            m += f' (name = {T.__name__!r})'
         msg = pretty_dict(m, dict(  # globals0=globals0,
                 # globals=globals_,
                 processing=processing))
@@ -690,6 +696,9 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         raise type(e)(msg) from e
     except BaseException as e:
         m = f'Cannot get schema for {T}'
+        if hasattr(T, '__name__'):
+            m += f' (name = {T.__name__!r})'
+            m += f' {T.__name__ in processing}'
         msg = pretty_dict(m, dict(  # globals0=globals0,
                 # globals=globals_,
                 processing=processing))
@@ -698,7 +707,9 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
     assert_in(SCHEMA_ATT, schema)
     assert schema[SCHEMA_ATT] in [SCHEMA_ID]
     # assert_equal(schema[SCHEMA_ATT], SCHEMA_ID)
+
     if schema[SCHEMA_ATT] == SCHEMA_ID:
+        # print(yaml.dump(schema))
         cls = validator_for(schema)
         cls.check_schema(schema)
     return schema

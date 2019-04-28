@@ -28,6 +28,7 @@ setup(name='zuper-utils',
               # 'zj = zuper_ipce.zj:zj_main',
               'json2cbor = zuper_json:json2cbor_main',
               'cbor2json = zuper_json:cbor2json_main',
+              'cbor2yaml = zuper_json:cbor2yaml_main',
           ]
       },
       install_requires=[

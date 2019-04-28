@@ -1,11 +1,11 @@
-from zuper_json import logger
-from .constants import PYTHON_36
 import dataclasses
 import typing
 from typing import TypeVar, Generic, Dict
 
-from .my_dict import make_dict
+import termcolor
 
+from .constants import PYTHON_36
+from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
 
 if PYTHON_36:  # pragma: no cover
@@ -145,9 +145,9 @@ def remember_created_class(res):
     k = (res.__module__, res.__name__)
     RegisteredClasses.klasses[k] = res
 
+
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
-
     def wrap(cls):
         return my_dataclass_(cls, init=init, repr=repr, eq=eq, order=order, unsafe_hash=unsafe_hash, frozen=frozen)
 
@@ -161,16 +161,53 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
 
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
-                 unsafe_hash=False, frozen=False):
-
+                  unsafe_hash=False, frozen=False):
     # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
     assert dataclasses.is_dataclass(res)
-    resolve_types(res)
+    refs = getattr(_cls, '__depends__', ())
+    resolve_types(res, refs=refs)
+
+    def __repr__(self):
+        return DataclassHooks.dc_repr(self)
+
+    def __str__(self):
+        return DataclassHooks.dc_str(self)
+
+    setattr(res, '__repr__', __repr__)
+    setattr(res, '__str__', __str__)
     # res.__doc__  = res.__doc__.replace(' ', '')
     return res
+
+
+def nice_str(self):
+    return DataclassHooks.dc_repr(self)
+
+
+def blue(x):
+    return termcolor.colored(x, 'blue')
+
+
+def nice_repr(self):
+    s = termcolor.colored(type(self).__name__, 'red')
+    s += blue('(')
+    ss = []
+    for k in type(self).__annotations__:
+        a = getattr(self, k)
+        eq = blue('=')
+        k = termcolor.colored(k, attrs=['dark'])
+        ss.append(f'{k}{eq}{a}')
+
+    s += blue(', ').join(ss)
+    s += blue(')')
+    return s
+
+
+class DataclassHooks:
+    dc_repr = nice_repr
+    dc_str = nice_str
 
 
 setattr(dataclasses, 'dataclass', my_dataclass)
