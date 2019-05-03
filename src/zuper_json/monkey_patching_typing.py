@@ -1,5 +1,6 @@
 import dataclasses
 import typing
+from datetime import datetime
 from typing import TypeVar, Generic, Dict
 
 import termcolor
@@ -196,13 +197,54 @@ def nice_repr(self):
     ss = []
     for k in type(self).__annotations__:
         a = getattr(self, k)
+        a_s = debug_print_compact(a)
         eq = blue('=')
         k = termcolor.colored(k, attrs=['dark'])
-        ss.append(f'{k}{eq}{a}')
+        ss.append(f'{k}{eq}{a_s}')
 
     s += blue(', ').join(ss)
     s += blue(')')
     return s
+
+
+def debug_print_compact(x):
+    if isinstance(x, str):
+        return debug_print_str(x, '')
+    if isinstance(x, bytes):
+        return debug_print_bytes(x)
+    if isinstance(x, datetime):
+        return debug_print_date(x, '')
+    return x.__repr__()
+
+
+def debug_print_str(x: str, prefix: str):
+    if x.startswith('Qm'):
+        x2 = 'Qm...' + x[-4:] + ' ' + prefix
+        return termcolor.colored(x2, 'magenta')
+    if x.startswith('zd'):
+        x2 = 'zd...' + x[-4:] + ' ' + prefix
+        return termcolor.colored(x2, 'magenta')
+    if x.startswith('-----BEGIN'):
+        s = 'PEM key' + ' ' + prefix
+        return termcolor.colored(s, 'yellow')
+    if x.startswith('Traceback'):
+        lines = x.split('\n')
+        colored = [termcolor.colored(_, 'red') for _ in lines]
+        if colored:
+            colored[0] += '  ' + prefix
+        s = "\n".join(colored)
+        return s
+
+    return x.__repr__() + ' ' + prefix
+
+
+def debug_print_date(x: datetime, prefix=None):
+    return termcolor.colored(x.isoformat()[:19], 'yellow') + (' ' + prefix if prefix else '')
+
+
+def debug_print_bytes(x: bytes):
+    s = f'{len(x)} bytes'
+    return termcolor.colored(s, 'yellow')
 
 
 class DataclassHooks:

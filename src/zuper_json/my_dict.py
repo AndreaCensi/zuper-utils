@@ -12,7 +12,8 @@ class CustomDict(dict):
         if not isinstance(key, K):
             msg = f'Invalid key; expected {K}, got {type(key)}'
             raise ValueError(msg)
-        if not isinstance(val, V):
+        # XXX: this should be for many more cases
+        if isinstance(V, type) and not isinstance(val, V):
             msg = f'Invalid value; expected {V}, got {type(val)}'
             raise ValueError(msg)
         dict.__setitem__(self, key, val)

@@ -36,6 +36,10 @@ from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
 from .types import IPCE
 
+# new interface
+def ipce_from_object(ob, globals_: GlobalsDict=None, suggest_type=None, with_schema=True) -> IPCE:
+    globals_ = globals_ or {}
+    return object_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
 def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'object_to_ipce({ob})')
@@ -152,8 +156,10 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
                 suggest_type = get_optional_type(suggest_type)
             res[k] = object_to_ipce(v, globals_,
                                     suggest_type=suggest_type, with_schema=with_schema)
+        except KeyboardInterrupt:
+            raise
         except BaseException as e:
-            msg = f'Cannot serialize attribute {k} = {v!r} of type {type(v)}.'
+            msg = f'Cannot serialize attribute {k}  of type {type(v)}.'
             msg += f'\nThe schema for {type(ob)} says that it should be of type {f.type}.'
             raise ValueError(msg) from e
     return res
@@ -212,7 +218,6 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
 
     if isinstance(K, type) and issubclass(K, str):
         for k, v in ob.items():
-            print(k)
             res[k] = object_to_ipce(v, globals_, suggest_type=None, with_schema=with_schema)
     else:
         FV = FakeValues[K, V]
@@ -349,6 +354,8 @@ def ipce_to_object_(mj: IPCE,
                                       global_symbols,
                                       encountered,
                                       expect_type=T)
+            except KeyboardInterrupt:
+                raise
             except BaseException as e:
                 errors.append(e)
         msg = f'Cannot deserialize with any of {get_union_types(K)}'
@@ -396,6 +403,8 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
 
             try:
                 attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+            except KeyboardInterrupt:
+                raise
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
                 msg += f'\nvalue: {v!r}'
@@ -694,6 +703,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                 processing=processing))
         # msg += '\n' + traceback.format_exc()
         raise type(e)(msg) from e
+    except KeyboardInterrupt:
+        raise
     except BaseException as e:
         m = f'Cannot get schema for {T}'
         if hasattr(T, '__name__'):
@@ -710,8 +721,10 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
     if schema[SCHEMA_ATT] == SCHEMA_ID:
         # print(yaml.dump(schema))
-        cls = validator_for(schema)
-        cls.check_schema(schema)
+
+        if False:
+            cls = validator_for(schema)
+            cls.check_schema(schema)
     return schema
 
 
@@ -1053,6 +1066,8 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
             continue
         try:
             result = eval_field(t, globals2, processing2)
+        except KeyboardInterrupt:
+            raise
         except BaseException as e:
             msg = f'Cannot evaluate field "{name}" of class {T} annotated as {t}'
             raise Exception(msg) from e
@@ -1129,6 +1144,8 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
                         properties[name]['default'] = object_to_ipce(afield.default, globals_)
+        except KeyboardInterrupt:
+            raise
         except BaseException as e:
             msg = f'Cannot write schema for attribute {name} -> {t}'
             raise TypeError(msg) from e
@@ -1262,6 +1279,8 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
             m = 'While evaluating string'
             msg = pretty_dict(m, debug_info())
             raise NotImplementedError(msg) from e
+        except KeyboardInterrupt:
+            raise
         except BaseException as e:  # pragma: no cover
             m = 'Could not evaluate type string'
             msg = pretty_dict(m, debug_info())
@@ -1279,6 +1298,8 @@ def eval_just_string(t: str, globals_):
     try:
         res = eval(t, eval_globals, eval_locals)
         return res
+    except KeyboardInterrupt:
+        raise
     except BaseException as e:
         m = f'Error while evaluating the string {t!r} using eval().'
         msg = pretty_dict(m, dict(eval_locals=eval_locals, eval_globals=eval_globals))
