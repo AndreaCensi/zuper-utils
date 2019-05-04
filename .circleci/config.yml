@@ -16,27 +16,11 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-#      - run:
-#          name: Install Git LFS
-#          command: |
-#            curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-#            apt-get update
-#            apt-get install -y git-lfs openssh-client
-#            git lfs install
-#            mkdir -p ~/.ssh
-#            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-#            ssh git@github.com git-lfs-authenticate "${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}" download
-#            git lfs pull
       - run:
           name: Install deps
           command: |
             echo PATH=$PATH
             pip install -q --user --upgrade -r requirements.txt
-#
-#            wget https://dist.ipfs.io/go-ipfs/v0.4.18/go-ipfs_v0.4.18_linux-amd64.tar.gz
-#            tar xvzf go-ipfs_v0.4.18_linux-amd64.tar.gz
-#            cp go-ipfs/ipfs /usr/local/bin
-#            ipfs init
 
       - run:
           name: List deps
@@ -59,34 +43,10 @@ jobs:
 #          command: |
 #            make -C notebooks || true
 
-#      - run:
-#          name: Coverage analysis
-#          when: always
-#          command: |
-#            make coverage-report
-#
-#      - run:
-#          name: Coveralls submission
-#          when: always
-#          command: |
-#            make coverage-coveralls
-#
-#      - run:
-#          name: Create JUnit output
-#          when: always
-#          command: |
-#            make junit
-#
-#      - test-results-store:
-#          path: out-comptests/junit
-#
-#      - store_artifacts:
-#          path: out-comptests/duckietown_world_tests
-#          destination: duckietown_world_tests
-#
-#      - store_artifacts:
-#          path: artifacts
-#          destination: artifacts
+      - run:
+          name: CodeCov
+          command: |
+            codecov
 
       - store_artifacts:
           path: cover
