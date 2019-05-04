@@ -163,6 +163,8 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
+
+    unsafe_hash = True
     # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
@@ -239,11 +241,14 @@ def debug_print_str(x: str, prefix: str):
 
 
 def debug_print_date(x: datetime, prefix=None):
-    return termcolor.colored(x.isoformat()[:19], 'yellow') + (' ' + prefix if prefix else '')
+    s = x.isoformat()[:19]
+    s = s.replace('T', ' ')
+    return termcolor.colored(s, 'yellow') + (' ' + prefix if prefix else '')
 
 
 def debug_print_bytes(x: bytes):
-    s = f'{len(x)} bytes'
+    s = f'{len(x)} bytes ' + x[:10].__repr__()
+
     return termcolor.colored(s, 'yellow')
 
 

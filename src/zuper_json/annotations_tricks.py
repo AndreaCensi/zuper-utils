@@ -151,6 +151,19 @@ def is_Dict(x: Any):
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Dict'
 
+def is_Set(x: Any):
+    _check_valid_arg(x)
+
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Set
+    else:
+        return isinstance(x, typing._GenericAlias) and x._name == 'Set'
+
+def get_Set_arg(x):
+    assert is_Set(x)
+    return x.__args__[0]
+
 
 def get_Dict_name(T):
     assert is_Dict(T)
@@ -160,6 +173,9 @@ def get_Dict_name(T):
 
 def get_Dict_name_K_V(K, V):
     return 'Dict[%s,%s]' % (name_for_type_like(K), name_for_type_like(V))
+
+def get_Set_name_V(V):
+    return 'Set[%s]' % (name_for_type_like(V))
 
 
 def name_for_type_like(x):

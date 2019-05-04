@@ -44,13 +44,13 @@ def test_dict4():
     ipce_to_object(ob, {}, expect_type=Any)
 
 
-def test_any():
+def test_type__any():
     T = Any
     assert_type_roundtrip(T, symbols)
 
 
 @known_failure
-def test_any2():
+def test_type_any2():
     @dataclass
     class C:
         a: Any
@@ -59,7 +59,7 @@ def test_any2():
     assert_object_roundtrip(c, symbols)
 
 
-def test_any3():
+def test_type__any3():
     @dataclass
     class C:
         a: Any
@@ -68,7 +68,7 @@ def test_any3():
     assert_object_roundtrip(c, symbols)
 
 
-def test_any4():
+def test_type__any4():
     assert_object_roundtrip(Any, symbols)
 
 

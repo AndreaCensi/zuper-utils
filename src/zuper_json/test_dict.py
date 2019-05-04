@@ -22,11 +22,9 @@ def test_dict_check_value():
     d[2] = 'a'
 
 
-
 def test_dict_int_int0():
     D = make_dict(int, int)
     assert_type_roundtrip(D, {})
-
 
 
 def test_dict_int_int1():
@@ -40,7 +38,6 @@ def test_dict_int_int1():
     #
     # e = MyClass({1: 2})
     # assert_object_roundtrip(e, {})
-
 
 
 def test_dict_int_int():

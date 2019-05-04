@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import *
 
-from .test_utils import relies_on_missing_features, assert_object_roundtrip
+from zuper_json.annotations_tricks import is_Set
+from zuper_json.my_dict import make_set
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
-
-@relies_on_missing_features
 def test_not_implemented_set():
     @dataclass
     class MyClass:
@@ -14,7 +14,31 @@ def test_not_implemented_set():
     assert_object_roundtrip(e, {})  # pragma: no cover
 
 
-@relies_on_missing_features
+def test_is_set01():
+    assert not is_Set(set)
+
+
+def test_is_set02():
+    assert is_Set(Set)
+
+
+def test_is_set03():
+    assert is_Set(Set[int])
+
+
+def test_rt():
+    T = Set[int]
+    assert_type_roundtrip(T, {}, expect_type_equal=False)
+
+def test_rt_yes():
+    T = make_set(int)
+    assert_type_roundtrip(T, {}, expect_type_equal=True)
+
+def test_rt2():
+    T = make_set(int)
+    assert_type_roundtrip(T, {})
+
+
 def test_not_implemented_set_2():
     @dataclass
     class A:

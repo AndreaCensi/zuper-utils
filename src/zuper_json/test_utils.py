@@ -7,6 +7,7 @@ from typing import ForwardRef
 from unittest import SkipTest
 
 import cbor2 as cbor
+import yaml
 from nose.tools import assert_equal
 
 from zuper_json.zeneric2 import loglevel, RecLogger
@@ -36,7 +37,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     if expect_type_equal:
         # assert_same_types(T, T)
         # assert_same_types(T2, T)
-        assert_equivalent_types(T, T2,assume_yes=set())
+        assert_equivalent_types(T, T2, assume_yes=set())
 
     schema2 = type_to_schema(T2, use_globals)
     if schema != schema2:
@@ -178,8 +179,11 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     check_equality(x1, x1b, expect_equality)
 
     if y1 != x1bj:  # pragma: no cover
-        msg = pretty_dict('Round trip not obtained', dict(x1bj=str(x1bj),
-                                                          y1=str(y1)))
+        msg = pretty_dict('Round trip not obtained', dict(x1bj=yaml.dump(x1bj),
+                                                          y1=yaml.dump(y1)))
+        # assert_equal(y1, x1bj, msg=msg)
+        if 'propertyNames' in y1['$schema']:
+            assert_equal(y1['$schema']['propertyNames'], x1bj['$schema']['propertyNames'], msg=msg)
 
         raise AssertionError(msg)
 
