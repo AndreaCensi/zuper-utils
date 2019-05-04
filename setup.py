@@ -47,6 +47,7 @@ setup(name='zuper-utils',
           'cbor2',
           'numpy',
           'base58',
-          'zuper-commons>=3,<4'
+          'zuper-commons>=3,<4',
+          'frozendict',
       ],
       )
