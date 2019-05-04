@@ -16,5 +16,7 @@ frozendict
 pytz
 termcolor
 PyYAML
+base58
+
 #-e git+ssh://git@github.com/AndreaCensi/zuper-commons.git@z3#egg=zuper-commons
 -e git://github.com/AndreaCensi/zuper-commons.git@z3#egg=zuper-commons
