@@ -23,8 +23,11 @@ test-zuper-all:
 docker-36-build:
 	docker build -f Dockerfile.python3.6 -t python36 .
 
-test-it:
-	docker run -it -v $(PWD):$(PWD) -w $(PWD) python36 /bin/bash
+docker-36-test: docker-36-build
+	docker run -it -v $(PWD):/project -w /project python36 make all
+
+#test-it:
+#	docker run -it -v $(PWD):$(PWD) -w $(PWD) python36 /bin/bash
 
 
 bump-upload:
