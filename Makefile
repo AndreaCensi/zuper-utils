@@ -3,7 +3,7 @@ coverage_include='*src/zuper_json*'
 coveralls_repo_token=5eha7C63Y0403x9LRaGscdqQet7yC3WoR
 
 
-all:
+all: test-zuper-utils
 
 test-zuper-utils:
 	rm -f .coverage
