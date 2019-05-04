@@ -1,14 +1,16 @@
 FROM python:3.6
 
+#RUN wget https://dist.ipfs.io/go-ipfs/v0.4.18/go-ipfs_v0.4.18_linux-amd64.tar.gz
+#RUN tar xvzf go-ipfs_v0.4.18_linux-amd64.tar.gz
+#RUN cp go-ipfs/ipfs /usr/local/bin
 
-RUN mkdir /project
+
 WORKDIR /project
 
 
-COPY . .
+COPY requirements.txt .
 RUN pip install -r requirements.txt
+
+COPY . .
 RUN python setup.py develop --no-deps
 
-RUN wget https://dist.ipfs.io/go-ipfs/v0.4.18/go-ipfs_v0.4.18_linux-amd64.tar.gz
-RUN tar xvzf go-ipfs_v0.4.18_linux-amd64.tar.gz
-RUN cp go-ipfs/ipfs /usr/local/bin
