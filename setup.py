@@ -52,5 +52,6 @@ setup(name='zuper-utils',
           'frozendict',
           'pytz',
           'termcolor',
+          'numpy',
       ],
       )

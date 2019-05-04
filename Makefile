@@ -30,6 +30,16 @@ docker-36-shell:
 	docker run -it   python36 /bin/bash
 
 
+docker-37-build:
+	docker build -f Dockerfile.python3.7 -t python37 .
+
+docker-37-test: docker-37-build
+	docker run -it -v $(PWD)/src/zuper_json:/project/src/zuper_json -w /project python37 make all
+
+docker-37-shell:
+	docker run -it   python37 /bin/bash
+
+
 bump-upload:
 	$(MAKE) bump
 	$(MAKE) upload
