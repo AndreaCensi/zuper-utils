@@ -187,7 +187,7 @@ required: [data0]
 title: Entity0[X]
 type: object    
     
-    """)
+    """, Loader=yaml.SafeLoader)
     T = schema_to_type(schema, {}, {})
     print(T.__annotations__)
 

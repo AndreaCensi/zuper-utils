@@ -1,16 +1,10 @@
 pybase64
 jsonschema
-# IPython
 validate_email
 mypy_extensions
 nose
 coverage
-# networkx
 dataclasses
-# comptests>=1.4.33
-# pydot
-# py-multihash
-# py-cid
 cbor2
 frozendict
 pytz
