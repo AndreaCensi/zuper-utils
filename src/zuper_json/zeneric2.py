@@ -390,9 +390,14 @@ cache_enabled = True
 
 cache = {}
 
+if PYTHON_36:
+    B = Dict[Any, Any] # bug in Python 3.6
+else:
+    B = Dict[TypeVar, Any]
+
 
 @loglevel
-def make_type(cls: type, bindings: Dict[TypeVar, Any], rl: RecLogger = None) -> type:
+def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     if not bindings:
         return cls
     cache_key = (str(cls), str(bindings))

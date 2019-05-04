@@ -49,5 +49,6 @@ setup(name='zuper-utils',
           'base58',
           'zuper-commons>=3,<4',
           'frozendict',
+          'pytz',
       ],
       )
