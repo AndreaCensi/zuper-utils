@@ -171,7 +171,7 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
                 suggest_type = get_optional_type(suggest_type)
             res[k] = object_to_ipce(v, globals_,
                                     suggest_type=suggest_type, with_schema=with_schema)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, RecursionError):
             raise
         except BaseException as e:
             msg = f'Cannot serialize attribute {k}  of type {type(v)}.'
@@ -1367,7 +1367,7 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
 
 def eval_just_string(t: str, globals_):
     from typing import Optional
-    eval_locals = {'Optional': Optional}
+    eval_locals = {'Optional': Optional, 'List': List}
     # TODO: put more above?
     # do not pollute environment
     if t in globals_:
@@ -1376,7 +1376,7 @@ def eval_just_string(t: str, globals_):
     try:
         res = eval(t, eval_globals, eval_locals)
         return res
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, RecursionError):
         raise
     except BaseException as e:
         m = f'Error while evaluating the string {t!r} using eval().'

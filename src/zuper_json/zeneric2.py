@@ -7,10 +7,7 @@ from dataclasses import dataclass, fields
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
-from six import with_metaclass
-
 from zuper_commons.text import indent, pretty_dict
-from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 
@@ -146,7 +143,6 @@ class ZenericFix:
         gp = type(name, (GenericProxy,), {GENERIC_ATT2: types})
         setattr(gp, GENERIC_ATT2, types)
 
-
         return gp
 
 
@@ -197,57 +193,6 @@ def get_default_attrs():
     return dict(Any=Any, Optional=Optional, Union=Union, Tuple=Tuple,
                 List=List, Set=Set,
                 Dict=Dict)
-
-
-#
-# @loglevel
-# def eval_type(T, bindings0: Dict[str, Any], symbols0: Dict[str, Any]):
-#     symbols = dict(symbols0)
-#     symbols.update(get_default_attrs())
-#
-#     if T in bindings0:
-#         return bindings0[T]
-#     if T in symbols0:
-#         return symbols0[T]
-#
-#     if isinstance(T, str):
-#         try:
-#             return eval(T, symbols, {})
-#         except NameError:
-#             msg = f'Could not resolve {T!r} with {symbols0} {bindings0}'
-#             raise NameError(msg) from None
-#
-#     if isinstance(T, type):
-#         return T
-#
-#     info = lambda: dict(bindings=bindings0,
-#                         symbols=symbols)
-#     bindings = dict(bindings0)
-#
-#     if is_forward_ref(T):
-#         arg = get_forward_ref_arg(T)
-#         return eval_type(arg, bindings0, symbols0)
-#
-#     if is_optional(T):
-#         arg = get_optional_type(T)
-#         return Optional[eval_type(arg, bindings0, symbols0)]
-#
-#     if is_List(T):
-#         arg = get_List_arg(T)
-#         return typing.List[eval_type(arg, bindings0, symbols0)]
-#
-#     if hasattr(T, '__args__'):
-#         T.__args__ = tuple(eval_type(_, bindings0, symbols) for _ in T.__args__)
-#
-#     try:
-#         res = _eval_type(T, bindings, symbols)
-#         # pprint('eval_type', T=T, bindings0=bindings0, symbols=symbols, res=res)
-#         return res
-#     except BaseException as e:  # pragma: no cover
-#         m = f'Cannot eval type {T!r}'
-#         msg = pretty_dict(m, info())
-#         raise TypeError(msg) from e
-#
 
 
 class Fake:
@@ -304,7 +249,7 @@ def resolve_types(T, locals_=None, refs=()):
 
     for k, v in annotations.items():
         if not isinstance(v, str) and is_ClassVar(v):
-            continue # XXX
+            continue  # XXX
         try:
             r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
@@ -397,7 +342,7 @@ cache_enabled = True
 cache = {}
 
 if PYTHON_36:
-    B = Dict[Any, Any] # bug in Python 3.6
+    B = Dict[Any, Any]  # bug in Python 3.6
 else:
     B = Dict[TypeVar, Any]
 
