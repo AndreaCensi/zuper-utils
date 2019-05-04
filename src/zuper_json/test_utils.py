@@ -3,7 +3,13 @@ import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
 from dataclasses import is_dataclass, fields
-from typing import ForwardRef
+
+try:
+    # noinspection PyUnresolvedReferences
+    from typing import ForwardRef
+except ImportError:  # pragma: no cover
+    # noinspection PyUnresolvedReferences
+    from typing import _ForwardRef as ForwardRef
 from unittest import SkipTest
 
 import cbor2 as cbor

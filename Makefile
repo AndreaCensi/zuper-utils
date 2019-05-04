@@ -24,10 +24,10 @@ docker-36-build:
 	docker build -f Dockerfile.python3.6 -t python36 .
 
 docker-36-test: docker-36-build
-	docker run -it -v $(PWD):/project -w /project python36 make all
+	docker run -it -v $(PWD)/src/zuper_json:/project/src/zuper_json -w /project python36 make all
 
-#test-it:
-#	docker run -it -v $(PWD):$(PWD) -w $(PWD) python36 /bin/bash
+docker-36-shell:
+	docker run -it   python36 /bin/bash
 
 
 bump-upload:
