@@ -1,34 +1,54 @@
 import dataclasses
 import typing
-
+from dataclasses import fields
 from numbers import Number
 from typing import Generic
 
 import yaml
 from nose.tools import raises, assert_equal
 
-from zuper_json import logger
-from zuper_json.constants import enable_type_checking
-from zuper_json.monkey_patching_typing import my_dataclass
-from zuper_json.zeneric2 import resolve_types, dataclass
+from . import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
+from .constants import enable_type_checking
 from .ipce import type_to_schema, schema_to_type
+from .monkey_patching_typing import my_dataclass
 from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip, known_failure
+from .zeneric2 import resolve_types, dataclass
+
+
+def test_basic():
+    U = TypeVar('U')
+
+    T = Generic[U]
+
+    print(T.mro())
+
+    assert_equal(T.__name__, 'Generic[U]')
+    print('inheriting C(T)')
+
+    @dataclass
+    class C(T):
+        ...
+
+    print(C.mro())
+
+    assert_equal(C.__name__, 'C[U]')
+    print('subscribing C[int]')
+    D = C[int]
+
+    assert_equal(D.__name__, 'C[int]')
 
 
 @raises(TypeError)
 def test_dataclass_can_preserve_init():
-    X = typing.TypeVar('X')
+    X = TypeVar('X')
 
     @dataclass
     class M(Generic[X]):
         x: int
 
     M(x=2)
-
-
-from dataclasses import fields
 
 
 def test_serialize_generic_typevar():
@@ -344,8 +364,6 @@ def test_entity():
         parent: "Optional[Entity2[X]]" = None
         forked: "Optional[Entity2[X]]" = None
 
-
-
     T = type_to_schema(Entity2, {}, {})
     C = schema_to_type(T, {}, {})
     print(yaml.dump(T))
@@ -373,7 +391,7 @@ properties:
 required: [data0, guid, security_model]
 title: Entity2[X]
 type: object    
-    """)
+    """, Loader=yaml.SafeLoader)
     C = schema_to_type(schema, {}, {})
     print(C.__annotations__)
 

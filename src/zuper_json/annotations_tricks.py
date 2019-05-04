@@ -156,12 +156,18 @@ def is_Set(x: Any):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
+        if x is typing.Set:
+            return True
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Set
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Set'
 
 def get_Set_arg(x):
     assert is_Set(x)
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        if x is typing.Set:
+            return Any
     return x.__args__[0]
 
 

@@ -19,7 +19,9 @@ def test_is_set01():
 
 
 def test_is_set02():
-    assert is_Set(Set)
+    T = Set
+    print(f'the set is {T}')
+    assert is_Set(T)
 
 
 def test_is_set03():

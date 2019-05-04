@@ -7,7 +7,10 @@ from dataclasses import dataclass, fields
 # noinspection PyUnresolvedReferences
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
+from six import with_metaclass
+
 from zuper_commons.text import indent, pretty_dict
+from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 
@@ -87,16 +90,17 @@ class ZenericFix:
 
     @classmethod
     def __class_getitem__(cls, params):
-        # pprint('ZenerifFix.__class_getitem__', cls=cls, params=params)
+        # pprint('ZenericFix.__class_getitem__', cls=cls, params=params)
         types = as_tuple(params)
 
         if PYTHON_36:  # pragma: no cover
-            class FakeGenericMeta(ABCMeta):
+            class FakeGenericMeta(MyABC):
                 def __getitem__(self, params2):
+                    # pprint('FakeGenericMeta.__getitem__', cls=cls, self=self, params2=params2)
                     types2 = as_tuple(params2)
 
                     if types == types2:
-                        return cls
+                        return self
 
                     bindings = {}
                     for T, U in zip(types, types2):
@@ -107,7 +111,7 @@ class ZenericFix:
                                        f'subclass of "{T.__bound__.__name__}", found {U}.')
                                 raise TypeError(msg)
 
-                    return make_type(cls, bindings)
+                    return make_type(self, bindings)
 
         else:
             FakeGenericMeta = MyABC
@@ -140,8 +144,8 @@ class ZenericFix:
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
         gp = type(name, (GenericProxy,), {GENERIC_ATT2: types})
-        # setattr(gp, '__name__', name)
         setattr(gp, GENERIC_ATT2, types)
+
 
         return gp
 
@@ -299,6 +303,8 @@ def resolve_types(T, locals_=None, refs=()):
     annotations = getattr(T, '__annotations__', {})
 
     for k, v in annotations.items():
+        if not isinstance(v, str) and is_ClassVar(v):
+            continue # XXX
         try:
             r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')

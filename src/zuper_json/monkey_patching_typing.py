@@ -197,7 +197,9 @@ def nice_repr(self):
     s = termcolor.colored(type(self).__name__, 'red')
     s += blue('(')
     ss = []
-    for k in type(self).__annotations__:
+
+    annotations = getattr(type(self), '__annotations__', {})
+    for k in annotations:
         a = getattr(self, k)
         a_s = debug_print_compact(a)
         eq = blue('=')
@@ -216,7 +218,7 @@ def debug_print_compact(x):
         return debug_print_bytes(x)
     if isinstance(x, datetime):
         return debug_print_date(x, '')
-    return x.__repr__()
+    return f'{x!r}'
 
 
 def debug_print_str(x: str, prefix: str):
