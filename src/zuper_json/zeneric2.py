@@ -8,6 +8,7 @@ from dataclasses import dataclass, fields
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
 from zuper_commons.text import indent, pretty_dict
+from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 
@@ -136,7 +137,10 @@ class ZenericFix:
                                    f'subclass of "{T.__bound__.__name__}", found {U}.')
                             raise TypeError(msg)
 
-                return make_type(cls, bindings)
+                res = make_type(cls, bindings)
+                A = lambda C: getattr(C, '__annotations__', 'no anns')
+                # print(f'results of particularization of {cls.__name__} with {params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
+                return res
 
         name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
 
@@ -214,21 +218,7 @@ class Fake:
 def resolve_types(T, locals_=None, refs=()):
     assert is_dataclass(T)
     rl = RecLogger()
-    # rl.p(f'resolving types for {T!r}')
-    # g = dict(globals())
-    # g = {}
-    # locals_ = {}
-    #
-    # if hasattr(T, GENERIC_ATT):
-    #     for k, v in getattr(T, GENERIC_ATT).items():
-    #         g[k] = TypeVar(k)
-    # if hasattr(T, '__name__'):
-    #     g[get_name_without_brackets(T.__name__)] = T
-    #
-    # g['Optional'] = typing.Optional
-    # g['Any'] = Any
-    # g['Union'] = typing.Union
-    # # print('globals: %s' % g)
+
     symbols = dict(locals_ or {})
 
     for t in (T,) + refs:
@@ -254,7 +244,7 @@ def resolve_types(T, locals_=None, refs=()):
             r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
-        except NameError as e:
+        except NameError:
             msg = f'resolve_type({T.__name__}): Cannot resolve names for attribute "{k}".'
             msg += f'\n symbols: {symbols}'
             msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
@@ -339,7 +329,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
 
 cache_enabled = True
 
-cache = {}
+class MakeTypeCache:
+    cache = {}
 
 if PYTHON_36:
     B = Dict[Any, Any]  # bug in Python 3.6
@@ -349,20 +340,23 @@ else:
 
 @loglevel
 def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
-    if not bindings:
-        return cls
-    cache_key = (str(cls), str(bindings))
-    if cache_enabled:
-        if cache_key in cache:
-            return cache[cache_key]
-
     rl = rl or RecLogger()
-    generic_att2 = getattr(cls, GENERIC_ATT2, ())
-    assert isinstance(generic_att2, tuple)
+    # print(f'make_type for {cls.__name__}')
     # rl.p(f'make_type for {cls.__name__}')
     # rl.p(f'  dataclass {is_dataclass(cls)}')
     # rl.p(f'  bindings: {bindings}')
     # rl.p(f'  generic_att: {generic_att2}')
+    if not bindings:
+        return cls
+    cache_key = (str(cls), str(bindings))
+    if cache_enabled:
+        if cache_key in MakeTypeCache.cache:
+            # print(f'using cached value for {cache_key}')
+            return MakeTypeCache.cache[cache_key]
+
+    generic_att2 = getattr(cls, GENERIC_ATT2, ())
+    assert isinstance(generic_att2, tuple)
+
 
     symbols = {}
 
@@ -386,7 +380,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
 
     symbols[name2] = cls2
     symbols[cls.__name__] = cls2  # also MyClass[X] should resolve to the same
-    cache[cache_key] = cls2
+    MakeTypeCache.cache[cache_key] = cls2
 
     #
     class Fake:
@@ -423,8 +417,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     new_annotations = {}
 
     for k, v0 in annotations.items():
-        # v = eval_type(v0, bindings, symbols)
-        # if hasattr(v, GENERIC_ATT):
+
         v = replace_typevars(v0, bindings=bindings, symbols=symbols, rl=rl.child(f'ann {k}'))
         # print(f'{v0!r} -> {v!r}')
         if is_ClassVar(v):
@@ -475,7 +468,11 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     if is_dataclass(cls):
         # note: need to have set new annotations
         # pprint('creating dataclass from %s' % cls2)
+        doc = getattr(cls2, '__doc__', None)
         cls2 = dataclass(cls2)
+        setattr(cls2, '__doc__', doc)
+        # from zuper_json.monkey_patching_typing import my_dataclass
+        # cls2 = my_dataclass(cls2)
         # setattr(cls2, _FIELDS, fields2)
     else:
         # print('Detected that cls = %s not a dataclass' % cls)
@@ -503,5 +500,5 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
     # rl.p(f'     dataclass {is_dataclass(cls2)}')
     #
-
+    MakeTypeCache.cache[cache_key] = cls2
     return cls2

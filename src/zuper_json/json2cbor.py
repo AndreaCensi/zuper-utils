@@ -7,6 +7,7 @@ from io import BufferedReader
 from json import JSONDecodeError
 from typing import Iterator
 
+import base58
 import cbor2
 import yaml
 
@@ -141,10 +142,29 @@ def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None) -> d
 
     else:
 
-        j = cbor2.load(f)
+        j = cbor2.load(f, tag_hook=tag_hook)
 
         return j
 
+
+def tag_hook(decoder, tag, shareable_index=None):
+    # logger.info(f'tag_hook {tag}')
+    if tag.tag != 42:
+        return tag
+
+    d = tag.value
+
+    # x = cbor2.loads(d)
+    # logger.info(f'{x}')
+    # from cid import from_bytes
+    # cid = from_bytes(d)
+    # mh = cid.multihash
+    # val = base58.b58encode(mh).decode('ascii')
+
+    val = base58.b58encode(d).decode('ascii')
+    val = 'z' + val[1:]
+
+    return {'/': val}
 
 def wait_for_data(f, timeout=None, waiting_for: str = None):
     """ Raises StopIteration if it is EOF.
@@ -186,7 +206,7 @@ def read_next_cbor(f, timeout=None, waiting_for: str = None) -> dict:
     wait_for_data(f, timeout, waiting_for)
 
     try:
-        j = cbor2.load(f)
+        j = cbor2.load(f, tag_hook=tag_hook)
         return j
     except OSError as e:
         if e.errno == 29:

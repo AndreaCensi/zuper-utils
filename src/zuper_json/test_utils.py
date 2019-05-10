@@ -185,11 +185,17 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     check_equality(x1, x1b, expect_equality)
 
     if y1 != x1bj:  # pragma: no cover
-        msg = pretty_dict('Round trip not obtained', dict(x1bj=yaml.dump(x1bj),
-                                                          y1=yaml.dump(y1)))
+        msg = pretty_dict('Round trip not obtained', dict(x1bj_json=yaml.dump(x1bj),
+                                                          y1_json=yaml.dump(y1)))
         # assert_equal(y1, x1bj, msg=msg)
         if 'propertyNames' in y1['$schema']:
             assert_equal(y1['$schema']['propertyNames'], x1bj['$schema']['propertyNames'], msg=msg)
+
+
+        with open('y1.json', 'w') as f:
+            f.write(json.dumps(y1, indent=2))
+        with open('x1bj.json', 'w') as f:
+            f.write(json.dumps(x1bj, indent=2))
 
         raise AssertionError(msg)
 

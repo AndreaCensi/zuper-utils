@@ -3,11 +3,11 @@ import hashlib
 import inspect
 import traceback
 import typing
-from dataclasses import make_dataclass, _FIELDS, field, Field, dataclass, is_dataclass
+from dataclasses import make_dataclass, _FIELDS, field, Field, is_dataclass
 from decimal import Decimal
 from numbers import Number
 from typing import Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union, \
-    Generic, List, Tuple, Callable
+    Generic, List, Tuple, Callable, Set
 
 import base58
 import cbor2
@@ -16,7 +16,7 @@ import yaml
 from frozendict import frozendict
 from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
-from nose.tools import assert_in
+from nose.tools import assert_in, assert_equal
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
@@ -29,7 +29,8 @@ from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, Globa
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36, JSC_TITLE_NUMPY, JSC_NULL, \
     JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, GENERIC_ATT2, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME, \
     JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES
-from .my_dict import make_dict, CustomDict, make_set, CustomSet, get_set_Set_or_CustomSet_Value
+from .my_dict import make_dict, CustomDict, make_set, CustomSet, get_set_Set_or_CustomSet_Value, is_CustomDict, \
+    is_CustomSet
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
@@ -37,16 +38,28 @@ from .subcheck import can_be_used_as
 from .types import IPCE
 from .zeneric2 import get_name_without_brackets, replace_typevars, loglevel, RecLogger
 
+__all__ = ['object_from_ipce', 'ipce_from_object']
+PASS_THROUGH = (KeyboardInterrupt, RecursionError)
+
 
 # new interface
 def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     globals_ = globals_ or {}
-    return object_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+    return object_to_ipce__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
 
-def object_to_ipce(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
+def object_to_ipce(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
+    globals_ = globals_ or {}
+    return object_to_ipce__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+
+
+def object_to_ipce__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'object_to_ipce({ob})')
-    res = object_to_ipce_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+    try:
+        res = object_to_ipce_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+    except TypeError as e:
+        msg = f'object_to_ipce() for type {type(ob)} failed.'
+        raise TypeError(msg) from e
     # print(indent(json.dumps(res, indent=3), '|', ' res: -'))
     if isinstance(res, dict) and SCHEMA_ATT in res:
 
@@ -171,10 +184,10 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
                 suggest_type = get_optional_type(suggest_type)
             res[k] = object_to_ipce(v, globals_,
                                     suggest_type=suggest_type, with_schema=with_schema)
-        except (KeyboardInterrupt, RecursionError):
+        except PASS_THROUGH:
             raise
         except BaseException as e:
-            msg = f'Cannot serialize attribute {k}  of type {type(v)}.'
+            msg = f'Obtained {type(e).__name__} while serializing attribute {k}  of type {type(v)}.'
             msg += f'\nThe schema for {type(ob)} says that it should be of type {f.type}.'
             raise ValueError(msg) from e
     return res
@@ -277,19 +290,24 @@ def get_sha256_base58(contents):
     return base58.b58encode(s)
 
 
-ids2cid = {}
+# ids2cid = {}
 
 
 @loglevel
+def object_from_ipce(mj: IPCE,
+                     global_symbols: Dict,
+                     encountered: Optional[dict] = None,
+                     expect_type: Optional[type] = None) -> object:
+    res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
+    return res
+
+
+# @deprecated
 def ipce_to_object(mj: IPCE,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
     res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
-    if id(mj) in ids2cid:
-        pass
-        # ids2cid[id(res)] = ids2cid[id(mj)]
-        # setattr(res, '__ipde_cid_attr__', ids2cid[id(mj)])
     return res
 
 
@@ -307,7 +325,7 @@ def ipce_to_object_(mj: IPCE,
         if expect_type is not None:
             ok, why = can_be_used_as(T, expect_type)
             if not ok:
-                msg = 'Found a {T}, wanted {expect_type}'
+                msg = f'Found a {T}, wanted {expect_type}'
                 raise ValueError(msg)
         return mj
 
@@ -387,7 +405,7 @@ def ipce_to_object_(mj: IPCE,
                                       global_symbols,
                                       encountered,
                                       expect_type=T)
-            except KeyboardInterrupt:
+            except PASS_THROUGH:
                 raise
             except BaseException as e:
                 errors.append(e)
@@ -439,7 +457,7 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
 
             try:
                 attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
-            except KeyboardInterrupt:
+            except PASS_THROUGH:
                 raise
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
@@ -528,11 +546,11 @@ def deserialize_Set(D, mj, global_symbols, encountered):
     return T(res)
 
 
-class CannotFindSchemaReference(ValueError):
+class CannotFindSchemaReference(Exception):
     pass
 
 
-class CannotResolveTypeVar(ValueError):
+class CannotResolveTypeVar(Exception):
     pass
 
 
@@ -553,7 +571,15 @@ def schema_to_type(schema0: JSONSchema,
         # logger.info(f'cache hit for {schema0}')
         return schema_cache[h]
 
-    res = schema_to_type_(schema0, global_symbols, encountered)
+    try:
+        res = schema_to_type_(schema0, global_symbols, encountered)
+    except (TypeError, ValueError) as e:
+        msg = 'Cannot interpret schema as a type.'
+        msg += '\n\n' + indent(yaml.dump(schema0), ' > ')
+        msg += '\n\n' + pretty_dict('globals', global_symbols)
+        msg += '\n\n' + pretty_dict('encountered', encountered)
+        raise TypeError(msg) from e
+
     if ID_ATT in schema0:
         schema_id = schema0[ID_ATT]
         encountered[schema_id] = res
@@ -653,7 +679,8 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             else:
                 # logger.debug(f'did not find {tn} in {global_symbols}')
                 return schema_to_type_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
-
+        else:
+            return schema_to_type_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         assert False, schema  # pragma: no cover
     elif jsc_type == JSC_ARRAY:
         return schema_array_to_type(schema, global_symbols, encountered)
@@ -699,7 +726,14 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
     if isinstance(V, type) and V.__name__.startswith('FakeValues'):
         K = V.__annotations__['real_key']
         V = V.__annotations__['value']
-    D = make_dict(K, V)
+
+    try:
+        D = make_dict(K, V)
+    except (TypeError, ValueError) as e:
+        msg = f'Cannot reconstruct dict type with K = {K!r}  V = {V!r}'
+        msg += '\n\n' + pretty_dict('globals', global_symbols)
+        msg += '\n\n' + pretty_dict('encountered', encountered)
+        raise TypeError(msg) from e
     # we never put it anyway
     # if JSC_DESCRIPTION in schema:
     #     setattr(D, '__doc__', schema[JSC_DESCRIPTION])
@@ -762,7 +796,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                 processing=processing))
         # msg += '\n' + traceback.format_exc()
         raise type(e)(msg) from e
-    except KeyboardInterrupt:
+    except PASS_THROUGH:
         raise
     except BaseException as e:
         m = f'Cannot get schema for {T}'
@@ -790,8 +824,9 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 K = TypeVar('K')
 V = TypeVar('V')
 
+from .monkey_patching_typing import my_dataclass
 
-@dataclass
+@my_dataclass
 class FakeValues(Generic[K, V]):
     real_key: K
     value: V
@@ -962,6 +997,12 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Dict(T) or (isinstance(T, type) and issubclass(T, CustomDict)):
         return dict_to_schema(T, globals_, processing)
 
+    if (isinstance(T, type) and issubclass(T, dict)):  # pragma: no cover
+        msg = f'A regular "dict" slipped through.\n{T}'
+        T = Dict[Any, Any]
+        # raise TypeError(msg)
+        return dict_to_schema(T, globals_, processing)
+
     if is_Set(T) or (isinstance(T, type) and issubclass(T, set)):
         return set_to_schema(T, globals_, processing)
 
@@ -979,10 +1020,6 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return Tuple_to_schema(T, globals_, processing)
 
     assert isinstance(T, type), T
-
-    if issubclass(T, dict):  # pragma: no cover
-        msg = f'A regular "dict" slipped through.\n{T}'
-        raise TypeError(msg)
 
     if hasattr(T, GENERIC_ATT2) and is_generic(T):
         return type_generic_to_schema(T, globals_, processing)
@@ -1074,12 +1111,15 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
                        repr=True, eq=True, order=False,
                        unsafe_hash=False, frozen=False)
 
-    fix_annotations_with_self_reference(T, cls_name)
+    class Placeholder:
+        pass
+
+    fix_annotations_with_self_reference(T, cls_name, Placeholder)
 
     if JSC_DESCRIPTION in res:
         setattr(T, '__doc__', res[JSC_DESCRIPTION])
-    if ATT_PYTHON_NAME in res:
-        setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
+    # if ATT_PYTHON_NAME in res:
+    #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
     if X_PYTHON_MODULE_ATT in res:
         setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
     return T
@@ -1096,7 +1136,7 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
     res[SCHEMA_ATT] = SCHEMA_ID
 
     res[JSC_TITLE] = T.__name__
-    res[ATT_PYTHON_NAME] = T.__qualname__
+    # res[ATT_PYTHON_NAME] = T.__qualname__
     res[X_PYTHON_MODULE_ATT] = T.__module__
 
     res[ID_ATT] = make_url(T.__name__)
@@ -1141,7 +1181,7 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
             continue
         try:
             result = eval_field(t, globals2, processing2)
-        except KeyboardInterrupt:
+        except PASS_THROUGH:
             raise
         except BaseException as e:
             msg = f'Cannot evaluate field "{name}" of class {T} annotated as {t}'
@@ -1168,7 +1208,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
 
         p2[T.__name__] = make_ref(res[ID_ATT])
 
-    res[ATT_PYTHON_NAME] = T.__qualname__
+    # res[ATT_PYTHON_NAME] = T.__qualname__
     res[X_PYTHON_MODULE_ATT] = T.__module__
 
     res[SCHEMA_ATT] = SCHEMA_ID
@@ -1219,7 +1259,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
                         properties[name]['default'] = object_to_ipce(afield.default, globals_)
-        except KeyboardInterrupt:
+        except PASS_THROUGH:
             raise
         except BaseException as e:
             msg = f'Cannot write schema for attribute {name} -> {t}'
@@ -1236,9 +1276,12 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
 
 
 if typing.TYPE_CHECKING:  # pragma: no cover
-    from .monkey_patching_typing import original_dataclass
+    from .monkey_patching_typing import original_dataclass, my_dataclass, my_dataclass, my_dataclass, my_dataclass, \
+    my_dataclass
 else:
     from dataclasses import dataclass as original_dataclass
+
+    from .monkey_patching_typing import my_dataclass
 
 
 @original_dataclass
@@ -1357,7 +1400,7 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
             m = 'While evaluating string'
             msg = pretty_dict(m, debug_info())
             raise NotImplementedError(msg) from e
-        except KeyboardInterrupt:
+        except PASS_THROUGH:
             raise
         except BaseException as e:  # pragma: no cover
             m = 'Could not evaluate type string'
@@ -1367,7 +1410,8 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
 
 def eval_just_string(t: str, globals_):
     from typing import Optional
-    eval_locals = {'Optional': Optional, 'List': List}
+    eval_locals = {'Optional': Optional, 'List': List,
+                   'Dict': Dict, 'Union': Union, 'Set': typing.Set, 'Any': Any}
     # TODO: put more above?
     # do not pollute environment
     if t in globals_:
@@ -1376,7 +1420,7 @@ def eval_just_string(t: str, globals_):
     try:
         res = eval(t, eval_globals, eval_locals)
         return res
-    except (KeyboardInterrupt, RecursionError):
+    except PASS_THROUGH:
         raise
     except BaseException as e:
         m = f'Error while evaluating the string {t!r} using eval().'
@@ -1391,11 +1435,19 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
     # rl.pp('schema_to_type_dataclass', res=res, global_symbols=global_symbols, encountered=encountered)
     assert res[JSC_TYPE] == JSC_OBJECT
     cls_name = res[JSC_TITLE]
+
     # It's already done by the calling function
     # if ID_ATT in res:
     #     # encountered[res[ID_ATT]] = ForwardRef(cls_name)
     #     encountered[res[ID_ATT]] = cls_name
 
+    # @dataclass
+    # class Placeholder:
+    #     pass
+    #
+    Placeholder = type(f'PlaceholderFor{cls_name}', (), {})
+
+    encountered[schema_id] = Placeholder
     required = res.get(JSC_REQUIRED, [])
 
     fields = []  # (name, type, Field)
@@ -1420,7 +1472,8 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
 
     unsafe_hash = True
     try:
-        T = make_dataclass(cls_name, fields, bases=(), namespace=None, init=True, repr=True, eq=True, order=False,
+        T = make_dataclass(cls_name, fields, bases=(), namespace=None,
+                           init=True, repr=True, eq=True, order=False,
                            unsafe_hash=unsafe_hash, frozen=False)
     except TypeError:  # pragma: no cover
         from . import logger
@@ -1430,7 +1483,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         logger.error(msg)
         raise
 
-    fix_annotations_with_self_reference(T, cls_name)
+    fix_annotations_with_self_reference(T, cls_name, Placeholder)
 
     for pname, v in res.get(X_CLASSATTS, {}).items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
@@ -1445,29 +1498,98 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         # the original one did not have it
         setattr(T, '__doc__', None)
 
-    if ATT_PYTHON_NAME in res:
-        setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
+    # if ATT_PYTHON_NAME in res:
+    #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
 
     if X_PYTHON_MODULE_ATT in res:
         setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
     return T
 
 
-from . import logger
+def recursive_type_subst(T, f, ignore=()):
+    if T in ignore:
+        return T
+    r = lambda X: recursive_type_subst(X, f, ignore+(T,))
+    if is_optional(T):
+        a = get_optional_type(T)
+        return Optional[r(a)]
+    elif is_forward_ref(T):
+        return f(T)
+    elif is_union(T):
+        ts = tuple(r(_) for _ in get_union_types(T))
+        return Union[ts]
+    elif is_Tuple(T):
+        args = T.__args__  # XXX
+        ts = tuple(r(_) for _ in args)
+        return Tuple[ts]
+    elif is_Dict(T):
+        K, V = T.__args__
+        return Dict[r(K), r(V)]
+    elif is_CustomDict(T):
+        K, V = T.__dict_type__
+        return make_dict(r(K), r(V))
+    elif is_List(T):
+        return List[r(get_List_arg(T))]
+    elif is_Set(T):
+        return Set[r(get_Set_arg(T))]
+    elif is_CustomSet(T):
+        X = r(T.__set_type__)
+        return make_set(X)
+    elif is_dataclass(T):
+        annotations = dict(getattr(T, '__annotations__', {}))
+        for k, v0 in list(annotations.items()):
+            annotations[k] = r(v0)
+        T2 = my_dataclass(type(T.__name__, (), {'__annotations__': annotations,
+                                                '__module__': T.__module__,
+                                                '__doc__': getattr(T, '__doc__', None)}))
+        # setattr(T2, '__module__', T.__module__)
+        return T2
+        # for f in dataclasses.fields(T):
+        #     f.type = T.__annotations__[f.name]
+        # return T
+    else:
+        return f(T)
 
 
-def fix_annotations_with_self_reference(T, cls_name):
-    for k, v in T.__annotations__.items():
-        if is_optional(v):
-            a = get_optional_type(v)
-            if is_forward_ref(a):
-                arg = get_forward_ref_arg(a)
-                if arg == cls_name:
-                    T.__annotations__[k] = Optional[T]
-                else:
-                    logger.warning(f'Cannot fix annotation {a}')
-                    continue
-                    # raise Exception(a)
+def fix_annotations_with_self_reference(T, cls_name, Placeholder):
+    # print('fix_annotations_with_self_reference')
+    def f(M):
+        # print((M, Placeholder, M is Placeholder, M == Placeholder, id(M), id(Placeholder)))
+        if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
+            return T
+        if M == Placeholder:
+            return T
+        elif is_forward_ref(M):
+            arg = get_forward_ref_arg(M)
+            if arg == cls_name:
+                return T
+            else:
+                return M
+        else:
+            return M
+
+    def f2(M):
+        # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} ')
+        r = f(M)
+        # if is_dataclass(M):
+
+        if is_dataclass(M):
+            d0 = getattr(M, '__doc__', 'NO DOC')
+            d1 = getattr(r, '__doc__', 'NO DOC')
+        else:
+            d0 = d1 = None
+        # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
+        return r
+
+    for k, v0 in T.__annotations__.items():
+        v = recursive_type_subst(v0, f2)
+        T.__annotations__[k] = v
+        # d0 = getattr(v0, '__doc__', 'NO DOC')
+        # d1 = getattr(v, '__doc__', 'NO DOC')
+        # assert_equal(d0, d1)
+
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
+
+    # print(pretty_dict(f'annotations resolved for {T}', T.__annotations__))

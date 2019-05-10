@@ -1,18 +1,20 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import *
 
-from zuper_json.monkey_patching_typing import my_dataclass
+import yaml
+
+from zuper_json.monkey_patching_typing import my_dataclass as dataclass
 
 try:
     from typing import ForwardRef
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_Any
 from .constants import SCHEMA_ATT, SCHEMA_ID
 from .ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
-from .test_utils import assert_object_roundtrip
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
 @dataclass
@@ -47,6 +49,29 @@ class Office:
 
 
 def test_ser1():
+    # Address_schema = type_to_schema(Address, {})
+    # assert Address_schema['description'] == Address.__doc__
+    # Address2 = schema_to_type(Address_schema, {}, {})
+    # assert Address2.__doc__ == Address.__doc__
+
+
+    Person_schema = type_to_schema(Person, {})
+
+    print(yaml.dump(Person_schema))
+
+    Address2 = schema_to_type(Person_schema['properties']['address'], {}, {})
+    assert_equal(Address2.__doc__, Address.__doc__)
+
+    assert Person_schema['description'] == Person.__doc__
+    Person2 = schema_to_type(Person_schema, {}, {})
+    assert Person2.__doc__ == Person.__doc__
+
+    assert_equal(Person2.__annotations__['address'].__doc__, Address.__doc__)
+
+    assert_type_roundtrip(Address, {}, expect_type_equal=False)
+    assert_type_roundtrip(Person, {}, expect_type_equal=False)
+    assert_type_roundtrip(Office, {}, expect_type_equal=False)
+
     x1 = Office()
     x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
 
@@ -250,7 +275,7 @@ def test_any_instantiate():
     ipce_to_object(schema, {})
 
 
-@raises(TypeError)
+# @raises(TypeError)
 def test_not_dict_naked():
     class A(dict):
         ...
@@ -350,11 +375,11 @@ def test_error1():
 def test_2_ok():
     X = TypeVar('X')
 
-    @my_dataclass
+    @dataclass
     class M(Generic[X]):
         x: X
 
-    @my_dataclass
+    @dataclass
     class MyClass:
         f: "Optional[M[int]]"
 
@@ -366,11 +391,11 @@ def test_2_ok():
 def test_2_error():
     X = TypeVar('X')
 
-    @my_dataclass
+    @dataclass
     class M(Generic[X]):
         x: X
 
-    @my_dataclass
+    @dataclass
     class MyClass:
         f: "Optional[M[int]]"
 
@@ -391,6 +416,5 @@ def test_random_json():
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
     ipce_to_object(data, {})
 
-
-if __name__ == '__main__':
-    test_error2()
+# if __name__ == '__main__':
+#     test_error2()

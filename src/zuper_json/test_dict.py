@@ -8,18 +8,20 @@ from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
-@raises(ValueError)
-def test_dict_check_key():
-    D = Dict[int, int]
-    d = D()
-    d['a'] = 2
+if False:
+
+    @raises(ValueError)
+    def test_dict_check_key():
+        D = Dict[int, int]
+        d = D()
+        d['a'] = 2
 
 
-@raises(ValueError)
-def test_dict_check_value():
-    D = Dict[int, int]
-    d = D()
-    d[2] = 'a'
+    @raises(ValueError)
+    def test_dict_check_value():
+        D = Dict[int, int]
+        d = D()
+        d[2] = 'a'
 
 
 def test_dict_int_int0():

@@ -1,4 +1,3 @@
-import dataclasses
 import typing
 from dataclasses import fields
 from numbers import Number
@@ -11,10 +10,10 @@ from . import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
 from .constants import enable_type_checking
 from .ipce import type_to_schema, schema_to_type
-from .monkey_patching_typing import my_dataclass
+from .monkey_patching_typing import my_dataclass as dataclass
 from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip, known_failure
-from .zeneric2 import resolve_types, dataclass
+from .zeneric2 import resolve_types, MakeTypeCache
 
 
 def test_basic():
@@ -55,17 +54,17 @@ def test_serialize_generic_typevar():
     X = typing.TypeVar('X', bound=Number)
 
     @dataclass
-    class M1(Generic[X]):
+    class MN1(Generic[X]):
         """ A generic class """
         x: X
 
-    M2 = assert_type_roundtrip(M1, {})
+    M2 = assert_type_roundtrip(MN1, {})
 
-    f1 = fields(M1)
+    f1 = fields(MN1)
     assert f1[0].type == X
     # there was a bug with modifying this
-    _ = M1[int]
-    f1b = fields(M1)
+    _ = MN1[int]
+    f1b = fields(MN1)
     assert f1b[0].type == X
     assert f1 == f1b
 
@@ -76,24 +75,24 @@ def test_serialize_generic():
     X = typing.TypeVar('X', bound=Number)
 
     @dataclass
-    class M1(Generic[X]):
+    class MP1(Generic[X]):
         """ A generic class """
         x: X
 
-    M1int = M1[int]
+    M1int = MP1[int]
 
-    assert_type_roundtrip(M1, {})
+    assert_type_roundtrip(MP1, {})
     assert_type_roundtrip(M1int, {})
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = type_to_schema(M1, {})
+    s = type_to_schema(MP1, {})
     # print(json.dumps(s, indent=3))
 
     M2 = schema_to_type(s, {}, {})
     # noinspection PyUnresolvedReferences
     M2int = M2[int]
-    assert_equal(M1.__module__, M2.__module__)
+    assert_equal(MP1.__module__, M2.__module__)
 
     m2a = M2int(x=2)
     m2b = M2int(x=3)
@@ -121,24 +120,43 @@ def test_serialize_generic_optional():
     X = typing.TypeVar('X', bound=Number)
 
     @dataclass
-    class M1(Generic[X]):
+    class MR1(Generic[X]):
         """ A generic class """
         x: X
-        xo: typing.Optional[X] = None
+        xo: Optional[X] = None
 
-    M1int = M1[int]
-    assert_type_roundtrip(M1, {})
-    assert_type_roundtrip(M1int, {})
+    M1int = MR1[int]
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = type_to_schema(M1, {})
-    # print(json.dumps(s, indent=3))
+    s = type_to_schema(MR1, {})
+    print('M1 schema: \n' + yaml.dump(s, indent=3))
 
     M2 = schema_to_type(s, {}, {})
+    assert 'xo' in MR1.__annotations__, MR1.__annotations__
+    assert 'xo' in M2.__annotations__, M2.__annotations__
+
+    assert_equal(sorted(MR1.__annotations__), sorted(M2.__annotations__))
+
+    # k =  ("<class 'zuper_json.zeneric2.test_serialize_generic_optional.<locals>.M1'>", "{~X<Number: <class 'int'>}")
+
+    print(f'cached: {MakeTypeCache.cache}')
+    # c = MakeTypeCache.cache[k]
+    # print(f'cached: {c.__annotations__}')
+    # MakeTypeCache.cache = {}
     # noinspection PyUnresolvedReferences
     M2int = M2[int]
-    assert_equal(M1.__module__, M2.__module__)
+    assert_equal(MR1.__module__, M2.__module__)
+    assert_equal(sorted(M1int.__annotations__), sorted(M2int.__annotations__))
+
+    # noinspection PyUnresolvedReferences
+    M2int = M2[int]
+    assert_equal(MR1.__module__, M2.__module__)
+    assert_equal(sorted(M1int.__annotations__), sorted(M2int.__annotations__))
+
+    assert_type_roundtrip(MR1, {})
+    assert_type_roundtrip(M1int, {})
+
 
     m2a = M2int(x=2)
     m2b = M2int(x=3)
@@ -148,6 +166,8 @@ def test_serialize_generic_optional():
     # print(type(m2a))
     # print(type(m1a).__module__)
     # print(type(m2a).__module__)
+
+    assert_equal(sorted(m1a.__dict__), sorted(m2a.__dict__))
     assert m1a == m2a
     assert m2a == m1a
     assert m2b == m1b
@@ -251,15 +271,24 @@ def test_more2b():
     X = TypeVar('X')
     Y = TypeVar('Y')
 
+    class E0(Generic[X]):
+        pass
+
+    assert_equal(E0.__doc__, None)
+
     @dataclass
     class Entity12(Generic[X]):
         data0: X
 
         parent: "Optional[Entity12[X]]" = None
 
+    assert_equal(Entity12.__doc__, None)
+
     @dataclass
     class Entity13(Generic[Y]):
         parent: Optional[Entity12[Y]] = None
+
+    assert_equal(Entity13.__doc__, None)
 
     EI = Entity12[int]
     # print(EI.__annotations__['parent'])
@@ -349,13 +378,13 @@ def test_more3():
 def test_entity():
     X = TypeVar('X')
 
-    @my_dataclass
+    @dataclass
     class SecurityModel2:
         # guid: Any
         owner: str
         arbiter: str
 
-    @my_dataclass
+    @dataclass
     class Entity2(Generic[X]):
         data0: X
         guid: str
@@ -484,13 +513,14 @@ def test_derived1():
 
     S = Signed3[int]
 
-    logger.info(dataclasses.fields(S))
+    logger.info(fields(S))
 
     class Y(S):
         """hello"""
         pass
 
-    assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
+    # assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
+    assert S.__doc__ in [None], S.__doc__
     assert_equal(Y.__doc__, """hello""")
     assert_type_roundtrip(Y, {})
 

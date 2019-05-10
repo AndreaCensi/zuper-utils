@@ -1,8 +1,7 @@
 import typing
 from typing import Union, Any, Dict
 
-from .constants import NAME_ARG
-from .constants import PYTHON_36
+from .constants import NAME_ARG, PYTHON_36
 
 
 # noinspection PyProtectedMember
@@ -151,6 +150,7 @@ def is_Dict(x: Any):
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Dict'
 
+
 def is_Set(x: Any):
     _check_valid_arg(x)
 
@@ -161,6 +161,7 @@ def is_Set(x: Any):
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Set
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Set'
+
 
 def get_Set_arg(x):
     assert is_Set(x)
@@ -180,8 +181,13 @@ def get_Dict_name(T):
 def get_Dict_name_K_V(K, V):
     return 'Dict[%s,%s]' % (name_for_type_like(K), name_for_type_like(V))
 
+
 def get_Set_name_V(V):
     return 'Set[%s]' % (name_for_type_like(V))
+
+
+def get_Union_name(V):
+    return 'Union[%s]' % ",".join(name_for_type_like(_) for _ in get_union_types(V))
 
 
 def name_for_type_like(x):
@@ -191,6 +197,9 @@ def name_for_type_like(x):
         return x.__name__
     elif isinstance(x, typing.TypeVar):
         return x.__name__
+    elif is_union(x):
+        return get_Union_name(x)
+
     elif is_Dict(x):
         return get_Dict_name(x)
     elif is_Callable(x):

@@ -164,6 +164,8 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
 
+    original_doc = getattr(_cls, '__doc__', None)
+
     unsafe_hash = True
     # pprint('my_dataclass', _cls=_cls)
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
@@ -182,6 +184,8 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     setattr(res, '__repr__', __repr__)
     setattr(res, '__str__', __str__)
     # res.__doc__  = res.__doc__.replace(' ', '')
+    # if original_doc is None:
+    setattr(res, '__doc__', original_doc)
     return res
 
 
