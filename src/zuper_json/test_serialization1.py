@@ -4,17 +4,18 @@ from typing import *
 import yaml
 
 from zuper_json.monkey_patching_typing import my_dataclass as dataclass
-
-try:
-    from typing import ForwardRef
-except ImportError:  # pragma: no cover
-    from typing import _ForwardRef as ForwardRef
-
 from .annotations_tricks import is_Any
 from .constants import SCHEMA_ATT, SCHEMA_ID
 from .ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
+
+
+#
+try:
+    from typing import ForwardRef
+except ImportError:  # pragma: no cover
+    from typing import _ForwardRef as ForwardRef
 
 
 @dataclass
@@ -53,7 +54,6 @@ def test_ser1():
     # assert Address_schema['description'] == Address.__doc__
     # Address2 = schema_to_type(Address_schema, {}, {})
     # assert Address2.__doc__ == Address.__doc__
-
 
     Person_schema = type_to_schema(Person, {})
 

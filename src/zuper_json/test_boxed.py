@@ -3,10 +3,10 @@ from zuper_json.zeneric2 import dataclass
 from dataclasses import is_dataclass
 from typing import *
 
-try:
-    from typing import ForwardRef
-except ImportError: # pragma: no cover
-    from typing import _ForwardRef as ForwardRef
+# try:
+#     from typing import ForwardRef
+# except ImportError: # pragma: no cover
+#     from typing import _ForwardRef as ForwardRef
 
 from nose.tools import raises, assert_equal
 

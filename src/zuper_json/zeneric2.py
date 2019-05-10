@@ -8,14 +8,14 @@ from dataclasses import dataclass, fields
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
 from zuper_commons.text import indent, pretty_dict
-from zuper_json.pretty import pprint
+# from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 
-try:
-    from typing import ForwardRef
-except ImportError:  # pragma: no cover
-    from typing import _ForwardRef as ForwardRef
+# try:
+#     from typing import ForwardRef
+# except ImportError:  # pragma: no cover
+#     from typing import _ForwardRef as ForwardRef
 
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
     is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
