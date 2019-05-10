@@ -65,4 +65,4 @@ jobs:
   test-3.8:
     <<: *test-template
     docker:
-    - image: python:3.8
+    - image: python:3.8-rc-stretch
