@@ -1,7 +1,6 @@
 import datetime
 import hashlib
 import inspect
-import traceback
 import typing
 from dataclasses import make_dataclass, _FIELDS, field, Field, is_dataclass
 from decimal import Decimal
@@ -16,7 +15,7 @@ import yaml
 from frozendict import frozendict
 from jsonschema.validators import validator_for, validate
 from mypy_extensions import NamedArg
-from nose.tools import assert_in, assert_equal
+from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
@@ -223,7 +222,7 @@ def resolve_all(T, globals_):
 def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
     # assert suggest_type is not None
     res = {}
-    # pprint('suggest_type ', suggest_type=suggest_type)
+    # pprint('suggest_type ', ob=ob, suggest_type=suggest_type)
 
     if is_Dict(suggest_type):
         # noinspection PyUnresolvedReferences
@@ -249,6 +248,7 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
             res[k] = object_to_ipce(v, globals_, suggest_type=V, with_schema=with_schema)
     else:
         FV = FakeValues[K, V]
+
         for k, v in ob.items():
             kj = object_to_ipce(k, globals_)
             if isinstance(k, int):
@@ -298,8 +298,18 @@ def object_from_ipce(mj: IPCE,
                      global_symbols: Dict,
                      encountered: Optional[dict] = None,
                      expect_type: Optional[type] = None) -> object:
-    res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
-    return res
+    try:
+        res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
+        return res
+
+    except PASS_THROUGH:
+        raise
+
+    except BaseException as e:
+        msg = f'Cannot deserialize object  (expect: {expect_type})'
+        msg += '\n\n' + indent(yaml.dump(mj), ' ipce ')
+        # msg += '\n\n' + indent(traceback.format_exc(), '| ')
+        raise TypeError(msg) from e
 
 
 # @deprecated
@@ -414,7 +424,12 @@ def ipce_to_object_(mj: IPCE,
         raise Exception(msg)
 
     if is_Any(K):
-        msg = f'Not implemented\n{mj}'
+        K = Dict[str, Any]
+        # TODO: check that it is strings
+        if isinstance(mj, dict):
+            return deserialize_Dict(K, mj, global_symbols, encountered)
+        msg = f'Not implemented - K = Any'
+        msg += '\n\n' + indent(yaml.dump(mj), ' > ')
         raise NotImplementedError(msg)
     assert False, (type(K), K, mj, expect_type)  # pragma: no cover
 
@@ -461,8 +476,8 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
                 raise
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
-                msg += f'\nvalue: {v!r}'
-                msg += '\n\n' + indent(traceback.format_exc(), '| ')
+                msg += '\n\n' + indent(yaml.dump(v), '  ')
+                # msg += '\n\n' + indent(traceback.format_exc(), '| ')
                 raise TypeError(msg) from e
 
     for k, T in anns.items():
@@ -510,16 +525,25 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
     attrs = {}
 
     FV = FakeValues[K, V]
+    if isinstance(K, type) and issubclass(K, str):
+        expect_type_V = V
+    else:
+        expect_type_V = FV
 
     for k, v in mj.items():
         if k == SCHEMA_ATT:
             continue
 
-        if issubclass(K, str):
-            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=V)
-        else:
-            attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=FV)
+        try:
+            attrs[k] = ipce_to_object(v, global_symbols, encountered,
+                                      expect_type=expect_type_V)
 
+        except (TypeError, NotImplementedError) as e:
+            msg = f'Cannot deserialize element "{k}".'
+            msg += f'\n\n D = {D}'
+            msg += '\n\n' + indent(yaml.dump(mj), '> ')
+            msg += f'\n\n Expected V = {expect_type_V}'
+            raise TypeError(msg) from e
     if isinstance(K, type) and issubclass(K, str):
         ob.update(attrs)
         return ob
@@ -826,6 +850,7 @@ V = TypeVar('V')
 
 from .monkey_patching_typing import my_dataclass
 
+
 @my_dataclass
 class FakeValues(Generic[K, V]):
     real_key: K
@@ -907,7 +932,7 @@ def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSON
 def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
-    # res: JSONSchema = {JSC_TYPE: X_TYPE_FUNCTION, SCHEMA_ATT: X_SCHEMA_ID}
+
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT, SCHEMA_ATT: SCHEMA_ID,
                             JSC_TITLE: JSC_TITLE_CALLABLE,
                             'special': 'callable'})
@@ -997,7 +1022,7 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Dict(T) or (isinstance(T, type) and issubclass(T, CustomDict)):
         return dict_to_schema(T, globals_, processing)
 
-    if (isinstance(T, type) and issubclass(T, dict)):  # pragma: no cover
+    if isinstance(T, type) and issubclass(T, dict):  # pragma: no cover
         msg = f'A regular "dict" slipped through.\n{T}'
         T = Dict[Any, Any]
         # raise TypeError(msg)
@@ -1277,7 +1302,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     from .monkey_patching_typing import original_dataclass, my_dataclass, my_dataclass, my_dataclass, my_dataclass, \
-    my_dataclass
+        my_dataclass
 else:
     from dataclasses import dataclass as original_dataclass
 
@@ -1509,7 +1534,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
 def recursive_type_subst(T, f, ignore=()):
     if T in ignore:
         return T
-    r = lambda X: recursive_type_subst(X, f, ignore+(T,))
+    r = lambda X: recursive_type_subst(X, f, ignore + (T,))
     if is_optional(T):
         a = get_optional_type(T)
         return Optional[r(a)]
@@ -1587,7 +1612,6 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
         # d0 = getattr(v0, '__doc__', 'NO DOC')
         # d1 = getattr(v, '__doc__', 'NO DOC')
         # assert_equal(d0, d1)
-
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]

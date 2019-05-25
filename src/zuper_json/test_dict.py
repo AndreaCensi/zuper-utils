@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from typing import *
 
-from nose.tools import raises
+import yaml
 
-from .ipce import make_dict, type_to_schema
+from zuper_ipcl import ipce_from_ipcl
+from zuper_ipcl.ipcl import ipcl_from_ipce, ipcl_from_object
+from .ipce import make_dict, type_to_schema, ipce_from_object
 from .pretty import pprint
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
-
 if False:
-
     @raises(ValueError)
     def test_dict_check_key():
         D = Dict[int, int]
