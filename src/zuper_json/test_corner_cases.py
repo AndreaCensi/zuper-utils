@@ -4,7 +4,7 @@ from typing import *
 import yaml
 from nose.tools import raises
 
-from zuper_json.ipce import ipce_to_object, object_to_ipce, type_to_schema
+from zuper_json.ipce import ipce_to_object, ipce_from_object, type_to_schema
 from zuper_json.subcheck import can_be_used_as
 
 
@@ -21,11 +21,11 @@ def test_corner_cases03():
 
 
 def test_corner_cases04():
-    object_to_ipce({1: 2}, {}, suggest_type=None)
+    ipce_from_object({1: 2}, {}, suggest_type=None)
 
 
 def test_corner_cases05():
-    object_to_ipce(12, {}, suggest_type=Optional[int])
+    ipce_from_object(12, {}, suggest_type=Optional[int])
 
 
 def test_corner_cases06():
@@ -60,7 +60,7 @@ def test_property_error():
     # noinspection PyTypeChecker
     ob = MyClass32('not an int')
     # ipce_to_object(ob, {}, {}, expect_type=MyClass32)
-    res = object_to_ipce(ob, {}, {})
+    res = ipce_from_object(ob, {}, {})
     print(yaml.dump(res))
 
 
@@ -69,7 +69,7 @@ def test_not_know():
     class C:
         pass
 
-    object_to_ipce(C(), {}, {})
+    ipce_from_object(C(), {}, {})
 
 
 if __name__ == '__main__':

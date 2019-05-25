@@ -36,7 +36,7 @@ def test_dict2():
     assert_type_roundtrip(T, symbols, expect_type_equal=False)
 
 
-@known_failure
+
 def test_dict4():
     # T = Dict[str, Any]
     # <class 'zuper_json.my_dict.Dict[str,Any]'>
@@ -49,7 +49,6 @@ def test_type__any():
     assert_type_roundtrip(T, symbols)
 
 
-@known_failure
 def test_type_any2():
     @dataclass
     class C:

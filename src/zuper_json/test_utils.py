@@ -20,7 +20,7 @@ from zuper_json.zeneric2 import loglevel, RecLogger
 from . import logger
 from .annotations_tricks import is_Dict
 from .constants import PYTHON_36
-from .ipce import object_to_ipce, ipce_to_object, type_to_schema, schema_to_type
+from .ipce import ipce_from_object, object_from_ipce, type_to_schema, schema_to_type
 from .json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from .pretty import pretty_dict
 
@@ -160,7 +160,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
 
     """
 
-    y1 = object_to_ipce(x1, use_globals)
+    y1 = ipce_from_object(x1, use_globals)
     y1_cbor = cbor.dumps(y1)
     y1 = cbor.loads(y1_cbor)
 
@@ -168,11 +168,11 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     y1es = json.dumps(y1e, indent=2)
     logger.info(f'y1es: {y1es}')
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
-    y1eslo = ipce_to_object(y1esl, use_globals)
+    y1eslo = object_from_ipce(y1esl, use_globals)
 
-    x1b = ipce_to_object(y1, use_globals)
+    x1b = object_from_ipce(y1, use_globals)
 
-    x1bj = object_to_ipce(x1b, use_globals)
+    x1bj = ipce_from_object(x1b, use_globals)
 
     # if False:
     #     from zuper_ipce import store_json, recall_json
@@ -201,9 +201,9 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
 
     # once again, without schema
     if works_without_schema:
-        z1 = object_to_ipce(x1, use_globals, with_schema=False)
+        z1 = ipce_from_object(x1, use_globals, with_schema=False)
         z2 = cbor.loads(cbor.dumps(z1))
-        u1 = ipce_to_object(z2, use_globals, expect_type=type(x1))
+        u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
 
     return locals()

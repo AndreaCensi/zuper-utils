@@ -66,7 +66,6 @@ def can_be_used_as(T1, T2) -> Tuple[bool, str]:
 
     if isinstance(T1, type) and isinstance(T2, type):
         if issubclass(T1, T2):
-            print('yes')
             return True, ''
         else:
             msg = f'Type {T1}\n is not a subclass of {T2}'

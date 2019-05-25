@@ -6,7 +6,7 @@ import yaml
 from zuper_json.monkey_patching_typing import my_dataclass as dataclass
 from .annotations_tricks import is_Any
 from .constants import SCHEMA_ATT, SCHEMA_ID
-from .ipce import make_dict, ipce_to_object, object_to_ipce, type_to_schema, schema_to_type, \
+from .ipce import make_dict, ipce_to_object, ipce_from_object, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
@@ -216,11 +216,11 @@ def test_lists():
 
 
 def test_nulls():
-    object_to_ipce(None, {})
+    ipce_from_object(None, {})
 
 
 def test_lists_2():
-    object_to_ipce([1], {})
+    ipce_from_object([1], {})
 
 
 # @raises(ValueError)

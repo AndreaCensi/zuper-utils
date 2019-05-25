@@ -44,20 +44,20 @@ PASS_THROUGH = (KeyboardInterrupt, RecursionError)
 # new interface
 def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     globals_ = globals_ or {}
-    return object_to_ipce__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+    return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
 
 def object_to_ipce(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     globals_ = globals_ or {}
-    return object_to_ipce__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+    return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
 
-def object_to_ipce__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
-    # logger.debug(f'object_to_ipce({ob})')
+def ipce_from_object__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
+    # logger.debug(f'ipce_from_object({ob})')
     try:
-        res = object_to_ipce_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+        res = ipce_from_object_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     except TypeError as e:
-        msg = f'object_to_ipce() for type {type(ob)} failed.'
+        msg = f'ipce_from_object() for type {type(ob)} failed.'
         raise TypeError(msg) from e
     # print(indent(json.dumps(res, indent=3), '|', ' res: -'))
     if isinstance(res, dict) and SCHEMA_ATT in res:
@@ -83,11 +83,11 @@ def object_to_ipce__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=T
     return res
 
 
-def object_to_ipce_(ob,
-                    globals_: GlobalsDict,
-                    with_schema: bool,
-                    suggest_type: Type = None,
-                    ) -> IPCE:
+def ipce_from_object_(ob,
+                      globals_: GlobalsDict,
+                      with_schema: bool,
+                      suggest_type: Type = None,
+                      ) -> IPCE:
     trivial = (bool, int, str, float, type(None), bytes, Decimal, datetime.datetime)
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
@@ -108,12 +108,12 @@ def object_to_ipce_(ob,
         else:
             # XXX should we warn?
             suggest_type_l = None  # XXX
-        return [object_to_ipce(_, globals_, suggest_type=suggest_type_l,
+        return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
                                with_schema=with_schema) for _ in ob]
 
     if isinstance(ob, tuple):
         suggest_type_l = None  # XXX
-        return [object_to_ipce(_, globals_, suggest_type=suggest_type_l,
+        return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
                                with_schema=with_schema) for _ in ob]
 
     if isinstance(ob, set):
@@ -122,7 +122,7 @@ def object_to_ipce_(ob,
         # else:
         #     suggest_type_l = None
         #
-        # return [object_to_ipce(_, globals_, suggest_type=suggest_type_l,
+        # return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
         #                        with_schema=with_schema) for _ in ob]
         return set_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
@@ -181,7 +181,7 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
 
             if is_optional(suggest_type):
                 suggest_type = get_optional_type(suggest_type)
-            res[k] = object_to_ipce(v, globals_,
+            res[k] = ipce_from_object(v, globals_,
                                     suggest_type=suggest_type, with_schema=with_schema)
         except PASS_THROUGH:
             raise
@@ -245,18 +245,18 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
 
     if isinstance(K, type) and issubclass(K, str):
         for k, v in ob.items():
-            res[k] = object_to_ipce(v, globals_, suggest_type=V, with_schema=with_schema)
+            res[k] = ipce_from_object(v, globals_, suggest_type=V, with_schema=with_schema)
     else:
         FV = FakeValues[K, V]
 
         for k, v in ob.items():
-            kj = object_to_ipce(k, globals_)
+            kj = ipce_from_object(k, globals_)
             if isinstance(k, int):
                 h = str(k)
             else:
                 h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
             fv = FV(k, v)
-            res[h] = object_to_ipce(fv, globals_, with_schema=with_schema)
+            res[h] = ipce_from_object(fv, globals_, with_schema=with_schema)
 
     return res
 
@@ -273,7 +273,7 @@ def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], wi
         res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
 
     for v in ob:
-        vj = object_to_ipce(v, globals_, with_schema=with_schema,
+        vj = ipce_from_object(v, globals_, with_schema=with_schema,
                             suggest_type=V)
         h = get_sha256_base58(cbor2.dumps(vj)).decode('ascii')
 
@@ -1271,7 +1271,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                     classatts[name] = type_to_schema(the_att, globals_, processing)
 
                 else:
-                    classatts[name] = object_to_ipce(the_att, globals_)
+                    classatts[name] = ipce_from_object(the_att, globals_)
 
             else:
 
@@ -1283,7 +1283,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                 if not result.optional:
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
-                        properties[name]['default'] = object_to_ipce(afield.default, globals_)
+                        properties[name]['default'] = ipce_from_object(afield.default, globals_)
         except PASS_THROUGH:
             raise
         except BaseException as e:
