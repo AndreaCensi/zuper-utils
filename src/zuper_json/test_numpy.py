@@ -9,11 +9,11 @@ from .numpy_encoding import dict_from_numpy, numpy_from_dict
 from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 
 
-def array_eq(arr1, arr2):
-    return (isinstance(arr1, np.ndarray) and
-            isinstance(arr2, np.ndarray) and
-            arr1.shape == arr2.shape and
-            (arr1 == arr2).all())
+# def array_eq(arr1, arr2):
+#     return (isinstance(arr1, np.ndarray) and
+#             isinstance(arr2, np.ndarray) and
+#             arr1.shape == arr2.shape and
+#             (arr1 == arr2).all())
 
 
 def test_numpy_01():

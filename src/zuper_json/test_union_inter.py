@@ -82,5 +82,5 @@ def test_none1():
     class A:
         b: int
 
-    ob = ipce_to_object(None, {}, {}, expect_type=A)
-    assert ob is not None
+    ipce_to_object(None, {}, {}, expect_type=A)
+

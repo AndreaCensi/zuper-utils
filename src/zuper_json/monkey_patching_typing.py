@@ -59,6 +59,7 @@ else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
 
+original_dict_getitem = Dict.__getitem__
 Dict.__getitem__ = Alias1.__getitem__
 
 
@@ -163,11 +164,25 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
-
     original_doc = getattr(_cls, '__doc__', None)
 
     unsafe_hash = True
+    # if type(_cls) is type:
+    #
+    #
+    #     class _cls2(metaclass=MyMeta):
+    #         __annotations__ = _cls.__annotations__
+    #
+    #     _cls = _cls2
+
     # pprint('my_dataclass', _cls=_cls)
+    # class Original:
+    #     @classmethod
+    #     def __class_getitem__(cls, item):
+    #         print(item)
+    #
+    #     __annotations__ = _cls.__annotations__
+
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)

@@ -33,6 +33,9 @@ JSC_NULL = 'null'
 JSC_BOOL = 'boolean'
 JSC_PROPERTIES = 'properties'
 JSC_DEFINITIONS = 'definitions'
+JSC_ALLOF = 'allOf'
+JSC_ANYOF = 'anyOf'
+
 Z_ATT_LSIZE = 'lsize'
 Z_ATT_TSIZE = 'tsize'
 
@@ -58,6 +61,8 @@ JSC_TITLE_DATETIME = 'datetime'
 JSC_TITLE_CALLABLE = 'Callable'
 JSC_TITLE_TYPE = 'type'
 JSC_TITLE_CID = 'cid'
+# JSC_TITLE_TUPLE = 'Tuple'
+# JSC_TITLE_LIST = 'List'
 JSC_FORMAT_CID = 'cid'
 
 SCHEMA_BYTES = cast(JSONSchema, {JSC_TYPE: JSC_STRING,

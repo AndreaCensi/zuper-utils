@@ -8,18 +8,19 @@ from dataclasses import dataclass, fields
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
 from zuper_commons.text import indent, pretty_dict
+from zuper_json.subcheck import can_be_used_as
+from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
+    is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
+    get_union_types, is_NewType
 # from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
+
 
 # try:
 #     from typing import ForwardRef
 # except ImportError:  # pragma: no cover
 #     from typing import _ForwardRef as ForwardRef
-
-from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
-    is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
-    get_union_types
 
 
 def loglevel(f):
@@ -150,7 +151,43 @@ class ZenericFix:
         return gp
 
 
-class MyABC(ABCMeta):
+class StructuralTyping(type):
+
+    def __subclasscheck__(self, subclass):
+        return can_be_used_as(subclass, self)
+
+    def __instancecheck__(self, instance):
+        i = super().__instancecheck__(instance)
+        if i:
+            return True
+
+        # loadable
+        if hasattr(instance, 'T'):
+            T = getattr(instance, 'T')
+            can, _why = can_be_used_as(T, self)
+            if can:
+                return True
+
+        res, _why = can_be_used_as(type(instance), self)
+
+        return res
+
+
+class MyABC(ABCMeta, StructuralTyping):
+    #
+    # def __instancecheck__(self, instance):
+    #     i = super().__instancecheck__(instance)
+    #     if i:
+    #         return True
+    #
+    #     # ti = type(instance)
+    #     # print(f'__instancecheck__ self = {self} type(instance)= {ti}')
+    #     if hasattr(instance, 'T'):
+    #         T = getattr(instance, 'T')
+    #         if can_be_used_as(T, self):
+    #             return True
+    #
+    #     return False
 
     def __new__(mcls, name, bases, namespace, **kwargs):
         # logger.info('name: %s' % name)
@@ -295,6 +332,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
             msg = f'Cannot resolve {cls!r}\ng: {list(g0)}'
             # msg += 'symbols: {list(g0)'
             raise NameError(msg) from e
+    elif is_NewType(cls):
+        return cls
 
     elif hasattr(cls, '__annotations__'):
         return make_type(cls, bindings)
@@ -329,8 +368,10 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
 
 cache_enabled = True
 
+
 class MakeTypeCache:
     cache = {}
+
 
 if PYTHON_36:
     B = Dict[Any, Any]  # bug in Python 3.6
@@ -340,6 +381,7 @@ else:
 
 @loglevel
 def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
+    assert not is_NewType(cls)
     rl = rl or RecLogger()
     # print(f'make_type for {cls.__name__}')
     # rl.p(f'make_type for {cls.__name__}')
@@ -356,7 +398,6 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
 
     generic_att2 = getattr(cls, GENERIC_ATT2, ())
     assert isinstance(generic_att2, tuple)
-
 
     symbols = {}
 
@@ -375,7 +416,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     try:
         cls2 = type(name2, (cls,), {'need': lambda: None})
     except TypeError as e:
-        msg = f'Cannot instantiate from {cls!r}'
+        msg = f'Cannot create derived class "{name2}" from {cls!r}'
         raise TypeError(msg) from e
 
     symbols[name2] = cls2
@@ -487,7 +528,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
                 msg += f'\nself: {type(self)}'
                 raise NoConstructorImplemented(msg)
 
-        setattr(cls2, '__init__', init_placeholder)
+        if cls.__init__ == object.__init__:
+            setattr(cls2, '__init__', init_placeholder)
 
     cls2.__module__ = cls.__module__
     setattr(cls2, '__name__', name2)

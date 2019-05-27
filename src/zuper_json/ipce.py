@@ -20,14 +20,15 @@ from nose.tools import assert_in
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
+    get_Tuple_name, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
-    get_Dict_name_K_V, is_Tuple, get_List_arg, is_List, is_Set, get_Set_arg, get_Set_name_V
+    get_Dict_name_K_V, is_Tuple, get_List_arg, is_List, is_Set, get_Set_arg, get_Set_name_V, get_List_name
 from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm, \
     ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, BINDINGS_ATT, JSC_INTEGER, ID_ATT, \
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, PYTHON_36, JSC_TITLE_NUMPY, JSC_NULL, \
     JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, GENERIC_ATT2, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME, \
-    JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES
+    JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF, JSC_ANYOF
 from .my_dict import make_dict, CustomDict, make_set, CustomSet, get_set_Set_or_CustomSet_Value, is_CustomDict, \
     is_CustomSet
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
@@ -47,10 +48,10 @@ def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_s
     return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
 
-def object_to_ipce(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
-    globals_ = globals_ or {}
-    return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
-
+# def object_to_ipce(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
+#     globals_ = globals_ or {}
+#     return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
+#
 
 def ipce_from_object__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
@@ -109,12 +110,12 @@ def ipce_from_object_(ob,
             # XXX should we warn?
             suggest_type_l = None  # XXX
         return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
-                               with_schema=with_schema) for _ in ob]
+                                 with_schema=with_schema) for _ in ob]
 
     if isinstance(ob, tuple):
         suggest_type_l = None  # XXX
         return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
-                               with_schema=with_schema) for _ in ob]
+                                 with_schema=with_schema) for _ in ob]
 
     if isinstance(ob, set):
         # if is_Set(suggest_type):
@@ -182,7 +183,7 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
             if is_optional(suggest_type):
                 suggest_type = get_optional_type(suggest_type)
             res[k] = ipce_from_object(v, globals_,
-                                    suggest_type=suggest_type, with_schema=with_schema)
+                                      suggest_type=suggest_type, with_schema=with_schema)
         except PASS_THROUGH:
             raise
         except BaseException as e:
@@ -274,7 +275,7 @@ def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], wi
 
     for v in ob:
         vj = ipce_from_object(v, globals_, with_schema=with_schema,
-                            suggest_type=V)
+                              suggest_type=V)
         h = get_sha256_base58(cbor2.dumps(vj)).decode('ascii')
 
         res[h] = vj
@@ -647,13 +648,13 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             msg = pretty_dict(m, info)
             raise CannotFindSchemaReference(msg)
 
-    if "anyOf" in schema:
-        options = schema["anyOf"]
+    if JSC_ANYOF in schema:
+        options = schema[JSC_ANYOF]
         args = [schema_to_type(_, global_symbols, encountered) for _ in options]
         return Union[tuple(args)]
 
-    if "allOf" in schema:
-        options = schema["allOf"]
+    if JSC_ALLOF in schema:
+        options = schema[JSC_ALLOF]
         args = [schema_to_type(_, global_symbols, encountered) for _ in options]
         res = Intersection[tuple(args)]
         return res
@@ -870,12 +871,12 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if isinstance(K, type) and issubclass(K, str):
-        res[JSC_PROPERTIES] = {"$schema": {}}  # XXX
+        res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(V, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID
         return res
     else:
-        res[JSC_PROPERTIES] = {"$schema": {}}  # XXX
+        res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(props, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID
@@ -904,7 +905,7 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
-        res[JSC_TITLE] = 'Tuple'
+        res[JSC_TITLE] = get_Tuple_name(T)
         return res
     else:
         res = cast(JSONSchema, {})
@@ -912,7 +913,7 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = []
-        res[JSC_TITLE] = 'Tuple'
+        res[JSC_TITLE] = get_Tuple_name(T)
         for a in args:
             res[JSC_ITEMS].append(type_to_schema(a, globals_, processing))
         return res
@@ -925,7 +926,7 @@ def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSON
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
     res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
-    res[JSC_TITLE] = 'List'
+    res[JSC_TITLE] = get_List_name(T)
     return res
 
 

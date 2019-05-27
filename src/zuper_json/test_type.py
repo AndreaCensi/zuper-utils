@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import *
 
 from .ipce import ipce_to_object, type_to_schema, schema_to_type
-from .test_utils import relies_on_missing_features, assert_type_roundtrip, assert_object_roundtrip, known_failure
+from .test_utils import relies_on_missing_features, assert_type_roundtrip, assert_object_roundtrip
 
 symbols = {}
 
@@ -34,7 +34,6 @@ def test_dict2():
     T = Dict[str, Any]
     # <class 'zuper_json.my_dict.Dict[str,Any]'>
     assert_type_roundtrip(T, symbols, expect_type_equal=False)
-
 
 
 def test_dict4():

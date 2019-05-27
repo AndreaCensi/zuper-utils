@@ -101,7 +101,7 @@ def is_CustomSet(x):
 
 def is_set_or_CustomSet(x):
     from .annotations_tricks import is_Set
-    return is_Set(x) or is_CustomSet(x)
+    return (x is set) or is_Set(x) or is_CustomSet(x)
 
 
 def get_set_Set_or_CustomSet_Value(x):

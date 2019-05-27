@@ -89,6 +89,22 @@ def is_Type(x):
         return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
 
+def is_NewType(x):
+    _check_valid_arg(x)
+
+    # if PYTHON_36:  # pragma: no cover
+    #     # noinspection PyUnresolvedReferences
+    #     return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
+    # else:
+    # return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
+
+    return hasattr(x, '__supertype__')
+
+
+def get_NewType_arg(x):
+    return x.__supertype__
+
+
 def is_Tuple(x):
     _check_valid_arg(x)
 
@@ -190,6 +206,17 @@ def get_Union_name(V):
     return 'Union[%s]' % ",".join(name_for_type_like(_) for _ in get_union_types(V))
 
 
+def get_List_name(V):
+    v = get_List_arg(V)
+    return 'List[%s]' % name_for_type_like(v)
+
+
+def get_Tuple_name(V):
+    return 'Tuple[%s]' % ",".join(name_for_type_like(_) for _ in get_tuple_types(V))
+
+def get_tuple_types(V):
+    return V.__args__ # XXX
+
 def name_for_type_like(x):
     if is_Any(x):
         return 'Any'
@@ -199,7 +226,8 @@ def name_for_type_like(x):
         return x.__name__
     elif is_union(x):
         return get_Union_name(x)
-
+    elif is_List(x):
+        return get_List_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
     elif is_Callable(x):

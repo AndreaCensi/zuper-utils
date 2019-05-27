@@ -117,20 +117,20 @@ def test_parametric_zeneric():
         inside: A
         AT: ClassVar[Type[A]]
 
-        def check_knows_type(self, Specific):
-            T = type(self)
-            a: A = type(self).AT()
-            a.verse()
-
-            assert (self.AT is getattr(T, BINDINGS_ATT)[A])
-            assert (self.AT is Specific), (self.AT, id(self.AT), Specific, id(Specific))
+        # def check_knows_type(self, Specific):
+        #     T = type(self)
+        #     a: A = type(self).AT()
+        #     a.verse()
+        #
+        #     assert (self.AT is getattr(T, BINDINGS_ATT)[A])
+        #     assert (self.AT is Specific), (self.AT, id(self.AT), Specific, id(Specific))
 
     fido = Dog()
     PDog = Parametric[Dog]
     assert 'inside' not in PDog.__dict__, PDog.__dict__
     assert 'AT' in PDog.__dict__, PDog.__dict__
-    p = PDog(inside=fido)
-    p.check_knows_type(Dog)
+    PDog(inside=fido)
+    # p.check_knows_type(Dog)
 
 
 def test_parametric_zeneric_dataclass():

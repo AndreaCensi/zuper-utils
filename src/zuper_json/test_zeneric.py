@@ -257,7 +257,8 @@ def test_more2():
     type_to_schema(Entity2, {})
 
     assert_type_roundtrip(Entity2, {})
-    #
+
+
     E2I = Entity2[int]
     assert_type_roundtrip(E2I, {})
 

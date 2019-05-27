@@ -8,3 +8,4 @@ from .monkey_patching_typing import my_dataclass as dataclass
 from .json2cbor import *
 from .ipce import *
 from .types import *
+from .zeneric2 import StructuralTyping

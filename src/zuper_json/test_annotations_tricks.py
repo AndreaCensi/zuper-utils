@@ -1,8 +1,10 @@
 import typing
 from typing import *
 
+from zuper_json.monkey_patching_typing import original_dict_getitem
+from zuper_json.test_utils import known_failure
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, is_Tuple, \
-    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg
+    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_NewType, get_NewType_arg, get_Dict_name, is_Dict
 from .constants import PYTHON_36, PYTHON_37
 
 
@@ -48,7 +50,7 @@ def test_forward():
 
     assert get_forward_ref_arg(t) == 'Tree'
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         t._eval_type(localns=locals(), globalns=globals())
     else:
         t._evaluate(localns=locals(), globalns=globals())
@@ -91,3 +93,18 @@ def test_Type():
     assert is_Type(a)
     assert get_Type_arg(a) == X
     # assert get_ClassVar_arg(a) is int
+
+
+def test_NewType():
+    C = NewType('C', str)
+
+    assert is_NewType(C)
+    assert get_NewType_arg(C) is str
+    # assert get_ClassVar_arg(a) is int
+
+@known_failure
+def test_DictName():
+    D = original_dict_getitem((int, str))
+    print(D.__dict__)
+    assert is_Dict(D)
+    assert get_Dict_name(D) == 'Dict[int,str]'

@@ -1,8 +1,9 @@
 import json
+import traceback
 import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
-from dataclasses import is_dataclass, fields
+from dataclasses import is_dataclass, fields, dataclass
 
 try:
     # noinspection PyUnresolvedReferences
@@ -60,7 +61,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     return T2
 
 
-@loglevel
+# @loglevel
 def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
     key = (id(T1), id(T2))
     if key in assume_yes:
@@ -191,7 +192,6 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
         if 'propertyNames' in y1['$schema']:
             assert_equal(y1['$schema']['propertyNames'], x1bj['$schema']['propertyNames'], msg=msg)
 
-
         with open('y1.json', 'w') as f:
             f.write(json.dumps(y1, indent=2))
         with open('x1bj.json', 'w') as f:
@@ -279,8 +279,53 @@ def relies_on_missing_features(f):
 
     return attr('relies_on_missing_features')(run_test)
 
+
 #
 # def with_private_register(f):
 #     return f
 #     from zuper_ipce.test_utils import with_private_register as other
 #     return other(f)
+
+
+@known_failure
+def test_testing1():
+    def get1():
+        @dataclass
+        class C1:
+            a: int
+
+        return C1
+
+    def get2():
+        @dataclass
+        class C1:
+            a: int
+            b: float
+
+        return C1
+
+    try:
+        assert_equivalent_types(get1(), get2(), set())
+    except:
+        print(traceback.format_exc())
+        raise
+
+
+@known_failure
+def test_testing2():
+    def get1():
+        @dataclass
+        class C1:
+            A: int
+        return C1
+
+    def get2():
+        @dataclass
+        class C1:
+            A: float
+        return C1
+    try:
+        assert_equivalent_types(get1(), get2(), set())
+    except:
+        print(traceback.format_exc())
+        raise

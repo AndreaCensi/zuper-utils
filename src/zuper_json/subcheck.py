@@ -71,5 +71,5 @@ def can_be_used_as(T1, T2) -> Tuple[bool, str]:
             msg = f'Type {T1}\n is not a subclass of {T2}'
             return False, msg
 
-    msg = f'{T1} ? {T2}'
+    msg = f'{T1} ? {T2}' # pragma: no cover
     raise NotImplementedError(msg)

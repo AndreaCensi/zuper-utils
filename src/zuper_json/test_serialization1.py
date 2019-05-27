@@ -10,7 +10,6 @@ from .ipce import make_dict, ipce_to_object, ipce_from_object, type_to_schema, s
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
-
 #
 try:
     from typing import ForwardRef
@@ -416,5 +415,33 @@ def test_random_json():
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
     ipce_to_object(data, {})
 
+
 # if __name__ == '__main__':
 #     test_error2()
+
+
+@raises(Exception)
+def test_newtype_1():
+    A = NewType('A', str)
+
+    @dataclass
+    class M10:
+        a: A
+
+    assert_type_roundtrip(M10, {})
+
+
+@raises(Exception)
+def test_newtype_2():
+    X = TypeVar('X')
+    A = NewType('A', str)
+
+    @dataclass
+    class M11(Generic[X]):
+        a: A
+
+    assert_type_roundtrip(M11, {})
+
+    #
+    # def __init__(self, cid):
+    #     self.cid = cid
