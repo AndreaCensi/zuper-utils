@@ -11,6 +11,8 @@ parallel = true
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
+    if TYPE_CHECKING
+    if enable_type_checking
 
     do_extra_checks()
     # Don't complain if tests don't hit defensive assertion code:

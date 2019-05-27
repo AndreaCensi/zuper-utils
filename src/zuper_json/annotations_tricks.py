@@ -127,7 +127,10 @@ def is_List(x):
 
 def get_List_arg(x):
     assert is_List(x)
-    return x.__args__[0]
+    t = x.__args__[0]
+    if isinstance(t, typing.TypeVar):
+        return Any
+    return t
 
 
 def get_Type_arg(x):
@@ -174,6 +177,7 @@ def is_Set(x: Any):
         # noinspection PyUnresolvedReferences
         if x is typing.Set:
             return True
+        # noinspection PyUnresolvedReferences
         return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Set
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Set'
@@ -185,7 +189,11 @@ def get_Set_arg(x):
         # noinspection PyUnresolvedReferences
         if x is typing.Set:
             return Any
-    return x.__args__[0]
+    t = x.__args__[0]
+    if isinstance(t, typing.TypeVar):
+        return Any
+
+    return t
 
 
 def get_Dict_name(T):
@@ -214,8 +222,10 @@ def get_List_name(V):
 def get_Tuple_name(V):
     return 'Tuple[%s]' % ",".join(name_for_type_like(_) for _ in get_tuple_types(V))
 
+
 def get_tuple_types(V):
-    return V.__args__ # XXX
+    return V.__args__  # XXX
+
 
 def name_for_type_like(x):
     if is_Any(x):

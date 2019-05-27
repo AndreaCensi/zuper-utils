@@ -61,7 +61,7 @@ def test_property_error():
     ob = MyClass32('not an int')
     # ipce_to_object(ob, {}, {}, expect_type=MyClass32)
     res = ipce_from_object(ob, {}, {})
-    print(yaml.dump(res))
+    # print(yaml.dump(res))
 
 
 @raises(NotImplementedError)

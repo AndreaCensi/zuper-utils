@@ -1,4 +1,4 @@
-from typing import ClassVar, Tuple, Any
+from typing import ClassVar, Tuple, Any, TypeVar
 
 from .annotations_tricks import is_Dict, get_Set_name_V
 
@@ -47,15 +47,25 @@ def is_CustomDict(x):
 
 def is_Dict_or_CustomDict(x):
     from .annotations_tricks import is_Dict
-    return is_Dict(x) or is_CustomDict(x)
+    return x is dict or is_Dict(x) or is_CustomDict(x)
 
 
 def get_Dict_or_CustomDict_Key_Value(x):
     assert is_Dict_or_CustomDict(x), x
     if is_Dict(x):
-        return x.__args__
-    else:
+        k, v = x.__args__
+        if isinstance(k, TypeVar):
+            k = Any
+        if isinstance(v, TypeVar):
+            v = Any
+        return k, v
+
+    elif is_CustomDict(x):
         return x.__dict_type__
+    elif x is dict:
+        return Any, Any
+    else:
+        assert False, x
 
 
 class CustomSet(set):

@@ -1,12 +1,11 @@
 from abc import ABCMeta, abstractmethod
-from zuper_json.zeneric2 import dataclass
-from dataclasses import is_dataclass
 from typing import *
 
-# try:
-#     from typing import ForwardRef
-# except ImportError: # pragma: no cover
-#     from typing import _ForwardRef as ForwardRef
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+else:
+    from zuper_json.zeneric2 import dataclass
+from dataclasses import is_dataclass
 
 from nose.tools import raises, assert_equal
 
@@ -99,6 +98,7 @@ def test_boxed_can_with_dataclass():
 
     CanBeInstantiated(inside="12")
 
+
 class Animal(metaclass=ABCMeta):
     @abstractmethod
     def verse(self):
@@ -108,6 +108,7 @@ class Animal(metaclass=ABCMeta):
 class Dog(Animal):
     def verse(self):
         return 'wof'
+
 
 @raises(NoConstructorImplemented)
 def test_parametric_zeneric():
@@ -155,6 +156,7 @@ def test_parametric_zeneric_dataclass():
     assert 'AT' in PDog.__dict__, PDog.__dict__
     p = PDog(inside=fido)
     p.check_knows_type(Dog)
+
 
 #
 # # @raises(NoConstructorImplemented)

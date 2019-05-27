@@ -256,16 +256,18 @@ def test_more2():
 
     type_to_schema(Entity2, {})
 
-    assert_type_roundtrip(Entity2, {})
+
+    assert_type_roundtrip(Entity2, {}) # boom
 
 
-    E2I = Entity2[int]
-    assert_type_roundtrip(E2I, {})
+    if True: # pragma: no cover
+        E2I = Entity2[int]
+        assert_type_roundtrip(E2I, {})
 
-    x = E2I(parent=EI(data0=4))
-    # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
-                            works_without_schema=False)
+        x = E2I(parent=EI(data0=4))
+        # print(json.dumps(type_to_schema(type(x), {}), indent=2))
+        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
+                                works_without_schema=False)
 
 
 def test_more2b():

@@ -1,32 +1,31 @@
-import json
 from datetime import datetime
 
 from .base64_utils import encode_bytes_base64, is_encoded_bytes_base64, decode_bytes_base64
 
 
-def json_dump(x) -> str:
-    x = recursive_sort(x)
-
-    if False:
-        s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
-                       indent=2)
-    else:
-        s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
-                       separators=(',', ':'))
-    # (optional): put the links on the same line instead of indenting
-    # "$schema": {"/": "sha6:92c65f"},
-
-    # s = re.sub(r'\n\s+\"/\"(.*)\s*\n\s*', r'"/"\1', s)
-
-    return s
-
-
-def recursive_sort(x):
-    if isinstance(x, dict):
-        s = sorted(x)
-        return {k: recursive_sort(x[k]) for k in s}
-    else:
-        return x
+# def json_dump(x) -> str:
+#     x = recursive_sort(x)
+#
+#     if False:
+#         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
+#                        indent=2)
+#     else:
+#         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
+#                        separators=(',', ':'))
+#     # (optional): put the links on the same line instead of indenting
+#     # "$schema": {"/": "sha6:92c65f"},
+#
+#     # s = re.sub(r'\n\s+\"/\"(.*)\s*\n\s*', r'"/"\1', s)
+#
+#     return s
+#
+#
+# def recursive_sort(x):
+#     if isinstance(x, dict):
+#         s = sorted(x)
+#         return {k: recursive_sort(x[k]) for k in s}
+#     else:
+#         return x
 
 
 def transform_leaf(x, transform):
@@ -37,9 +36,12 @@ def transform_leaf(x, transform):
     # if isinstance(x, (str, bool, float, int, type(None))):
     return transform(x)
 
+
 from decimal import Decimal
 
 DECIMAL_PREFIX = 'decimal:'
+
+
 def encode_bytes_before_json_serialization(x0):
     def f(x):
         if isinstance(x, bytes):
@@ -50,6 +52,7 @@ def encode_bytes_before_json_serialization(x0):
             return DECIMAL_PREFIX + str(x)
         else:
             return x
+
     return transform_leaf(x0, f)
 
 
@@ -62,4 +65,5 @@ def decode_bytes_before_json_deserialization(x0):
             return Decimal(x)
         else:
             return x
+
     return transform_leaf(x0, f)

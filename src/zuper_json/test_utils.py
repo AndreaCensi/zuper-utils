@@ -17,7 +17,7 @@ import cbor2 as cbor
 import yaml
 from nose.tools import assert_equal
 
-from zuper_json.zeneric2 import loglevel, RecLogger
+from .zeneric2 import RecLogger
 from . import logger
 from .annotations_tricks import is_Dict
 from .constants import PYTHON_36
@@ -130,7 +130,7 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
 
                 for m1, m2 in zip(T1.mro(), T2.mro()):
                     if m1 is T1 or m2 is T2: continue
-                    assert_equivalent_types(m1, m2)
+                    assert_equivalent_types(m1, m2, assume_yes=set())
 
         if PYTHON_36:  # pragma: no cover
             pass  # XX
@@ -317,13 +317,16 @@ def test_testing2():
         @dataclass
         class C1:
             A: int
+
         return C1
 
     def get2():
         @dataclass
         class C1:
             A: float
+
         return C1
+
     try:
         assert_equivalent_types(get1(), get2(), set())
     except:

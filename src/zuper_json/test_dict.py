@@ -56,9 +56,10 @@ def test_dict_int_int():
 def test_dict_err():
     make_dict(int, 'str')
 
+
 def test_dict_hash():
     s = set()
-    s2= set()
+    s2 = set()
     D = make_dict(str, str)
     d = D()
     s.add(d)
@@ -67,11 +68,12 @@ def test_dict_hash():
 
 def test_set_hash():
     s = set()
-    s2= set()
+    s2 = set()
     D = make_set(str)
     d = D()
     s.add(d)
     s2.add(d)
+
 
 def test_dict_kv01():
     x = get_Dict_or_CustomDict_Key_Value(dict)
