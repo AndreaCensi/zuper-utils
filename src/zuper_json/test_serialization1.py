@@ -3,6 +3,7 @@ from typing import *
 
 import yaml
 
+from zuper_commons.logs import setup_logging
 from zuper_json.monkey_patching_typing import my_dataclass as dataclass
 from .annotations_tricks import is_Any
 from .constants import SCHEMA_ATT, SCHEMA_ID
@@ -46,6 +47,18 @@ class Person:
 class Office:
     """ An Office contains people. """
     people: Dict[str, Person] = field(default_factory=make_dict(str, Person))
+
+
+def test_ser0():
+    """ Make sure we can have a constructor with default """
+
+    # class Office0:
+    #     """ An Office contains people. """
+    #     people: Dict[str, Person] = field(default_factory=make_dict(str, Person))
+    #
+    # print(Office0.__dict__)
+
+    Office()
 
 
 def test_ser1():
@@ -445,3 +458,7 @@ def test_newtype_2():
     #
     # def __init__(self, cid):
     #     self.cid = cid
+
+if __name__ == '__main__':
+    setup_logging()
+    test_ser0()

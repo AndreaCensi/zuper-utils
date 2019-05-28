@@ -5,7 +5,7 @@ from typing import TypeVar, Generic, Dict
 
 import termcolor
 
-from .constants import PYTHON_36
+from .constants import PYTHON_36, ANNOTATIONS_ATT, DEPENDS_ATT
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
 
@@ -167,27 +167,29 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     original_doc = getattr(_cls, '__doc__', None)
 
     unsafe_hash = True
-    # if type(_cls) is type:
-    #
-    #
-    #     class _cls2(metaclass=MyMeta):
-    #         __annotations__ = _cls.__annotations__
-    #
-    #     _cls = _cls2
 
-    # pprint('my_dataclass', _cls=_cls)
-    # class Original:
-    #     @classmethod
-    #     def __class_getitem__(cls, item):
-    #         print(item)
+    # if the class does not have a metaclass, add one
+    # We copy both annotations and constants. This is needed for cases like:
     #
-    #     __annotations__ = _cls.__annotations__
+    #   @dataclass
+    #   class C:
+    #       a: List[] = field(default_factory=list)
+    #
+    if type(_cls) is type:
+        old_annotations = getattr(_cls, ANNOTATIONS_ATT, {})
+        attrs = {ANNOTATIONS_ATT: old_annotations}
+        for k in old_annotations:
+            if hasattr(_cls, k):
+                attrs[k] = getattr(_cls, k)
+        _cls2 = type(_cls.__name__, (_cls,), attrs)
+        _cls2.__module__ = _cls.__module__
+        _cls = _cls2
 
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
     assert dataclasses.is_dataclass(res)
-    refs = getattr(_cls, '__depends__', ())
+    refs = getattr(_cls, DEPENDS_ATT, ())
     resolve_types(res, refs=refs)
 
     def __repr__(self):

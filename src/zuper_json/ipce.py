@@ -1310,11 +1310,14 @@ else:
     from .monkey_patching_typing import my_dataclass
 
 
-@original_dataclass
+
 class Result:
     schema: JSONSchema
     optional: Optional[bool] = False
 
+    def __init__(self, schema: JSONSchema, optional: bool = None):
+        self.schema = schema
+        self.optional = optional
 
 # TODO: make url generic
 def make_url(x: str):

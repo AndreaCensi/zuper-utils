@@ -46,6 +46,9 @@ INTERSECTION_ATT = '__intersection__'
 X_PYTHON_MODULE_ATT = '__module__'
 ATT_PYTHON_NAME = '__qualname__'
 
+ANNOTATIONS_ATT = '__annotations__'
+DEPENDS_ATT = '__depends__'
+
 NAME_ARG = '__name_arg__'  # XXX: repeated
 
 import sys

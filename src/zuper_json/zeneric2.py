@@ -12,15 +12,8 @@ from zuper_json.subcheck import can_be_used_as
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
     is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
     get_union_types, is_NewType
-# from zuper_json.pretty import pprint
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
-
-
-# try:
-#     from typing import ForwardRef
-# except ImportError:  # pragma: no cover
-#     from typing import _ForwardRef as ForwardRef
 
 
 def loglevel(f):
@@ -175,19 +168,21 @@ class StructuralTyping(type):
 
 class MyABC(ABCMeta, StructuralTyping):
     #
-    # def __instancecheck__(self, instance):
-    #     i = super().__instancecheck__(instance)
-    #     if i:
-    #         return True
-    #
-    #     # ti = type(instance)
-    #     # print(f'__instancecheck__ self = {self} type(instance)= {ti}')
-    #     if hasattr(instance, 'T'):
-    #         T = getattr(instance, 'T')
-    #         if can_be_used_as(T, self):
-    #             return True
-    #
-    #     return False
+    def __instancecheck__(self, instance):
+        i = super().__instancecheck__(instance)
+        if i:
+            return True
+
+        # loadable
+        if hasattr(instance, 'T'):
+            T = getattr(instance, 'T')
+            can, _why = can_be_used_as(T, self)
+            if can:
+                return True
+
+        res, _why = can_be_used_as(type(instance), self)
+
+        return res
 
     def __new__(mcls, name, bases, namespace, **kwargs):
         # logger.info('name: %s' % name)
