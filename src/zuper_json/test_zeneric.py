@@ -6,6 +6,7 @@ from typing import Generic
 import yaml
 from nose.tools import raises, assert_equal
 
+from zuper_json.subcheck import can_be_used_as
 from . import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
 from .constants import enable_type_checking
@@ -157,7 +158,6 @@ def test_serialize_generic_optional():
     assert_type_roundtrip(MR1, {})
     assert_type_roundtrip(M1int, {})
 
-
     m2a = M2int(x=2)
     m2b = M2int(x=3)
     # print(m1a)
@@ -256,11 +256,9 @@ def test_more2():
 
     type_to_schema(Entity2, {})
 
+    assert_type_roundtrip(Entity2, {})  # boom
 
-    assert_type_roundtrip(Entity2, {}) # boom
-
-
-    if True: # pragma: no cover
+    if True:  # pragma: no cover
         E2I = Entity2[int]
         assert_type_roundtrip(E2I, {})
 
@@ -460,10 +458,13 @@ def test_classvar2():
 
 
 @raises(TypeError)
-def test_check_bound():
+def test_check_bound1():
     @dataclass
     class Animal:
-        pass
+        a: int
+
+    assert not can_be_used_as(int, Animal)[0]
+    assert not issubclass(int, Animal)
 
     X = TypeVar('X', bound=Animal)
 
@@ -471,7 +472,27 @@ def test_check_bound():
     class CG(Generic[X]):
         a: X
 
-    CG[int](a=2)
+    _ = CG[int]  # boom, int !< Animal
+
+
+@raises(TypeError)
+def test_check_bound2():
+    @dataclass
+    class Animal:
+        a: int
+
+    class Not:
+        b: int
+
+    assert not can_be_used_as(Not, Animal)[0]
+
+    X = TypeVar('X', bound=Animal)
+
+    @dataclass
+    class CG(Generic[X]):
+        a: X
+
+    _ = CG[Not]  # boom, Not !< Animal
 
     # assert_type_roundtrip(CG, {})
     # assert_type_roundtrip(CG[int], {})
@@ -595,4 +616,4 @@ def test_derived3_subst():
 
 
 if __name__ == '__main__':
-    test_entity()
+    test_check_bound1()

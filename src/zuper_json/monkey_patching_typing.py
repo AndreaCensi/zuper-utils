@@ -176,13 +176,22 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     #       a: List[] = field(default_factory=list)
     #
     if type(_cls) is type:
+
+        from .zeneric2 import StructuralTyping
         old_annotations = getattr(_cls, ANNOTATIONS_ATT, {})
         attrs = {ANNOTATIONS_ATT: old_annotations}
         for k in old_annotations:
             if hasattr(_cls, k):
                 attrs[k] = getattr(_cls, k)
-        _cls2 = type(_cls.__name__, (_cls,), attrs)
+
+        class Base(metaclass=StructuralTyping):
+            pass
+
+        _cls2 = type(_cls.__name__, (_cls, Base), attrs)
         _cls2.__module__ = _cls.__module__
+        _cls2.__qualname__ = _cls.__qualname__
+        # from . import logger
+        # logger.info(f'Replaced {_cls} with {_cls2}')
         _cls = _cls2
 
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,

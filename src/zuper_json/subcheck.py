@@ -6,6 +6,7 @@ from .annotations_tricks import is_Any, is_union, get_union_types, is_optional, 
 from .my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value
 
 
+
 def can_be_used_as(T1, T2) -> Tuple[bool, str]:
     # cop out for the easy cases
     if T1 == T2:
@@ -54,7 +55,8 @@ def can_be_used_as(T1, T2) -> Tuple[bool, str]:
 
     if is_optional(T2):
         t = get_optional_type(T2)
-        return can_be_used_as(T1, t)
+        ok, _ = can_be_used_as(T1, t)
+        return ok, _
 
         # if isinstance(T2, type):
     #     if issubclass(T1, T2):

@@ -126,6 +126,8 @@ class ZenericFix:
                 for T, U in zip(types, types2):
                     bindings[T] = U
                     if T.__bound__ is not None and isinstance(T.__bound__, type):
+                        logger.info(f'{U} should be usable as {T.__bound__}')
+                        logger.info(f' issubclass({U}, {T.__bound__}) = {issubclass(U, T.__bound__)}')
                         if not issubclass(U, T.__bound__):
                             msg = (f'For type parameter "{T.__name__}", expected a'
                                    f'subclass of "{T.__bound__.__name__}", found {U}.')
@@ -147,7 +149,8 @@ class ZenericFix:
 class StructuralTyping(type):
 
     def __subclasscheck__(self, subclass):
-        return can_be_used_as(subclass, self)
+        can, why = can_be_used_as(subclass, self)
+        return can
 
     def __instancecheck__(self, instance):
         i = super().__instancecheck__(instance)

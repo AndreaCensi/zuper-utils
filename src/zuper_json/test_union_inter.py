@@ -3,6 +3,7 @@ from typing import *
 
 from nose.tools import raises
 
+from zuper_json.test_not_implemented import test_default_arguments
 from .ipce import ipce_to_object
 from .my_intersection import Intersection
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -50,14 +51,14 @@ def test_union_3():
 
 def test_intersection1():
     @dataclass
-    class A:
+    class A1:
         a: int
 
     @dataclass
-    class B:
+    class B1:
         b: str
 
-    AB = Intersection[A, B]
+    AB = Intersection[A1, B1]
     assert_type_roundtrip(AB, {}, expect_type_equal=False)
 
 
@@ -84,3 +85,6 @@ def test_none1():
 
     ipce_to_object(None, {}, {}, expect_type=A)
 
+
+if __name__ == '__main__':
+    test_default_arguments()

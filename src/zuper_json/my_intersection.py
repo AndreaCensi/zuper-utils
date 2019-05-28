@@ -19,6 +19,11 @@ def Intersection_item(cls, params):
         INTERSECTION_ATT: types
     }
 
+    for k in annotations:
+        for t in types:
+            if hasattr(t, k):
+                res[k] = getattr(t, k)
+
     C = type(name, params, res)
     if any_dataclass:
         C = dataclass(C)
