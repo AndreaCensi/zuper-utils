@@ -31,6 +31,38 @@ def get_union_types(x):
     return tuple(x.__args__)
 
 
+def make_Union(*a):
+    if len(a) == 1:
+        x = Union[a[0]]
+    elif len(a) == 2:
+        x = Union[a[0], a[1]]
+    elif len(a) == 3:
+        x = Union[a[0], a[1], a[2]]
+    elif len(a) == 4:
+        x = Union[a[0], a[1], a[2], a[3]]
+    elif len(a) == 5:
+        x = Union[a[0], a[1], a[2], a[3], a[4]]
+    else:
+        x = Union.__getitem__(*tuple(a))
+    return x
+
+
+def make_Tuple(*a):
+    if len(a) == 1:
+        x = Tuple[a[0]]
+    elif len(a) == 2:
+        x = Tuple[a[0], a[1]]
+    elif len(a) == 3:
+        x = Tuple[a[0], a[1], a[2]]
+    elif len(a) == 4:
+        x = Tuple[a[0], a[1], a[2], a[3]]
+    elif len(a) == 5:
+        x = Tuple[a[0], a[1], a[2], a[3], a[4]]
+    else:
+        x = Tuple.__getitem__(*tuple(a))
+    return x
+
+
 def _check_valid_arg(x):
     if isinstance(x, str):  # pragma: no cover
         msg = f'The annotations must be resolved: {x!r}'
@@ -196,6 +228,12 @@ def get_Set_arg(x):
     return t
 
 
+def get_Dict_args(T):
+    assert is_Dict(T)
+    K, V = T.__args__
+    return K, V
+
+
 def get_Dict_name(T):
     assert is_Dict(T)
     K, V = T.__args__
@@ -218,6 +256,10 @@ def get_List_name(V):
     v = get_List_arg(V)
     return 'List[%s]' % name_for_type_like(v)
 
+def get_Set_name(V):
+    v = get_Set_arg(V)
+    return 'Set[%s]' % name_for_type_like(v)
+
 
 def get_Tuple_name(V):
     return 'Tuple[%s]' % ",".join(name_for_type_like(_) for _ in get_tuple_types(V))
@@ -238,6 +280,10 @@ def name_for_type_like(x):
         return get_Union_name(x)
     elif is_List(x):
         return get_List_name(x)
+    elif is_Tuple(x):
+        return get_Tuple_name(x)
+    elif is_Set(x):
+        return get_Set_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
     elif is_Callable(x):
