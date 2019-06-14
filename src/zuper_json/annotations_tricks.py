@@ -92,6 +92,9 @@ def is_Any(x):
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._SpecialForm) and x._name == 'Any'
 
+def is_TypeVar(x):
+    return isinstance(x, typing.TypeVar)
+
 
 def is_ClassVar(x):
     _check_valid_arg(x)
@@ -188,7 +191,7 @@ def is_MyNamedArg(x):
 
 
 def get_MyNamedArg_name(x):
-    assert is_MyNamedArg(x)
+    assert is_MyNamedArg(x), x
     return getattr(x, NAME_ARG)
 
 
@@ -256,6 +259,7 @@ def get_List_name(V):
     v = get_List_arg(V)
     return 'List[%s]' % name_for_type_like(v)
 
+
 def get_Set_name(V):
     v = get_Set_arg(V)
     return 'Set[%s]' % name_for_type_like(v)
@@ -288,9 +292,10 @@ def name_for_type_like(x):
         return get_Dict_name(x)
     elif is_Callable(x):
         info = get_Callable_info(x)
-        params = ','.join(name_for_type_like(p) for p in info.parameters_by_position)
+        # params = ','.join(name_for_type_like(p) for p in info.parameters_by_position)
+        params = ','.join(f'NamedArg({name_for_type_like(v)},{k!r})' for k, v in info.parameters_by_name.items())
         ret = name_for_type_like(info.returns)
-        return f'Callable[[{params}],{ret}'
+        return f'Callable[[{params}],{ret}]'
     elif hasattr(x, '__name__'):
         return x.__name__
     else:
@@ -315,7 +320,7 @@ class CallableInfo:
 
 
 def get_Callable_info(x) -> CallableInfo:
-    assert is_Callable(x)
+    assert is_Callable(x), x
     parameters_by_name = {}
     parameters_by_position = []
     ordering = []

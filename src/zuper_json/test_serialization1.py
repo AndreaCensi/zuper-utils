@@ -7,7 +7,7 @@ from zuper_commons.logs import setup_logging
 from zuper_json.monkey_patching_typing import my_dataclass as dataclass
 from .annotations_tricks import is_Any
 from .constants import SCHEMA_ATT, SCHEMA_ID
-from .ipce import make_dict, ipce_to_object, ipce_from_object, type_to_schema, schema_to_type, \
+from .ipce import make_dict, object_from_ipce, ipce_from_object, type_to_schema, schema_to_type, \
     CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
@@ -218,13 +218,13 @@ def test_bytes1():
     assert_object_roundtrip(n1, get_symbols())
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_abnormal_no_schema():
-    ipce_to_object({}, {})
+    object_from_ipce({}, {})
 
 
 def test_lists():
-    ipce_to_object([], {})
+    object_from_ipce([], {})
 
 
 def test_nulls():
@@ -284,7 +284,7 @@ def test_any():
 def test_any_instantiate():
     # noinspection PyTypeChecker
     schema = type_to_schema(Name, {})
-    ipce_to_object(schema, {})
+    object_from_ipce(schema, {})
 
 
 # @raises(TypeError)
@@ -422,11 +422,11 @@ def test_cannot_resolve():
     eval_field(X, {}, {})
 
 
-@raises(AssertionError)
+@raises(TypeError)
 def test_random_json():
     """ Invalid because of $schema """
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
-    ipce_to_object(data, {})
+    object_from_ipce(data, {})
 
 
 # if __name__ == '__main__':

@@ -34,9 +34,15 @@ from .my_dict import make_dict, CustomDict, make_set, CustomSet, get_set_Set_or_
 from .my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
-from .subcheck import can_be_used_as
+from .subcheck import can_be_used_as2
 from .types import IPCE
 from .zeneric2 import get_name_without_brackets, replace_typevars, loglevel, RecLogger
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    pass
+else:
+
+    from .monkey_patching_typing import my_dataclass
 
 __all__ = ['object_from_ipce', 'ipce_from_object']
 PASS_THROUGH = (KeyboardInterrupt, RecursionError)
@@ -98,7 +104,7 @@ def ipce_from_object_(ob,
         for T in trivial:
             if isinstance(ob, T):
                 if (suggest_type is not None) and (suggest_type is not T) and (not is_Any(suggest_type)) and \
-                        (not can_be_used_as(T, suggest_type)[0]):
+                        (not can_be_used_as2(T, suggest_type, {}).result):
                     msg = f'Found object of type {type(ob)!r} when expected a {suggest_type!r}'
                     raise ValueError(msg)
                 return ob
@@ -133,7 +139,7 @@ def ipce_from_object_(ob,
     if isinstance(ob, type):
         return type_to_schema(ob, globals_, processing={})
 
-    if is_Any(ob) or is_List(ob) or is_Dict(ob):
+    if is_Any(ob) or is_List(ob) or is_Dict(ob) or is_Set(ob) or is_Tuple(ob) or is_Callable(ob):
         # TODO: put more here
         return type_to_schema(ob, globals_, processing={})
 
@@ -146,7 +152,7 @@ def ipce_from_object_(ob,
     if is_dataclass(ob):
         return serialize_dataclass(ob, globals_, with_schema=with_schema)
 
-    msg = f'I do not know a way to convert object of type {type(ob)}.'
+    msg = f'I do not know a way to convert object of type {type(ob)} ({ob}).'
     raise NotImplementedError(msg)
 
 
@@ -300,7 +306,7 @@ def object_from_ipce(mj: IPCE,
                      encountered: Optional[dict] = None,
                      expect_type: Optional[type] = None) -> object:
     try:
-        res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
+        res = object_from_ipce_(mj, global_symbols, encountered, expect_type)
         return res
 
     except PASS_THROUGH:
@@ -318,11 +324,11 @@ def ipce_to_object(mj: IPCE,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
-    res = ipce_to_object_(mj, global_symbols, encountered, expect_type)
+    res = object_from_ipce(mj, global_symbols, encountered, expect_type)
     return res
 
 
-def ipce_to_object_(mj: IPCE,
+def object_from_ipce_(mj: IPCE,
                     global_symbols,
                     encountered: Optional[dict] = None,
                     expect_type: Optional[type] = None) -> object:
@@ -334,8 +340,8 @@ def ipce_to_object_(mj: IPCE,
     if isinstance(mj, trivial):
         T = type(mj)
         if expect_type is not None:
-            ok, why = can_be_used_as(T, expect_type)
-            if not ok:
+            ok = can_be_used_as2(T, expect_type, {})
+            if not ok.result:
                 msg = f'Found a {T}, wanted {expect_type}'
                 raise ValueError(msg)
         return mj
@@ -346,11 +352,11 @@ def ipce_to_object_(mj: IPCE,
             return deserialize_tuple(expect_type, mj, global_symbols, encountered)
         elif expect_type and is_List(expect_type):
             suggest = get_List_arg(expect_type)
-            seq = [ipce_to_object(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+            seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
             return seq
         else:
             suggest = None
-            seq = [ipce_to_object(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+            seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
             return seq
 
     if mj is None:
@@ -392,7 +398,7 @@ def ipce_to_object_(mj: IPCE,
         assert mj is not None  # excluded before
         K = get_optional_type(K)
 
-        return ipce_to_object(mj,
+        return object_from_ipce(mj,
                               global_symbols,
                               encountered,
                               expect_type=K)
@@ -412,7 +418,7 @@ def ipce_to_object_(mj: IPCE,
         errors = []
         for T in get_union_types(K):
             try:
-                return ipce_to_object(mj,
+                return object_from_ipce(mj,
                                       global_symbols,
                                       encountered,
                                       expect_type=T)
@@ -439,7 +445,7 @@ def deserialize_tuple(expect_type, mj, global_symbols, encountered):
     seq = []
     for i, ob in enumerate(mj):
         expect_type_i = expect_type.__args__[i]
-        seq.append(ipce_to_object(ob, global_symbols, encountered, expect_type=expect_type_i))
+        seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=expect_type_i))
 
     return tuple(seq)
 
@@ -472,7 +478,7 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
                 raise TypeError(msg)
 
             try:
-                attrs[k] = ipce_to_object(v, global_symbols, encountered, expect_type=expect_type)
+                attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
             except PASS_THROUGH:
                 raise
             except BaseException as e:
@@ -536,7 +542,7 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
             continue
 
         try:
-            attrs[k] = ipce_to_object(v, global_symbols, encountered,
+            attrs[k] = object_from_ipce(v, global_symbols, encountered,
                                       expect_type=expect_type_V)
 
         except (TypeError, NotImplementedError) as e:
@@ -564,7 +570,7 @@ def deserialize_Set(D, mj, global_symbols, encountered):
         if k == SCHEMA_ATT:
             continue
 
-        vob = ipce_to_object(v, global_symbols, encountered, expect_type=V)
+        vob = object_from_ipce(v, global_symbols, encountered, expect_type=V)
         res.add(vob)
 
     T = make_set(V)
@@ -691,9 +697,9 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     elif jsc_type == JSC_OBJECT:
         if jsc_title == JSC_TITLE_CALLABLE:
             return schema_to_type_callable(schema, global_symbols, encountered)
-        elif jsc_title.startswith('Dict'):
+        elif jsc_title.startswith('Dict['):
             return schema_dict_to_DictType(schema, global_symbols, encountered)
-        elif jsc_title.startswith('Set'):
+        elif jsc_title.startswith('Set['):
             return schema_dict_to_SetType(schema, global_symbols, encountered)
         elif JSC_DEFINITIONS in schema:
             return schema_to_type_generic(schema, global_symbols, encountered)
@@ -766,6 +772,9 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
 
 
 def schema_dict_to_SetType(schema, global_symbols, encountered):
+    if not JSC_ADDITIONAL_PROPERTIES in schema:
+        msg = f'Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}'
+        raise ValueError(msg)
     V = schema_to_type(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
     return make_set(V)
 
@@ -1301,16 +1310,6 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     return res
 
 
-if typing.TYPE_CHECKING:  # pragma: no cover
-    from .monkey_patching_typing import original_dataclass, my_dataclass, my_dataclass, my_dataclass, my_dataclass, \
-        my_dataclass
-else:
-    from dataclasses import dataclass as original_dataclass
-
-    from .monkey_patching_typing import my_dataclass
-
-
-
 class Result:
     schema: JSONSchema
     optional: Optional[bool] = False
@@ -1318,6 +1317,7 @@ class Result:
     def __init__(self, schema: JSONSchema, optional: bool = None):
         self.schema = schema
         self.optional = optional
+
 
 # TODO: make url generic
 def make_url(x: str):
@@ -1490,10 +1490,15 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
             ptype = Optional[ptype]
 
         if JSC_DEFAULT in v:
-            default_value = ipce_to_object(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
+            default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
             _Field.default = default_value
 
         fields.append((pname, ptype, _Field))
+
+    # _MISSING_TYPE should be first (default fields last)
+    # XXX: not tested
+    fields = sorted(fields, key=lambda x: str(x[2].default), reverse=False)
+
     # pprint('making dataclass with fields', fields=fields, res=res)
     for pname, v in res.get(X_CLASSVARS, {}).items():
         ptype = schema_to_type(v, global_symbols, encountered)
@@ -1518,7 +1523,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
             interpreted = schema_to_type(cast(JSONSchema, v), global_symbols, encountered)
         else:
-            interpreted = ipce_to_object(v, global_symbols)
+            interpreted = object_from_ipce(v, global_symbols)
         setattr(T, pname, interpreted)
 
     if JSC_DESCRIPTION in res:

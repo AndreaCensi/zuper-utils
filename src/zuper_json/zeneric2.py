@@ -8,7 +8,7 @@ from dataclasses import dataclass, fields
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
 from zuper_commons.text import indent, pretty_dict
-from zuper_json.subcheck import can_be_used_as
+from zuper_json.subcheck import can_be_used_as2
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
     is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
     get_union_types, is_NewType
@@ -134,7 +134,7 @@ class ZenericFix:
                             raise TypeError(msg)
 
                 res = make_type(cls, bindings)
-                A = lambda C: getattr(C, '__annotations__', 'no anns')
+                # A = lambda C: getattr(C, '__annotations__', 'no anns')
                 # print(f'results of particularization of {cls.__name__} with {params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
                 return res
 
@@ -148,11 +148,12 @@ class ZenericFix:
 
 class StructuralTyping(type):
 
-    def __subclasscheck__(self, subclass):
-        can, why = can_be_used_as(subclass, self)
-        return can
+    def __subclasscheck__(self, subclass) -> bool:
+        # logger.info(f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}')
+        can = can_be_used_as2(subclass, self, {})
+        return can.result
 
-    def __instancecheck__(self, instance):
+    def __instancecheck__(self, instance) -> bool:
         i = super().__instancecheck__(instance)
         if i:
             return True
@@ -160,18 +161,23 @@ class StructuralTyping(type):
         # loadable
         if hasattr(instance, 'T'):
             T = getattr(instance, 'T')
-            can, _why = can_be_used_as(T, self)
-            if can:
+            can = can_be_used_as2(T, self, {})
+            if can.result:
                 return True
 
-        res, _why = can_be_used_as(type(instance), self)
+        res = can_be_used_as2(type(instance), self, {})
 
-        return res
+        return res.result
 
 
 class MyABC(ABCMeta, StructuralTyping):
     #
-    def __instancecheck__(self, instance):
+    def __subclasscheck__(self, subclass) -> bool:
+        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}')
+        can = can_be_used_as2(subclass, self, {})
+        return can.result
+
+    def __instancecheck__(self, instance) -> bool:
         i = super().__instancecheck__(instance)
         if i:
             return True
@@ -179,13 +185,13 @@ class MyABC(ABCMeta, StructuralTyping):
         # loadable
         if hasattr(instance, 'T'):
             T = getattr(instance, 'T')
-            can, _why = can_be_used_as(T, self)
-            if can:
+            can = can_be_used_as2(T, self, {})
+            if can.result:
                 return True
 
-        res, _why = can_be_used_as(type(instance), self)
+        res = can_be_used_as2(type(instance), self, {})
 
-        return res
+        return res.result
 
     def __new__(mcls, name, bases, namespace, **kwargs):
         # logger.info('name: %s' % name)

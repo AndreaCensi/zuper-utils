@@ -6,7 +6,7 @@ from typing import Generic
 import yaml
 from nose.tools import raises, assert_equal
 
-from zuper_json.subcheck import can_be_used_as
+from zuper_json.subcheck import can_be_used_as2
 from . import logger
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
 from .constants import enable_type_checking
@@ -463,7 +463,7 @@ def test_check_bound1():
     class Animal:
         a: int
 
-    assert not can_be_used_as(int, Animal)[0]
+    assert not can_be_used_as2(int, Animal, {}).result
     assert not issubclass(int, Animal)
 
     X = TypeVar('X', bound=Animal)
@@ -484,7 +484,7 @@ def test_check_bound2():
     class Not:
         b: int
 
-    assert not can_be_used_as(Not, Animal)[0]
+    assert not can_be_used_as2(Not, Animal).result
 
     X = TypeVar('X', bound=Animal)
 
