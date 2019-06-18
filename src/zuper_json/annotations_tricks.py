@@ -43,7 +43,7 @@ def make_Union(*a):
     elif len(a) == 5:
         x = Union[a[0], a[1], a[2], a[3], a[4]]
     else:
-        x = Union.__getitem__(*tuple(a))
+        x = Union.__getitem__(tuple(a))
     return x
 
 
@@ -59,7 +59,9 @@ def make_Tuple(*a):
     elif len(a) == 5:
         x = Tuple[a[0], a[1], a[2], a[3], a[4]]
     else:
-        x = Tuple.__getitem__(*tuple(a))
+        # NOTE: actually correct
+        # noinspection PyArgumentList
+        x = Tuple.__getitem__(tuple(a))
     return x
 
 
@@ -92,6 +94,7 @@ def is_Any(x):
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._SpecialForm) and x._name == 'Any'
 
+
 def is_TypeVar(x):
     return isinstance(x, typing.TypeVar)
 
@@ -106,12 +109,18 @@ def is_ClassVar(x):
 
 
 def get_ClassVar_arg(x):
-    assert is_ClassVar(x)
+    assert is_ClassVar(x), x
     if PYTHON_36:  # pragma: no cover
         return x.__type__
     else:
 
         return x.__args__[0]
+
+
+def get_ClassVar_name(x) -> str:
+    assert is_ClassVar(x), x
+    s = name_for_type_like(get_ClassVar_arg(x))
+    return f'ClassVar[{s}]'
 
 
 def is_Type(x):
@@ -160,8 +169,26 @@ def is_List(x):
         return isinstance(x, typing._GenericAlias) and (x._name == 'List')
 
 
+def is_Iterator(x):
+    _check_valid_arg(x)
+
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Iterator
+    else:
+        return isinstance(x, typing._GenericAlias) and (x._name == 'Iterator')
+
+
 def get_List_arg(x):
-    assert is_List(x)
+    assert is_List(x), x
+    t = x.__args__[0]
+    if isinstance(t, typing.TypeVar):
+        return Any
+    return t
+
+
+def get_Iterator_arg(x):
+    assert is_Iterator(x), x
     t = x.__args__[0]
     if isinstance(t, typing.TypeVar):
         return Any
@@ -259,6 +286,15 @@ def get_List_name(V):
     v = get_List_arg(V)
     return 'List[%s]' % name_for_type_like(v)
 
+def get_Type_name(V):
+    v = get_Type_arg(V)
+    return 'Type[%s]' % name_for_type_like(v)
+
+
+def get_Iterator_name(V):
+    v = get_Iterator_arg(V)
+    return 'Iterator[%s]' % name_for_type_like(v)
+
 
 def get_Set_name(V):
     v = get_Set_arg(V)
@@ -284,16 +320,30 @@ def name_for_type_like(x):
         return get_Union_name(x)
     elif is_List(x):
         return get_List_name(x)
+    elif is_Iterator(x):
+        return get_Iterator_name(x)
     elif is_Tuple(x):
         return get_Tuple_name(x)
     elif is_Set(x):
         return get_Set_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
+    elif is_Type(x):
+        return get_Type_name(x)
+    elif is_ClassVar(x):
+        return get_ClassVar_name(x)
+
     elif is_Callable(x):
         info = get_Callable_info(x)
+
         # params = ','.join(name_for_type_like(p) for p in info.parameters_by_position)
-        params = ','.join(f'NamedArg({name_for_type_like(v)},{k!r})' for k, v in info.parameters_by_name.items())
+        def ps(k, v):
+            if k.startswith('__'):
+                return name_for_type_like(v)
+            else:
+                return f'NamedArg({name_for_type_like(v)},{k!r})'
+
+        params = ','.join(ps(k, v) for k, v in info.parameters_by_name.items())
         ret = name_for_type_like(info.returns)
         return f'Callable[[{params}],{ret}]'
     elif hasattr(x, '__name__'):
@@ -339,7 +389,7 @@ def get_Callable_info(x) -> CallableInfo:
             name = get_MyNamedArg_name(a)
             t = a.original
         else:
-            name = f'#{i}'
+            name = f'__{i}'
             t = a
 
         parameters_by_name[name] = t

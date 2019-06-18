@@ -484,7 +484,7 @@ def test_check_bound2():
     class Not:
         b: int
 
-    assert not can_be_used_as2(Not, Animal).result
+    assert not can_be_used_as2(Not, Animal, {}).result
 
     X = TypeVar('X', bound=Animal)
 
@@ -581,7 +581,8 @@ def test_derived2_subst():
     S = Signed3[int]
 
     pprint(**S.__annotations__)
-    assert 'X' not in str(S.__annotations__), S.__annotations__
+    # Now we actually have it
+    # assert 'X' not in str(S.__annotations__), S.__annotations__
 
     # assert_type_roundtrip(S, {})
     @dataclass

@@ -150,8 +150,17 @@ def remember_created_class(res):
 
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
+
     def wrap(cls):
-        return my_dataclass_(cls, init=init, repr=repr, eq=eq, order=order, unsafe_hash=unsafe_hash, frozen=frozen)
+        # logger.info(f'called my_dataclass for {cls} with bases {_cls.__bases__}')
+        # if cls.__name__ == 'B' and len(cls.__bases__) == 1 and cls.__bases__[0].__name__ == 'object' and len(cls.__annotations__) != 2:
+        #     assert False, (cls, cls.__bases__, cls.__annotations__)
+        res = my_dataclass_(cls, init=init, repr=repr,
+                             eq=eq, order=order,
+                             unsafe_hash=unsafe_hash, frozen=frozen)
+        # logger.info(f'called my_dataclass for {cls} with bases {_cls.__bases__}, '
+        #             f'returning {res} with bases {res.__bases__} and annotations {_cls.__annotations__}')
+        return res
 
     # See if we're being called as @dataclass or @dataclass().
     if _cls is None:
@@ -161,6 +170,16 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
     # We're called as @dataclass without parens.
     return wrap(_cls)
 
+def get_all_annotations(cls: type) -> Dict[str, type]:
+    ''' Gets all the annotations including the parents. '''
+    res = {}
+    for base in cls.__bases__:
+        annotations = getattr(base, ANNOTATIONS_ATT, {})
+        res.update(annotations)
+
+    # logger.info(f'name {cls.__name__} bases {cls.__bases__} mro {cls.mro()} res {res}')
+    return res
+from . import logger
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
@@ -176,9 +195,9 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     #       a: List[] = field(default_factory=list)
     #
     if type(_cls) is type:
-
+        old_annotations = get_all_annotations(_cls)
         from .zeneric2 import StructuralTyping
-        old_annotations = getattr(_cls, ANNOTATIONS_ATT, {})
+        old_annotations.update(getattr(_cls, ANNOTATIONS_ATT, {}))
         attrs = {ANNOTATIONS_ATT: old_annotations}
         for k in old_annotations:
             if hasattr(_cls, k):
@@ -187,12 +206,17 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
         class Base(metaclass=StructuralTyping):
             pass
 
-        _cls2 = type(_cls.__name__, (_cls, Base), attrs)
+        _cls2 = type(_cls.__name__, (_cls, Base) + _cls.__bases__, attrs)
         _cls2.__module__ = _cls.__module__
         _cls2.__qualname__ = _cls.__qualname__
         # from . import logger
-        # logger.info(f'Replaced {_cls} with {_cls2}')
+        # logger.info(f'Replaced {_cls} with {_cls2} with annotations {_cls2.__annotations__}')
         _cls = _cls2
+    else:
+        old_annotations = get_all_annotations(_cls)
+        old_annotations.update(getattr(_cls, ANNOTATIONS_ATT, {}))
+        setattr(_cls, ANNOTATIONS_ATT, old_annotations)
+
 
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)

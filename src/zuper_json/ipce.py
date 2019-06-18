@@ -19,6 +19,7 @@ from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
+from . import logger
 from .annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     get_Tuple_name, \
     is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
@@ -329,9 +330,9 @@ def ipce_to_object(mj: IPCE,
 
 
 def object_from_ipce_(mj: IPCE,
-                    global_symbols,
-                    encountered: Optional[dict] = None,
-                    expect_type: Optional[type] = None) -> object:
+                      global_symbols,
+                      encountered: Optional[dict] = None,
+                      expect_type: Optional[type] = None) -> object:
     encountered = encountered or {}
 
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
@@ -399,9 +400,9 @@ def object_from_ipce_(mj: IPCE,
         K = get_optional_type(K)
 
         return object_from_ipce(mj,
-                              global_symbols,
-                              encountered,
-                              expect_type=K)
+                                global_symbols,
+                                encountered,
+                                expect_type=K)
 
     if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K) or \
             (isinstance(K, type) and issubclass(K, CustomDict)):
@@ -419,9 +420,9 @@ def object_from_ipce_(mj: IPCE,
         for T in get_union_types(K):
             try:
                 return object_from_ipce(mj,
-                                      global_symbols,
-                                      encountered,
-                                      expect_type=T)
+                                        global_symbols,
+                                        encountered,
+                                        expect_type=T)
             except PASS_THROUGH:
                 raise
             except BaseException as e:
@@ -543,7 +544,7 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
 
         try:
             attrs[k] = object_from_ipce(v, global_symbols, encountered,
-                                      expect_type=expect_type_V)
+                                        expect_type=expect_type_V)
 
         except (TypeError, NotImplementedError) as e:
             msg = f'Cannot deserialize element "{k}".'
@@ -963,7 +964,7 @@ def schema_to_type_callable(schema: JSONSchema, global_symbols: GlobalsDict, enc
     others = []
     for k in schema['ordering']:
         d = schema_to_type(definitions[k], global_symbols, encountered)
-        if not k.startswith('#'):
+        if not k.startswith('__'):
             d = NamedArg(d, k)
         others.append(d)
 
@@ -1488,29 +1489,34 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         else:
             _Field = field(default=None)
             ptype = Optional[ptype]
-
+        _Field.name = pname
         if JSC_DEFAULT in v:
             default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
             _Field.default = default_value
 
         fields.append((pname, ptype, _Field))
 
-    # _MISSING_TYPE should be first (default fields last)
-    # XXX: not tested
-    fields = sorted(fields, key=lambda x: str(x[2].default), reverse=False)
-
     # pprint('making dataclass with fields', fields=fields, res=res)
     for pname, v in res.get(X_CLASSVARS, {}).items():
         ptype = schema_to_type(v, global_symbols, encountered)
         fields.append((pname, ClassVar[ptype], field()))
 
+    # _MISSING_TYPE should be first (default fields last)
+    # XXX: not tested
+    def has_default(x):
+        return not isinstance(x[2].default, dataclasses._MISSING_TYPE)
+
+    fields = sorted(fields, key=has_default, reverse=False)
+    #
+    # for _, _, f in fields:
+    #     logger.info(f'{f.name} {has_default((0,0,f))}')
     unsafe_hash = True
     try:
         T = make_dataclass(cls_name, fields, bases=(), namespace=None,
                            init=True, repr=True, eq=True, order=False,
                            unsafe_hash=unsafe_hash, frozen=False)
     except TypeError:  # pragma: no cover
-        from . import logger
+
         msg = 'Cannot make dataclass with fields:'
         for f in fields:
             msg += f'\n {f}'

@@ -65,17 +65,6 @@ def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
-def get_type_spec(types) -> Dict[str, Type]:
-    res = {}
-    for x in types:
-        if not isinstance(x, TypeVar):  # pragma: no cover
-            msg = f'Not sure what happened - but did you import zuper_json? {(x, types)}'
-            raise ValueError(msg)
-
-        res[x.__name__] = x.__bound__ or Any
-    return res
-
-
 class ZenericFix:
     class CannotInstantiate(TypeError):
         ...
@@ -149,8 +138,10 @@ class ZenericFix:
 class StructuralTyping(type):
 
     def __subclasscheck__(self, subclass) -> bool:
-        # logger.info(f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}')
+
         can = can_be_used_as2(subclass, self, {})
+        # logger.info(
+        #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
@@ -173,8 +164,9 @@ class StructuralTyping(type):
 class MyABC(ABCMeta, StructuralTyping):
     #
     def __subclasscheck__(self, subclass) -> bool:
-        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}')
+
         can = can_be_used_as2(subclass, self, {})
+        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
@@ -194,13 +186,13 @@ class MyABC(ABCMeta, StructuralTyping):
         return res.result
 
     def __new__(mcls, name, bases, namespace, **kwargs):
-        # logger.info('name: %s' % name)
+        # logger.info(f'----\nCreating name: {name}')
         # logger.info('namespace: %s' % namespace)
         # logger.info('bases: %s' % str(bases))
         # if bases:
         #     logger.info('bases[0]: %s' % str(bases[0].__dict__))
 
-        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+
         # logger.info(name)
         # logger.info(bases)
 
@@ -214,15 +206,18 @@ class MyABC(ABCMeta, StructuralTyping):
             spec = bases[0].__dict__[GENERIC_ATT2]
         else:
             spec = {}
-
+        # logger.info(f'Creating name: {name} spec {spec}')
         if spec:
             name0 = get_name_without_brackets(name)
             name = f'{name0}[%s]' % (",".join(name_for_type_like(_) for _ in spec))
-            setattr(cls, '__name__', name)
+            # setattr(cls, '__name__', name)
         else:
             pass
 
+        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+
         setattr(cls, '__module__', mcls.__module__)
+        setattr(cls, GENERIC_ATT2, spec)
         # logger.info('spec: %s' % spec)
         return cls
 
@@ -419,6 +414,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # rl.p('  name2: %s' % name2)
     try:
         cls2 = type(name2, (cls,), {'need': lambda: None})
+        # logger.info(f'Created class {cls2}')
     except TypeError as e:
         msg = f'Cannot create derived class "{name2}" from {cls!r}'
         raise TypeError(msg) from e
@@ -439,8 +435,6 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
 
     if name_without not in symbols:
         symbols[name_without] = Fake()
-    else:
-        pass
 
     for T, U in bindings.items():
         symbols[T.__name__] = U
@@ -514,14 +508,9 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
         # note: need to have set new annotations
         # pprint('creating dataclass from %s' % cls2)
         doc = getattr(cls2, '__doc__', None)
-        cls2 = dataclass(cls2)
+        cls2 = dataclass(cls2, unsafe_hash=True)
         setattr(cls2, '__doc__', doc)
-        # from zuper_json.monkey_patching_typing import my_dataclass
-        # cls2 = my_dataclass(cls2)
-        # setattr(cls2, _FIELDS, fields2)
     else:
-        # print('Detected that cls = %s not a dataclass' % cls)
-
         # noinspection PyUnusedLocal
         def init_placeholder(self, *args, **kwargs):
             if args or kwargs:
@@ -547,4 +536,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # rl.p(f'     dataclass {is_dataclass(cls2)}')
     #
     MakeTypeCache.cache[cache_key] = cls2
+
+    # logger.info(f'started {cls}; hash is {cls.__hash__}')
+    # logger.info(f'specialized {cls2}; hash is {cls2.__hash__}')
     return cls2
