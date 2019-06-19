@@ -1,5 +1,5 @@
 comptest_package=zuper_json
-coverage_include='*src/zuper_json*'
+coverage_include='*src/zuper_*'
 coveralls_repo_token=5eha7C63Y0403x9LRaGscdqQet7yC3WoR
 
 
@@ -8,13 +8,8 @@ all: test-zuper-utils
 test-zuper-utils:
 	rm -f .coverage
 	rm -rf cover
-	nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_json zuper_json   -v
-
-
-test-zuper-all:
-	rm -f .coverage
-	rm -rf cover
-	nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_json,zuper_ipce zuper_json zuper_ipce  -v
+	nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_typing_tests,zuper_ipce,zuper_ipce_tests zuper_typing zuper_typing_tests zuper_ipce_tests -v
+	#nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_json zuper_typing 	   -v
 
 
 
