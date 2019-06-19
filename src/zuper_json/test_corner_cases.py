@@ -3,6 +3,7 @@ from typing import *
 
 from nose.tools import raises
 
+from zuper_json.annotations_tricks import is_Tuple
 from zuper_json.ipce import ipce_from_object, type_to_schema, object_from_ipce
 from zuper_json.subcheck import can_be_used_as2
 
@@ -160,7 +161,9 @@ def test_corner_cases19():
 
 
 def test_corner_cases20():
-    assert can_be_used_as2(Tuple[int, int], Tuple[int, Any], {})
+    assert is_Tuple(Tuple[int, int])
+    res = can_be_used_as2(Tuple[int, int], Tuple[int, Any], {})
+    assert res, res
 
 
 def test_corner_cases21():

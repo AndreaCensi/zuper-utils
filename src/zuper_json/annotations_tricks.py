@@ -32,6 +32,8 @@ def get_union_types(x):
 
 
 def make_Union(*a):
+    if len(a) == 0:
+        raise ValueError('empty')
     if len(a) == 1:
         x = Union[a[0]]
     elif len(a) == 2:
@@ -48,7 +50,9 @@ def make_Union(*a):
 
 
 def make_Tuple(*a):
-    if len(a) == 1:
+    if len(a) == 0:
+        x = Tuple
+    elif len(a) == 1:
         x = Tuple[a[0]]
     elif len(a) == 2:
         x = Tuple[a[0], a[1]]
@@ -59,9 +63,12 @@ def make_Tuple(*a):
     elif len(a) == 5:
         x = Tuple[a[0], a[1], a[2], a[3], a[4]]
     else:
-        # NOTE: actually correct
-        # noinspection PyArgumentList
-        x = Tuple.__getitem__(tuple(a))
+        if PYTHON_36:
+            return Tuple[a]
+        else:
+            # NOTE: actually correct
+            # noinspection PyArgumentList
+            x = Tuple.__getitem__(tuple(a))
     return x
 
 
@@ -164,7 +171,7 @@ def is_List(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
+        return x is typing.List or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'List')
 
@@ -181,6 +188,9 @@ def is_Iterator(x):
 
 def get_List_arg(x):
     assert is_List(x), x
+    if x.__args__ is None:
+        return Any
+
     t = x.__args__[0]
     if isinstance(t, typing.TypeVar):
         return Any
@@ -227,7 +237,7 @@ def is_Dict(x: Any):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
+        return x is Dict or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
     else:
         return isinstance(x, typing._GenericAlias) and x._name == 'Dict'
 

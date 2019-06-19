@@ -1,4 +1,4 @@
-comptest_package=zuper_json,zuper_ipce
+comptest_package=zuper_json
 coverage_include='*src/zuper_json*'
 coveralls_repo_token=5eha7C63Y0403x9LRaGscdqQet7yC3WoR
 
@@ -23,7 +23,7 @@ test-zuper-all:
 docker-36-build:
 	docker build -f Dockerfile.python3.6 -t python36 .
 
-docker-36-test:  docker-37-build
+docker-36-test:  docker-36-build
 	docker run -it -v $(PWD)/src/zuper_json:/project/src/zuper_json -w /project python36 make all
 
 docker-36-shell:

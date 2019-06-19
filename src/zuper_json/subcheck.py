@@ -109,14 +109,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
         msg = 'A string can only be used a string'
         return CanBeUsed(False, msg, matches)
 
-    if isinstance(T1, type) and isinstance(T2, type):
-        # NOTE: issubclass(A, B) == type(T2).__subclasscheck__(T2, T1)
-        if type.__subclasscheck__(T2, T1):
-            return CanBeUsed(True, f'type.__subclasscheck__ {T1} {T2}', matches)
-        else:
-            msg = f'Type {T1}\n is not a subclass of {T2}'
-            return CanBeUsed(False, msg, matches)
-
     if is_Tuple(T1):
         assert not is_union(T2)
         if not is_Tuple(T2):
@@ -139,6 +131,16 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
     if is_TypeVar(T2):
         if T2.__name__ not in matches:
             return CanBeUsed(True, '', {T2.__name__: T1})
+
+
+    if isinstance(T1, type) and isinstance(T2, type):
+        # NOTE: issubclass(A, B) == type(T2).__subclasscheck__(T2, T1)
+        if type.__subclasscheck__(T2, T1):
+            return CanBeUsed(True, f'type.__subclasscheck__ {T1} {T2}', matches)
+        else:
+            msg = f'Type {T1}\n is not a subclass of {T2}'
+            return CanBeUsed(False, msg, matches)
+
 
     msg = f'{T1} ? {T2}'  # pragma: no cover
     raise NotImplementedError(msg)
