@@ -53,14 +53,22 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
         return can_be_used_as2(T1, t, matches)
 
     if is_Dict_or_CustomDict(T2):
-        K2, V2 = get_Dict_or_CustomDict_Key_Value(T2)
+
         if not is_Dict_or_CustomDict(T1):
             msg = f'Expecting a dictionary, got {T1}'
             return CanBeUsed(False, msg, matches)
         else:
             K1, V1 = get_Dict_or_CustomDict_Key_Value(T1)
-            # TODO: to finish
-            return CanBeUsed(True, 'not implemented', matches)
+            K2, V2 = get_Dict_or_CustomDict_Key_Value(T2)
+
+            rv = can_be_used_as2(V1, V2, matches)
+            if not rv:
+                return CanBeUsed(False, f'values {V1} {V2}: {rv}', matches)
+            rk = can_be_used_as2(K1, K2, matches)
+            if not rk:
+                return CanBeUsed(False, f'keys {K1} {K2}: {rk}', matches)
+            
+            return CanBeUsed(True, f'ok: {rk} {rv}', matches)
     else:
         if is_Dict_or_CustomDict(T1):
             msg = 'A Dict needs a dictionary'
@@ -92,14 +100,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
                 return CanBeUsed(False, msg, matches)
 
         return CanBeUsed(True, 'dataclass', matches)
-
-        # if isinstance(T2, type):
-    #     if issubclass(T1, T2):
-    #         return True, ''
-    #
-    #     msg = f'Type {T1}\n is not a subclass of {T2}'
-    #     return False, msg
-    # return True, ''
 
     assert not is_union(T2)
 
@@ -141,13 +141,3 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
 
     msg = f'{T1} ? {T2}'  # pragma: no cover
     raise NotImplementedError(msg)
-#
-# def can_be_used_unions(T1, T2, matches) -> CanBeUsed:
-#     assert is_union(T1), T1
-#     assert is_union(T2), T2
-#     for t in get_union_types(T2):
-#         can = can_be_used_as2(T1, t, matches)
-#         if can.result:
-#             return CanBeUsed(True, f'union match with {t} ', can.matches)
-#         reasons.append(f'- {t}: {can.why}')
-#
