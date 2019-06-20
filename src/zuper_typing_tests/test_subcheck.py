@@ -129,6 +129,36 @@ def test_corner_cases24():
     assert not can_be_used_as2(Tuple[int, int], Tuple[int, str], {})
 
 
+def test_corner_cases30():
+    assert not can_be_used_as2(Sequence, List[int], {})
+
+
+def test_corner_cases31():
+    assert not can_be_used_as2(List[str], List[int], {})
+
+
+def test_corner_cases32():
+    assert can_be_used_as2(List[str], List, {})
+
+
+def test_corner_cases33():
+    class A:
+        pass
+
+    class B:
+        pass
+
+    assert not can_be_used_as2(A, B, {})
+
+
+def test_corner_cases34():
+    assert not can_be_used_as2(Dict[str, str], Dict[int, str], {})
+
+
+def test_corner_cases35():
+    assert not can_be_used_as2(Dict[str, str], Dict[int, str], {})
+
+
 def test_corner_cases25():
     D1 = Dict[str, Any]
     D2 = Dict[str, int]
