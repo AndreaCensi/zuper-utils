@@ -3,7 +3,7 @@ from typing import *
 
 from zuper_commons.text import indent
 from .annotations_tricks import is_Any, is_union, get_union_types, is_optional, get_optional_type, is_Tuple, is_TypeVar, \
-    get_tuple_types
+    get_tuple_types, is_List, get_List_arg
 from .constants import BINDINGS_ATT
 from .my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value
 
@@ -24,8 +24,16 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
     if T1 is T2 or (T1 == T2):
         return CanBeUsed(True, 'equal', matches)
 
+    if is_TypeVar(T2):
+        if T2.__name__ not in matches:
+            matches = dict(matches)
+            matches[T2.__name__] = T1
+            return CanBeUsed(True, '', matches)
+        # TODO: not implemented
+
     if is_Any(T2):
         return CanBeUsed(True, 'Any', matches)
+
     if is_union(T1):
         # can_be_used(Union[A,B], C)
         # == can_be_used(A,C) and can_be_used(B,C)
@@ -61,14 +69,15 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
             K1, V1 = get_Dict_or_CustomDict_Key_Value(T1)
             K2, V2 = get_Dict_or_CustomDict_Key_Value(T2)
 
-            rv = can_be_used_as2(V1, V2, matches)
-            if not rv:
-                return CanBeUsed(False, f'values {V1} {V2}: {rv}', matches)
             rk = can_be_used_as2(K1, K2, matches)
             if not rk:
                 return CanBeUsed(False, f'keys {K1} {K2}: {rk}', matches)
-            
-            return CanBeUsed(True, f'ok: {rk} {rv}', matches)
+
+            rv = can_be_used_as2(V1, V2, rk.matches)
+            if not rv:
+                return CanBeUsed(False, f'values {V1} {V2}: {rv}', matches)
+
+            return CanBeUsed(True, f'ok: {rk} {rv}', rv.matches)
     else:
         if is_Dict_or_CustomDict(T1):
             msg = 'A Dict needs a dictionary'
@@ -119,17 +128,29 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type]) -> CanBeUsed:
                 can = can_be_used_as2(t1, t2, matches)
                 if not can.result:
                     return CanBeUsed(False, f'{t1} {T2}', matches)
-
+                matches = can.matches
             return CanBeUsed(True, '', matches)
+
     if is_Any(T1):
         assert not is_union(T2)
         if not is_Any(T2):
             msg = 'Any is the top'
             return CanBeUsed(False, msg, matches)
 
-    if is_TypeVar(T2):
-        if T2.__name__ not in matches:
-            return CanBeUsed(True, '', {T2.__name__: T1})
+    if is_List(T2):
+        if not is_List(T1):
+            msg = 'A List can only be used as a List'
+            return CanBeUsed(False, msg, matches)
+
+        t1 = get_List_arg(T1)
+        t2 = get_List_arg(T2)
+        # print(f'matching List with {t1} {t2}')
+        can = can_be_used_as2(t1, t2, matches)
+
+        if not can.result:
+            return CanBeUsed(False, f'{t1} {T2}', matches)
+
+        return CanBeUsed(True, '', can.matches)
 
     if isinstance(T1, type) and isinstance(T2, type):
         # NOTE: issubclass(A, B) == type(T2).__subclasscheck__(T2, T1)

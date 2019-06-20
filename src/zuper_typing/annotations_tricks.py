@@ -106,6 +106,11 @@ def is_TypeVar(x):
     return isinstance(x, typing.TypeVar)
 
 
+def get_TypeVar_name(x):
+    assert is_TypeVar(x), x
+    return x.__name__
+
+
 def is_ClassVar(x):
     _check_valid_arg(x)
     if PYTHON_36:  # pragma: no cover
@@ -186,27 +191,53 @@ def is_Iterator(x):
         return isinstance(x, typing._GenericAlias) and (x._name == 'Iterator')
 
 
+def is_Sequence(x):
+    _check_valid_arg(x)
+
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Sequence
+    else:
+        return isinstance(x, typing._GenericAlias) and (x._name == 'Sequence')
+
+
 def get_List_arg(x):
     assert is_List(x), x
     if x.__args__ is None:
         return Any
 
     t = x.__args__[0]
-    if isinstance(t, typing.TypeVar):
+    if is_TypeVar(t) and t.__name__ == 'T':
         return Any
+    # if isinstance(t, typing.TypeVar):
+    #     return Any
     return t
 
 
 def get_Iterator_arg(x):
     assert is_Iterator(x), x
-    t = x.__args__[0]
-    if isinstance(t, typing.TypeVar):
+    if x.__args__ is None:
         return Any
+    t = x.__args__[0]
+    # if isinstance(t, typing.TypeVar):
+    #     return Any
+    return t
+
+
+def get_Sequence_arg(x):
+    assert is_Sequence(x), x
+    if x.__args__ is None:
+        return Any
+    t = x.__args__[0]
+    # if isinstance(t, typing.TypeVar):
+    #     return Any
     return t
 
 
 def get_Type_arg(x):
     assert is_Type(x)
+    if x.__args__ is None:
+        return type
     return x.__args__[0]
 
 
@@ -307,6 +338,15 @@ def get_Iterator_name(V):
     return 'Iterator[%s]' % name_for_type_like(v)
 
 
+def get_Sequence_name(V):
+    v = get_Sequence_arg(V)
+    return 'Sequence[%s]' % name_for_type_like(v)
+
+def get_Optional_name(V):
+    v = get_optional_type(V)
+    return 'Optional[%s]' % name_for_type_like(v)
+
+
 def get_Set_name(V):
     v = get_Set_arg(V)
     return 'Set[%s]' % name_for_type_like(v)
@@ -321,6 +361,7 @@ def get_tuple_types(V):
 
 
 def name_for_type_like(x):
+    from zuper_typing.my_dict import is_Dict_or_CustomDict
     if is_Any(x):
         return 'Any'
     elif isinstance(x, type):
@@ -339,10 +380,16 @@ def name_for_type_like(x):
         return get_Set_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
+    elif is_Dict_or_CustomDict(x):
+        return get_Dict_name(x)
     elif is_Type(x):
         return get_Type_name(x)
     elif is_ClassVar(x):
         return get_ClassVar_name(x)
+    elif is_Sequence(x):
+        return get_Sequence_name(x)
+    elif is_optional(x):
+        return get_Optional_name(x)
 
     elif is_Callable(x):
         info = get_Callable_info(x)
@@ -366,15 +413,40 @@ def name_for_type_like(x):
 # do not make a dataclass
 class CallableInfo:
     parameters_by_name: Dict[str, Any]
-    parameters_by_position: Tuple
+    parameters_by_position: Tuple[type, ...]
     ordering: Tuple[str, ...]
     returns: Any
 
     def __init__(self, parameters_by_name, parameters_by_position, ordering, returns):
+        for k, v in parameters_by_name.items():
+            assert not is_MyNamedArg(v), v
+        for v in parameters_by_position:
+            assert not is_MyNamedArg(v), v
+
         self.parameters_by_name = parameters_by_name
         self.parameters_by_position = parameters_by_position
         self.ordering = ordering
         self.returns = returns
+
+    def __repr__(self):
+        return f'CallableInfo({self.parameters_by_name!r}, {self.parameters_by_position!r}, {self.ordering}, {self.returns})'
+
+    def replace(self, f: typing.Callable[[Any], Any]) -> 'CallableInfo':
+        parameters_by_name = {k: f(v) for k, v in self.parameters_by_name.items()}
+        parameters_by_position = tuple(f(v) for v in self.parameters_by_position)
+        ordering = self.ordering
+        returns = f(self.returns)
+        return CallableInfo(parameters_by_name, parameters_by_position, ordering, returns)
+
+    def as_callable(self) -> typing.Callable:
+        args = []
+        for k, v in self.parameters_by_name.items():
+            if is_MyNamedArg(v):
+                # try:
+                v = v.original
+            args.append(v)
+        # noinspection PyTypeHints
+        return typing.Callable[args, self.returns]
 
 
 def get_Callable_info(x) -> CallableInfo:
@@ -396,6 +468,7 @@ def get_Callable_info(x) -> CallableInfo:
         if is_MyNamedArg(a):
             name = get_MyNamedArg_name(a)
             t = a.original
+            # t = a
         else:
             name = f'__{i}'
             t = a

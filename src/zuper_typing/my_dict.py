@@ -2,7 +2,7 @@ from typing import ClassVar, Tuple, Any, TypeVar
 
 import typing
 
-from .annotations_tricks import is_Dict, get_Set_name_V
+from .annotations_tricks import is_Dict, get_Set_name_V, get_Dict_name_K_V
 
 
 class CustomDict(dict):
@@ -70,6 +70,11 @@ def get_Dict_or_CustomDict_Key_Value(x):
         return Any, Any
     else:
         assert False, x
+
+def get_Dict_or_CustomDict_name(T):
+    assert is_Dict_or_CustomDict(T)
+    K, V = get_Dict_or_CustomDict_Key_Value(T)
+    return get_Dict_name_K_V(K, V)
 
 
 class CustomSet(set):

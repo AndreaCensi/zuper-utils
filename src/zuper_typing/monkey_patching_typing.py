@@ -124,11 +124,18 @@ def MyNamedArg(x: type, name):
     meta = getattr(x, '__metaclass_', type)
 
     d = {NAME_ARG: name, 'original': x}
+    # FIXME not sure why this is needed
+    # if not hasattr(x, '__name__'):
+    #     setattr(x, NAME_ARG, name)
+    #     # setattr(x, 'original', x)
+    #     return x
+    #     raise Exception(x)
+
     cname = x.__name__
 
     res = meta(cname, (x,), d)
 
-    res.__module__ = 'typing'
+    res.__module__ = 'MyNamedArg'
 
     Reg.already[key] = res
     return res

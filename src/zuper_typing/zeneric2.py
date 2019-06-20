@@ -8,9 +8,11 @@ from dataclasses import dataclass, fields
 from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
 
 from zuper_commons.text import indent, pretty_dict
+from zuper_typing.my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value, make_dict
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
     is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
-    get_union_types, is_NewType
+    get_union_types, is_NewType, is_Tuple, get_tuple_types, is_Callable, get_Callable_info, is_Dict, get_Dict_args, \
+    is_TypeVar, get_TypeVar_name
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 from .subcheck import can_be_used_as2
@@ -175,8 +177,9 @@ class MyABC(ABCMeta, StructuralTyping):
             return True
 
         # loadable
-        if hasattr(instance, 'T'):
+        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'):
             T = getattr(instance, 'T')
+            logger.info(f'Comparing {self} and type {type(instance)} {T}')
             can = can_be_used_as2(T, self, {})
             if can.result:
                 return True
@@ -309,11 +312,24 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
 
     already = already or {}
 
+    if cls is type:
+        return cls
+
     if id(cls) in already:
+        # rl.p('cached')
+        # XXX
         return already[id(cls)]
 
     elif cls in bindings:
         return bindings[cls]
+    elif is_TypeVar(cls):
+        name = get_TypeVar_name(cls)
+
+        for k, v in bindings.items():
+            if is_TypeVar(k) and get_TypeVar_name(k) == name:
+                return v
+        return cls
+        # return bindings[cls]
 
     elif isinstance(cls, str):
         if cls in symbols:
@@ -333,34 +349,67 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
     elif is_NewType(cls):
         return cls
 
-    elif hasattr(cls, '__annotations__'):
-        return make_type(cls, bindings)
     elif is_Type(cls):
         x = get_Type_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
         return Type[r]
+    elif is_Dict_or_CustomDict(cls):
+        K0, V0 = get_Dict_or_CustomDict_Key_Value(cls)
+        K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols, rl=rl.child('k'))
+        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols, rl=rl.child('v'))
+        # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
+        return make_dict(K, V)
+    # XXX NOTE: must go after CustomDict
+    elif hasattr(cls, '__annotations__'):
+        # rl.p('__annotations__')
+        return make_type(cls, bindings)
     elif is_ClassVar(cls):
+        # rl.p('is_ClassVar')
         x = get_ClassVar_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
         return typing.ClassVar[r]
     elif is_List(cls):
         arg = get_List_arg(cls)
-        return typing.List[
-            replace_typevars(arg, bindings=bindings, already=already, symbols=symbols, rl=rl.child('list arg'))]
+        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols, rl=rl.child('list arg'))
+        return typing.List[arg2]
     elif is_optional(cls):
         x = get_optional_type(cls)
-        return typing.Optional[
-            replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('optional arg'))]
+        x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('optional arg'))
+        return typing.Optional[x2]
+
     elif is_union(cls):
         xs = get_union_types(cls)
         ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
                    for _ in xs)
         return typing.Union[ys]
+    elif is_Tuple(cls):
+
+        xs = get_tuple_types(cls)
+        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+                   for _ in xs)
+        return typing.Tuple[ys]
+    elif is_Callable(cls):
+        cinfo = get_Callable_info(cls)
+        def f(x):
+            return replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+        cinfo2 = cinfo.replace(f)
+        return cinfo2.as_callable()
+        #
+        # pos = []
+        # for p in cinfo.parameters_by_name:
+        #
+        # ret = replace_typevars(cinfo.returns, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+        #
+        # xs = get_tuple_types(cls)
+        # ys = tuple()
+        #            for _ in xs)
+        # return typing.Tuple[ys]
 
     elif is_forward_ref(cls):
         T = get_forward_ref_arg(cls)
         return replace_typevars(T, bindings=bindings, already=already, symbols=symbols, rl=rl.child('forward '))
     else:
+        # logger.debug(f'Nothing to do with {cls!r} {cls}')
         return cls
 
 

@@ -548,10 +548,12 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
                                         expect_type=expect_type_V)
 
         except (TypeError, NotImplementedError) as e:
-            msg = f'Cannot deserialize element "{k}".'
+            msg = f'Cannot deserialize element at index "{k}".'
             msg += f'\n\n D = {D}'
             msg += '\n\n' + indent(yaml.dump(mj), '> ')
             msg += f'\n\n Expected V = {expect_type_V}'
+
+            msg += f'\n\n v = {yaml.dump(v)}'
             raise TypeError(msg) from e
     if isinstance(K, type) and issubclass(K, str):
         ob.update(attrs)
@@ -824,7 +826,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
     except NotImplementedError:  # pragma: no cover
         raise
     except (ValueError, AssertionError) as e:
-        m = f'Cannot get schema for {T}'
+        m = f'Cannot get schema for type {T!r} (metatype {type(T)}'
         if hasattr(T, '__name__'):
             m += f' (name = {T.__name__!r})'
         msg = pretty_dict(m, dict(  # globals0=globals0,
@@ -1299,7 +1301,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
         except PASS_THROUGH:
             raise
         except BaseException as e:
-            msg = f'Cannot write schema for attribute {name} -> {t}'
+            msg = f'Cannot write schema for attribute {name} -> {t} of type {T.__name__}'
             raise TypeError(msg) from e
 
     if required:  # empty is error
