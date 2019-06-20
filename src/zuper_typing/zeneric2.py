@@ -12,7 +12,7 @@ from zuper_typing.my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_K
 from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
     is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
     get_union_types, is_NewType, is_Tuple, get_tuple_types, is_Callable, get_Callable_info, is_Dict, get_Dict_args, \
-    is_TypeVar, get_TypeVar_name
+    is_TypeVar, get_TypeVar_name, is_Sequence, get_Sequence_arg, is_Iterator, get_Iterator_arg
 from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from .logging import logger
 from .subcheck import can_be_used_as2
@@ -361,13 +361,24 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         return make_dict(K, V)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, '__annotations__'):
-        # rl.p('__annotations__')
         return make_type(cls, bindings)
     elif is_ClassVar(cls):
-        # rl.p('is_ClassVar')
         x = get_ClassVar_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
         return typing.ClassVar[r]
+    elif is_Type(cls):
+        x = get_Type_arg(cls)
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        return typing.Type[r]
+    elif is_Iterator(cls):
+        x = get_Iterator_arg(cls)
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        return typing.Iterator[r]
+    elif is_Sequence(cls):
+        x = get_Sequence_arg(cls)
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        return typing.Sequence[r]
+
     elif is_List(cls):
         arg = get_List_arg(cls)
         arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols, rl=rl.child('list arg'))

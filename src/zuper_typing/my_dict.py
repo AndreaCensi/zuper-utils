@@ -2,7 +2,7 @@ from typing import ClassVar, Tuple, Any, TypeVar
 
 import typing
 
-from .annotations_tricks import is_Dict, get_Set_name_V, get_Dict_name_K_V
+from .annotations_tricks import is_Dict, get_Set_name_V, get_Dict_name_K_V, get_Dict_args
 
 
 class CustomDict(dict):
@@ -54,14 +54,11 @@ def is_Dict_or_CustomDict(x):
 
 def get_Dict_or_CustomDict_Key_Value(x):
     assert is_Dict_or_CustomDict(x), x
-    if x is typing.Dict:
-        return Any, Any
+    # if x is typing.Dict:
+    #     return Any, Any
     if is_Dict(x):
-        k, v = x.__args__
-        if isinstance(k, TypeVar):
-            k = Any
-        if isinstance(v, TypeVar):
-            v = Any
+        k, v = get_Dict_args(x)
+
         return k, v
 
     elif is_CustomDict(x):

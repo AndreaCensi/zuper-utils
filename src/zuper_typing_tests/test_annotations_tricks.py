@@ -1,11 +1,15 @@
 import typing
 from typing import Union, Optional, Any, Tuple, TypeVar, ClassVar, Type, NewType
 
+from nose.tools import assert_equal
+
 from zuper_typing.monkey_patching_typing import original_dict_getitem
+from zuper_typing.my_dict import make_dict, is_CustomDict
 from zuper_typing_tests.test_utils import known_failure
 from zuper_typing.annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
     is_Tuple, \
-    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_NewType, get_NewType_arg, is_Dict
+    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_NewType, get_NewType_arg, is_Dict, get_Dict_args, \
+    name_for_type_like
 from zuper_typing.constants import PYTHON_36, PYTHON_37
 
 
@@ -110,3 +114,28 @@ def test_DictName():
     print(D.__dict__)
     assert is_Dict(D)
     # assert get_Dict_name(D) == 'Dict[int,str]'
+
+
+def test_Dict1():
+    K, V = get_Dict_args(typing.Dict)
+    assert_equal(K, Any)
+    assert_equal(V, Any)
+
+
+def test_Dict2():
+    X = typing.Dict[str, int]
+    print(type(X))
+    print(f'{X!r}')
+    assert is_Dict(X)
+    K, V = get_Dict_args(X)
+    assert_equal(K, str)
+    assert_equal(V, int)
+    print(K, V)
+    N = name_for_type_like(X)
+    assert_equal(N, 'Dict[str,int]')
+
+def test_Dict3():
+    D = make_dict(str, int)
+    assert is_CustomDict(D)
+    N = name_for_type_like(D)
+    assert_equal(N, 'Dict[str,int]')

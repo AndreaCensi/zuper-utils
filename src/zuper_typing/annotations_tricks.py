@@ -63,7 +63,7 @@ def make_Tuple(*a):
     elif len(a) == 5:
         x = Tuple[a[0], a[1], a[2], a[3], a[4]]
     else:
-        if PYTHON_36:
+        if PYTHON_36:  # pragma: no cover
             return Tuple[a]
         else:
             # NOTE: actually correct
@@ -186,7 +186,7 @@ def is_Iterator(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Iterator
+        return x is typing.Iterator or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Iterator
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Iterator')
 
@@ -196,7 +196,7 @@ def is_Sequence(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Sequence
+        return x is typing.Sequence or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Sequence
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Sequence')
 
@@ -207,11 +207,13 @@ def get_List_arg(x):
         return Any
 
     t = x.__args__[0]
-    if is_TypeVar(t) and t.__name__ == 'T':
+    if is_placeholder_typevar(t):
         return Any
-    # if isinstance(t, typing.TypeVar):
-    #     return Any
     return t
+
+
+def is_placeholder_typevar(x):
+    return is_TypeVar(x) and get_TypeVar_name(x) in ['T', 'T_co']
 
 
 def get_Iterator_arg(x):
@@ -219,8 +221,8 @@ def get_Iterator_arg(x):
     if x.__args__ is None:
         return Any
     t = x.__args__[0]
-    # if isinstance(t, typing.TypeVar):
-    #     return Any
+    if is_placeholder_typevar(t):
+        return Any
     return t
 
 
@@ -229,8 +231,8 @@ def get_Sequence_arg(x):
     if x.__args__ is None:
         return Any
     t = x.__args__[0]
-    # if isinstance(t, typing.TypeVar):
-    #     return Any
+    if is_placeholder_typevar(t):
+        return Any
     return t
 
 
@@ -300,14 +302,27 @@ def get_Set_arg(x):
 
 
 def get_Dict_args(T):
-    assert is_Dict(T)
+    assert is_Dict(T), T
+
+    if T is Dict:
+        return Any, Any
+    # if PYTHON_36:  # pragma: no cover
+    #     # noinspection PyUnresolvedReferences
+    #     return x is Dict or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
+    #
     K, V = T.__args__
+
+    if is_placeholder_typevar(K):
+        K = Any
+    if is_placeholder_typevar(V):
+        V = Any
+
     return K, V
 
 
 def get_Dict_name(T):
-    assert is_Dict(T)
-    K, V = T.__args__
+    assert is_Dict(T), T
+    K, V = get_Dict_args(T)
     return get_Dict_name_K_V(K, V)
 
 
@@ -342,6 +357,7 @@ def get_Sequence_name(V):
     v = get_Sequence_arg(V)
     return 'Sequence[%s]' % name_for_type_like(v)
 
+
 def get_Optional_name(V):
     v = get_optional_type(V)
     return 'Optional[%s]' % name_for_type_like(v)
@@ -364,8 +380,6 @@ def name_for_type_like(x):
     from zuper_typing.my_dict import is_Dict_or_CustomDict
     if is_Any(x):
         return 'Any'
-    elif isinstance(x, type):
-        return x.__name__
     elif isinstance(x, typing.TypeVar):
         return x.__name__
     elif is_union(x):
@@ -379,9 +393,12 @@ def name_for_type_like(x):
     elif is_Set(x):
         return get_Set_name(x)
     elif is_Dict(x):
+        print('Is_Dict')
         return get_Dict_name(x)
     elif is_Dict_or_CustomDict(x):
-        return get_Dict_name(x)
+        print('is_Dict_or_CustomDict')
+        from zuper_typing.my_dict import get_Dict_or_CustomDict_name
+        return get_Dict_or_CustomDict_name(x)
     elif is_Type(x):
         return get_Type_name(x)
     elif is_ClassVar(x):
@@ -405,9 +422,15 @@ def name_for_type_like(x):
         ret = name_for_type_like(info.returns)
         return f'Callable[[{params}],{ret}]'
     elif hasattr(x, '__name__'):
+        logger.info(f'not matching __name__ {type(x)} {x!r}')
         return x.__name__
     else:
+
+        logger.info(f'not matching {type(x)} {x!r}')
         return str(x)
+
+
+from .logging import logger
 
 
 # do not make a dataclass

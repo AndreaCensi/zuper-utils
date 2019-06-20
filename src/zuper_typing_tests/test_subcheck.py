@@ -3,7 +3,8 @@ from typing import *
 
 from nose.tools import assert_equal
 
-from zuper_typing.annotations_tricks import is_Tuple, is_Any, name_for_type_like, is_Callable, get_Callable_info
+from zuper_typing.annotations_tricks import is_Tuple, is_Any, name_for_type_like, is_Callable, get_Callable_info, \
+    is_Sequence, is_Iterator
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import replace_typevars
 
@@ -220,16 +221,24 @@ def test_replace_typevars():
     Y = TypeVar('Y')
 
     X2 = TypeVar('X')
-
+    S = {X2: str, Y: int}
     tries = (
-        (X, {X2: str},str),
+        (X, {X2: str}, str),
+        (Any, {}, Any),
         (List[X], {X2: str}, List[str]),
         (Tuple[X], {X2: str}, Tuple[str]),
         (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
         (Optional[X], {X2: str}, Optional[str]),
-        (Union[X], {X2: str}, Union[str]),
+        (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
         (ClassVar[X], {X2: str}, ClassVar[str]),
         (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
+        (Sequence[X], {X2: str}, Sequence[str]),
+        (Iterator[X], {X2: str}, Iterator[str]),
+        (Type[X], {X2: str}, Type[str]),
+        (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
+        (Iterator, S, Iterator[Any]),
+        (List, S, List[Any]),
+        (Sequence, S, Sequence[Any]),
 
     )
     for orig, subst, result in tries:
@@ -277,3 +286,19 @@ def test_callable2():
     assert cinfo2.parameters_by_position == (str,), cinfo2
 
     assert cinfo2.returns == int, cinfo2
+
+
+def test_Sequence1():
+    assert is_Sequence(Sequence[int])
+
+
+def test_Sequence2():
+    assert is_Sequence(Sequence)
+
+
+def test_Iterator1():
+    assert is_Iterator(Iterator[int])
+
+
+def test_Iterator2():
+    assert is_Iterator(Iterator)
