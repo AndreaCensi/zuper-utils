@@ -393,10 +393,8 @@ def name_for_type_like(x):
     elif is_Set(x):
         return get_Set_name(x)
     elif is_Dict(x):
-        print('Is_Dict')
         return get_Dict_name(x)
     elif is_Dict_or_CustomDict(x):
-        print('is_Dict_or_CustomDict')
         from zuper_typing.my_dict import get_Dict_or_CustomDict_name
         return get_Dict_or_CustomDict_name(x)
     elif is_Type(x):
@@ -422,11 +420,11 @@ def name_for_type_like(x):
         ret = name_for_type_like(info.returns)
         return f'Callable[[{params}],{ret}]'
     elif hasattr(x, '__name__'):
-        logger.info(f'not matching __name__ {type(x)} {x!r}')
+        # logger.info(f'not matching __name__ {type(x)} {x!r}')
         return x.__name__
     else:
 
-        logger.info(f'not matching {type(x)} {x!r}')
+        # logger.info(f'not matching {type(x)} {x!r}')
         return str(x)
 
 
