@@ -3,12 +3,12 @@ import dataclasses
 import types
 import typing
 from datetime import datetime
-from typing import TypeVar, Generic, Dict
+from typing import Dict, Generic, TypeVar
 
 import termcolor
 
-from zuper_typing.annotations_tricks import is_optional, name_for_type_like
-from .constants import PYTHON_36, ANNOTATIONS_ATT, DEPENDS_ATT
+from zuper_typing.annotations_tricks import name_for_type_like
+from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
 
@@ -118,6 +118,8 @@ NAME_ARG = '__name_arg__'
 # need to have this otherwise it's not possible to say that two types are the same
 class Reg:
     already = {}
+
+
 #
 # class MyNamedArg:
 #     def __init__(self, T, name):
@@ -129,14 +131,15 @@ def MyNamedArg(T, name):
     if key in Reg.already:
         return Reg.already[key]
 
-
     class C:
         pass
+
     setattr(C, NAME_ARG, name)
     setattr(C, 'original', T)
 
     Reg.already[key] = C
     return C
+
 
 def MyNamedArg_old(x: type, name: str):
     key = f'{x} {name}'
@@ -150,7 +153,6 @@ def MyNamedArg_old(x: type, name: str):
         return x
 
     return x2
-
 
     try:
         meta = getattr(x, '__metaclass__', type)
@@ -168,8 +170,6 @@ def MyNamedArg_old(x: type, name: str):
         else:
             # raise NotImplementedError(x)
             cname = x.__name__
-
-
 
         try:
             res = meta(cname, (x,), d)
@@ -209,13 +209,15 @@ def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
     def wrap(cls):
         # logger.info(f'called my_dataclass for {cls} with bases {_cls.__bases__}')
-        # if cls.__name__ == 'B' and len(cls.__bases__) == 1 and cls.__bases__[0].__name__ == 'object' and len(cls.__annotations__) != 2:
+        # if cls.__name__ == 'B' and len(cls.__bases__) == 1 and cls.__bases__[0].__name__
+        # == 'object' and len(cls.__annotations__) != 2:
         #     assert False, (cls, cls.__bases__, cls.__annotations__)
         res = my_dataclass_(cls, init=init, repr=repr,
                             eq=eq, order=order,
                             unsafe_hash=unsafe_hash, frozen=frozen)
         # logger.info(f'called my_dataclass for {cls} with bases {_cls.__bases__}, '
-        #             f'returning {res} with bases {res.__bases__} and annotations {_cls.__annotations__}')
+        #             f'returning {res} with bases {res.__bases__} and annotations {
+        #             _cls.__annotations__}')
         return res
 
     # See if we're being called as @dataclass or @dataclass().

@@ -1,4 +1,5 @@
 import sys
+
 PYTHON_36 = sys.version_info[1] == 6
 PYTHON_37 = sys.version_info[1] == 7
 NAME_ARG = '__name_arg__'  # XXX: repeated

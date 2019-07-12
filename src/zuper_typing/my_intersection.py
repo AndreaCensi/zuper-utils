@@ -1,6 +1,6 @@
 from dataclasses import dataclass, is_dataclass
 
-from .constants import PYTHON_36, INTERSECTION_ATT, ANNOTATIONS_ATT
+from .constants import ANNOTATIONS_ATT, INTERSECTION_ATT, PYTHON_36
 
 
 def Intersection_item(cls, params):
@@ -15,9 +15,9 @@ def Intersection_item(cls, params):
         annotations.update(a)
 
     res = {
-        ANNOTATIONS_ATT: annotations,
-        INTERSECTION_ATT: types
-    }
+          ANNOTATIONS_ATT:  annotations,
+          INTERSECTION_ATT: types
+          }
 
     for k in annotations:
         for t in types:

@@ -1,7 +1,6 @@
 import typing
 from typing import Any, Dict, Tuple, Union
 
-
 from .constants import NAME_ARG, PYTHON_36
 
 

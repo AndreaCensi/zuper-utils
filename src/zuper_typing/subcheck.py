@@ -1,12 +1,13 @@
-from dataclasses import is_dataclass, dataclass
+from dataclasses import dataclass, is_dataclass
 from typing import *
 
 from zuper_commons.text import indent
-from .annotations_tricks import is_Any, is_union, get_union_types, is_optional, get_optional_type, is_Tuple, is_TypeVar, \
-    get_tuple_types, is_List, get_List_arg, get_Set_arg, is_Set
-from .constants import BINDINGS_ATT, ANNOTATIONS_ATT
-from .my_dict import (is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value,
-                      is_set_or_CustomSet, get_set_Set_or_CustomSet_Value)
+from .annotations_tricks import (get_List_arg, get_optional_type, get_tuple_types,
+                                 get_union_types, is_Any, is_List, is_Tuple, is_TypeVar,
+                                 is_optional, is_union)
+from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
+from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_set_Set_or_CustomSet_Value,
+                      is_Dict_or_CustomDict, is_set_or_CustomSet)
 
 
 @dataclass
@@ -19,10 +20,8 @@ class CanBeUsed:
         return self.result
 
 
-def can_be_used_as2(T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[Any, Any], ...]= ()) -> CanBeUsed:
-    from .logging import logger
-
-
+def can_be_used_as2(T1, T2, matches: Dict[str, type],
+                    assumptions0: Tuple[Tuple[Any, Any], ...] = ()) -> CanBeUsed:
     if (T1, T2) in assumptions0:
         return CanBeUsed(True, 'By assumption', matches)
 
@@ -52,7 +51,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[
         # can_be_used(Union[A,B], C)
         # == can_be_used(A,C) and can_be_used(B,C)
 
-
         for t in get_union_types(T1):
             can = can_be_used_as2(t, T2, matches, assumptions)
             # logger.info(f'can_be_used_as t = {t} {T2}')
@@ -78,7 +76,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[
         if is_optional(T1):
             t1 = get_optional_type(T1)
             return can_be_used_as2(t1, t2, matches, assumptions)
-
 
         return can_be_used_as2(T1, t2, matches, assumptions)
 
@@ -107,18 +104,19 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[
 
     assert not is_union(T2)
 
-
     if is_dataclass(T2):
         # try:
         #     if issubclass(T1, T2):
         #         return True, ''
         # except:
         #     pass
-        if hasattr(T1, '__name__') and T1.__name__.startswith('Loadable') and hasattr(T1, BINDINGS_ATT):
+        if hasattr(T1, '__name__') and T1.__name__.startswith('Loadable') and hasattr(T1,
+                                                                                      BINDINGS_ATT):
             T1 = list(getattr(T1, BINDINGS_ATT).values())[0]
 
         if not is_dataclass(T1):
-            msg = f'Expecting dataclass to match to {T2}, got something that is not a dataclass: {T1}'
+            msg = f'Expecting dataclass to match to {T2}, got something that is not a ' \
+                f'dataclass: {T1}'
             msg += f'  union: {is_union(T1)}'
             return CanBeUsed(False, msg, matches)
         # h1 = get_type_hints(T1)
@@ -127,15 +125,17 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[
         h1 = getattr(T1, ANNOTATIONS_ATT, {})
         h2 = getattr(T2, ANNOTATIONS_ATT, {})
 
-
         for k, v2 in h2.items():
             if not k in h1:
-                msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does not have it. '
+                msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does ' \
+                    f'' \
+                    f'not have it. '
                 return CanBeUsed(False, msg, matches)
             v1 = h1[k]
             can = can_be_used_as2(v1, v2, matches, assumptions)
             if not can.result:
-                msg = f'Type {T2}\n  requires field "{k}"\n  of type\n       {v2} \n  but {T1}\n  has annotated it as\n       {v1}\n  which cannot be used. '
+                msg = f'Type {T2}\n  requires field "{k}"\n  of type\n       {v2} \n  but' + \
+                      f' {T1}\n  has annotated it as\n       {v1}\n  which cannot be used. '
                 msg += '\n\n' + f'assumption: {assumptions}'
                 msg += '\n\n' + indent(can.why, '> ')
 

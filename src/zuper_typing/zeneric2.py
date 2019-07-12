@@ -137,7 +137,8 @@ class ZenericFix:
                     if T.__bound__ is not None and isinstance(T.__bound__, type):
                         logger.info(f'{U} should be usable as {T.__bound__}')
                         logger.info(
-                            f' issubclass({U}, {T.__bound__}) = {issubclass(U, T.__bound__)}')
+                              f' issubclass({U}, {T.__bound__}) ='
+                              f' {issubclass(U, T.__bound__)}')
                         if not issubclass(U, T.__bound__):
                             msg = (f'For type parameter "{T.__name__}", expected a'
                                    f'subclass of "{T.__bound__.__name__}", found {U}.')
@@ -148,7 +149,6 @@ class ZenericFix:
                 # print(f'results of particularization of {cls.__name__} with {
                 # params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
                 return res
-
 
         name = 'Generic[%s]' % ",".join(name_for_type_like(_) for _ in types)
 
@@ -317,7 +317,7 @@ def resolve_types(T, locals_=None, refs=(), nrefs=None):
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
         except NameError:
-            msg = f'resolve_type({T.__name__}):'\
+            msg = f'resolve_type({T.__name__}):' \
                 f' Cannot resolve names for attribute "{k}" = {v!r}.'
             msg += f'\n symbols: {symbols}'
             msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
@@ -604,7 +604,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
                 val = getattr(self, k)
                 try:
                     if type(val).__name__ != v.__name__ and not isinstance(val, v):
-                        msg = f'Expected field "{k}" to be a "{v.__name__}"'\
+                        msg = f'Expected field "{k}" to be a "{v.__name__}"' \
                             f'but found {type(val).__name__}'
                         warnings.warn(msg, stacklevel=3)
                         # raise ValueError(msg)
@@ -636,6 +636,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
         def init_placeholder(self, *args, **kwargs):
             if args or kwargs:
                 msg = f'Default constructor of {cls2.__name__} does not know what to do with ' \
+                    f'' \
+                    f'' \
                     f'arguments.'
                 msg += f'\nargs: {args!r}\nkwargs: {kwargs!r}'
                 msg += f'\nself: {self}'
