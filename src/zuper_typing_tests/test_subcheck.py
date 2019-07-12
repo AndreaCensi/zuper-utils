@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import *
+from typing import Dict, Union, Any, Set, List, ClassVar, Optional, Tuple, Sequence, Iterator, TypeVar, Callable, Type
 
 from nose.tools import assert_equal
 
 from zuper_typing.annotations_tricks import is_Tuple, is_Any, name_for_type_like, is_Callable, get_Callable_info, \
     is_Sequence, is_Iterator
+from zuper_typing.my_dict import make_set
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import replace_typevars
 
@@ -151,6 +152,15 @@ def test_corner_cases33():
     assert not can_be_used_as2(A, B, {})
 
 
+def test_corner_cases36():
+    A = Set[str]
+    B = Set[Any]
+
+    assert can_be_used_as2(A, B, {})
+
+    assert not can_be_used_as2(B, A, {})
+
+
 def test_corner_cases34():
     assert not can_be_used_as2(Dict[str, str], Dict[int, str], {})
 
@@ -223,6 +233,13 @@ def test_match_TypeVar0b():
     assert res, res
 
 
+def test_match_MySet1():
+    C1 = Set[str]
+    C2 = make_set(str)
+    res = can_be_used_as2(C1, C2, {})
+    assert res, res
+
+
 def test_match_Tuple0():
     L1 = Tuple[str]
     X = TypeVar('X')
@@ -264,6 +281,7 @@ def test_replace_typevars():
         (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
         (Sequence[X], {X2: str}, Sequence[str]),
         (Iterator[X], {X2: str}, Iterator[str]),
+        (Set[X], S, Set[str]),
         (Type[X], {X2: str}, Type[str]),
         (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
         (Iterator, S, Iterator[Any]),

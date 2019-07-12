@@ -1,8 +1,6 @@
-from typing import ClassVar, Tuple, Any, TypeVar
+from typing import Any, ClassVar, Tuple
 
-import typing
-
-from .annotations_tricks import is_Dict, get_Set_name_V, get_Dict_name_K_V, get_Dict_args
+from .annotations_tricks import get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict
 
 
 class CustomDict(dict):
@@ -52,6 +50,11 @@ def is_Dict_or_CustomDict(x):
     return x is dict or is_Dict(x) or is_CustomDict(x)
 
 
+def get_CustomDict_args(x):
+    assert is_CustomDict(x)
+    return x.__dict_type__
+
+
 def get_Dict_or_CustomDict_Key_Value(x):
     assert is_Dict_or_CustomDict(x), x
     # if x is typing.Dict:
@@ -60,13 +63,13 @@ def get_Dict_or_CustomDict_Key_Value(x):
         k, v = get_Dict_args(x)
 
         return k, v
-
     elif is_CustomDict(x):
-        return x.__dict_type__
+        return get_CustomDict_args(x)
     elif x is dict:
         return Any, Any
     else:
         assert False, x
+
 
 def get_Dict_or_CustomDict_name(T):
     assert is_Dict_or_CustomDict(T)

@@ -5,15 +5,21 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields
 # noinspection PyUnresolvedReferences
-from typing import Dict, Type, TypeVar, Any, ClassVar, Sequence, _eval_type, Tuple
+from typing import Any, ClassVar, Dict, Sequence, Tuple, Type, TypeVar, _eval_type
 
 from zuper_commons.text import indent, pretty_dict
-from zuper_typing.my_dict import is_Dict_or_CustomDict, get_Dict_or_CustomDict_Key_Value, make_dict
-from .annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, name_for_type_like, \
-    is_forward_ref, get_forward_ref_arg, is_optional, get_optional_type, is_List, get_List_arg, is_union, \
-    get_union_types, is_NewType, is_Tuple, get_tuple_types, is_Callable, get_Callable_info, is_Dict, get_Dict_args, \
-    is_TypeVar, get_TypeVar_name, is_Sequence, get_Sequence_arg, is_Iterator, get_Iterator_arg
-from .constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
+from zuper_typing.my_dict import (get_Dict_or_CustomDict_Key_Value, is_Dict_or_CustomDict,
+                                  make_dict)
+from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Iterator_arg,
+                                 get_List_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
+                                 get_Type_arg,
+                                 get_forward_ref_arg, get_optional_type, get_tuple_types,
+                                 get_union_types, is_Callable,
+                                 is_ClassVar, is_Iterator, is_List, is_NewType, is_Sequence,
+                                 is_Set, is_Tuple, is_Type,
+                                 is_TypeVar, is_forward_ref, is_optional, is_union,
+                                 name_for_type_like)
+from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, PYTHON_36
 from .logging import logger
 from .subcheck import can_be_used_as2
 
@@ -67,19 +73,30 @@ def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
+def map_none_to_nonetype(x):
+    if x is None:
+        return type(None)
+    else:
+        return x
+
+
 class ZenericFix:
     class CannotInstantiate(TypeError):
         ...
 
     @classmethod
     def __class_getitem__(cls, params):
-        # pprint('ZenericFix.__class_getitem__', cls=cls, params=params)
+        # logger.info(f'ZenericFix.__class_getitem__ params = {params}')
         types = as_tuple(params)
+        types = tuple(map(map_none_to_nonetype, types))
+
+        # logger.info(f'types {types}')
 
         if PYTHON_36:  # pragma: no cover
             class FakeGenericMeta(MyABC):
                 def __getitem__(self, params2):
-                    # pprint('FakeGenericMeta.__getitem__', cls=cls, self=self, params2=params2)
+                    # pprint('FakeGenericMeta.__getitem__', cls=cls, self=self,
+                    # params2=params2)
                     types2 = as_tuple(params2)
 
                     if types == types2:
@@ -107,6 +124,7 @@ class ZenericFix:
 
             @classmethod
             def __class_getitem__(cls, params2):
+                # logger.info(f'GenericProxy.__class_getitem__ params = {params2}')
                 types2 = as_tuple(params2)
 
                 bindings = {}
@@ -118,7 +136,8 @@ class ZenericFix:
                     bindings[T] = U
                     if T.__bound__ is not None and isinstance(T.__bound__, type):
                         logger.info(f'{U} should be usable as {T.__bound__}')
-                        logger.info(f' issubclass({U}, {T.__bound__}) = {issubclass(U, T.__bound__)}')
+                        logger.info(
+                            f' issubclass({U}, {T.__bound__}) = {issubclass(U, T.__bound__)}')
                         if not issubclass(U, T.__bound__):
                             msg = (f'For type parameter "{T.__name__}", expected a'
                                    f'subclass of "{T.__bound__.__name__}", found {U}.')
@@ -126,10 +145,12 @@ class ZenericFix:
 
                 res = make_type(cls, bindings)
                 # A = lambda C: getattr(C, '__annotations__', 'no anns')
-                # print(f'results of particularization of {cls.__name__} with {params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
+                # print(f'results of particularization of {cls.__name__} with {
+                # params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
                 return res
 
-        name = 'Generic[%s]' % ",".join(_.__name__ for _ in types)
+
+        name = 'Generic[%s]' % ",".join(name_for_type_like(_) for _ in types)
 
         gp = type(name, (GenericProxy,), {GENERIC_ATT2: types})
         setattr(gp, GENERIC_ATT2, types)
@@ -143,7 +164,8 @@ class StructuralTyping(type):
 
         can = can_be_used_as2(subclass, self, {})
         # logger.info(
-        #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}: {can}')
+        #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass}
+        #     {id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
@@ -168,7 +190,8 @@ class MyABC(ABCMeta, StructuralTyping):
     def __subclasscheck__(self, subclass) -> bool:
 
         can = can_be_used_as2(subclass, self, {})
-        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {id(subclass)}: {can}')
+        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {
+        # id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
@@ -240,7 +263,8 @@ def get_default_attrs():
 class Fake:
     def __init__(self, myt, symbols):
         self.myt = myt
-        self.name_without = get_name_without_brackets(myt.__name__)
+        n = name_for_type_like(myt)
+        self.name_without = get_name_without_brackets(n)
         self.symbols = symbols
 
     def __getitem__(self, item):
@@ -253,17 +277,27 @@ class Fake:
 
 
 @loglevel
-def resolve_types(T, locals_=None, refs=()):
+def resolve_types(T, locals_=None, refs=(), nrefs=None):
+    nrefs = nrefs or {}
     assert is_dataclass(T)
     rl = RecLogger()
 
     symbols = dict(locals_ or {})
 
-    for t in (T,) + refs:
+    for k, v in nrefs.items():
+        symbols[k] = v
 
-        symbols[t.__name__] = t
-        name_without = get_name_without_brackets(t.__name__)
+    others = getattr(T, DEPENDS_ATT, ())
 
+    for t in (T,) + refs + others:
+
+        n = name_for_type_like(t)
+        symbols[n] = t
+        name_without = get_name_without_brackets(n)
+
+        if name_without in ['Union', 'Dict', ]:
+            # FIXME please add more here
+            continue
         if name_without not in symbols:
             symbols[name_without] = Fake(t, symbols)
         else:
@@ -283,7 +317,8 @@ def resolve_types(T, locals_=None, refs=()):
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
         except NameError:
-            msg = f'resolve_type({T.__name__}): Cannot resolve names for attribute "{k}".'
+            msg = f'resolve_type({T.__name__}):'\
+                f' Cannot resolve names for attribute "{k}" = {v!r}.'
             msg += f'\n symbols: {symbols}'
             msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
             logger.warning(msg)
@@ -351,12 +386,15 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
 
     elif is_Type(cls):
         x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('classvar arg'))
         return Type[r]
     elif is_Dict_or_CustomDict(cls):
         K0, V0 = get_Dict_or_CustomDict_Key_Value(cls)
-        K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols, rl=rl.child('k'))
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols, rl=rl.child('v'))
+        K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('k'))
+        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('v'))
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
         return make_dict(K, V)
     # XXX NOTE: must go after CustomDict
@@ -364,52 +402,69 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         return make_type(cls, bindings)
     elif is_ClassVar(cls):
         x = get_ClassVar_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('classvar arg'))
         return typing.ClassVar[r]
     elif is_Type(cls):
         x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('classvar arg'))
         return typing.Type[r]
     elif is_Iterator(cls):
         x = get_Iterator_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('classvar arg'))
         return typing.Iterator[r]
     elif is_Sequence(cls):
         x = get_Sequence_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('classvar arg'))
+        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('classvar arg'))
         return typing.Sequence[r]
 
     elif is_List(cls):
         arg = get_List_arg(cls)
-        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols, rl=rl.child('list arg'))
+        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
+                                rl=rl.child('list arg'))
         return typing.List[arg2]
+    elif is_Set(cls):
+        arg = get_Set_arg(cls)
+        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
+                                rl=rl.child('set arg'))
+        return typing.Set[arg2]
     elif is_optional(cls):
         x = get_optional_type(cls)
-        x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child('optional arg'))
+        x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                              rl=rl.child('optional arg'))
         return typing.Optional[x2]
 
     elif is_union(cls):
         xs = get_union_types(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
+                                    rl=rl.child())
                    for _ in xs)
         return typing.Union[ys]
     elif is_Tuple(cls):
 
         xs = get_tuple_types(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
+                                    rl=rl.child())
                    for _ in xs)
         return typing.Tuple[ys]
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
+
         def f(x):
-            return replace_typevars(x, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+            return replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+                                    rl=rl.child())
+
         cinfo2 = cinfo.replace(f)
         return cinfo2.as_callable()
         #
         # pos = []
         # for p in cinfo.parameters_by_name:
         #
-        # ret = replace_typevars(cinfo.returns, bindings=bindings, already=already, symbols=symbols, rl=rl.child())
+        # ret = replace_typevars(cinfo.returns, bindings=bindings, already=already,
+        # symbols=symbols, rl=rl.child())
         #
         # xs = get_tuple_types(cls)
         # ys = tuple()
@@ -418,7 +473,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
 
     elif is_forward_ref(cls):
         T = get_forward_ref_arg(cls)
-        return replace_typevars(T, bindings=bindings, already=already, symbols=symbols, rl=rl.child('forward '))
+        return replace_typevars(T, bindings=bindings, already=already, symbols=symbols,
+                                rl=rl.child('forward '))
     else:
         # logger.debug(f'Nothing to do with {cls!r} {cls}')
         return cls
@@ -504,7 +560,12 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # first of all, replace the bindings in the generic_att
 
     generic_att2_new = tuple(
-            replace_typevars(_, bindings=bindings, symbols=symbols, rl=rl.child('attribute')) for _ in generic_att2)
+          replace_typevars(_, bindings=bindings, symbols=symbols, rl=rl.child('attribute')) for
+          _ in generic_att2)
+
+    # logger.debug(
+    #     f"creating derived class {name2} with abstract method need() because
+    #     generic_att2_new = {generic_att2_new}")
 
     # rl.p(f'  generic_att2_new: {generic_att2_new}')
 
@@ -543,7 +604,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
                 val = getattr(self, k)
                 try:
                     if type(val).__name__ != v.__name__ and not isinstance(val, v):
-                        msg = f'Expected field "{k}" to be a "{v.__name__}" but found {type(val).__name__}'
+                        msg = f'Expected field "{k}" to be a "{v.__name__}"'\
+                            f'but found {type(val).__name__}'
                         warnings.warn(msg, stacklevel=3)
                         # raise ValueError(msg)
                 except TypeError as e:
@@ -573,7 +635,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
         # noinspection PyUnusedLocal
         def init_placeholder(self, *args, **kwargs):
             if args or kwargs:
-                msg = f'Default constructor of {cls2.__name__} does not know what to do with arguments.'
+                msg = f'Default constructor of {cls2.__name__} does not know what to do with ' \
+                    f'arguments.'
                 msg += f'\nargs: {args!r}\nkwargs: {kwargs!r}'
                 msg += f'\nself: {self}'
                 msg += f'\nself: {dir(type(self))}'

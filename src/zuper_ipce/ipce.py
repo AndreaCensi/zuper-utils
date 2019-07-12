@@ -21,18 +21,26 @@ from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
 from zuper_typing.constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
 from . import logger
-from zuper_typing.annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
-    get_Tuple_name, \
-    is_ClassVar, get_ClassVar_arg, is_Type, is_Callable, get_Callable_info, get_union_types, is_union, is_Dict, \
-    get_Dict_name_K_V, is_Tuple, get_List_arg, is_List, is_Set, get_Set_arg, get_Set_name_V, get_List_name
+from zuper_typing.annotations_tricks import (is_optional, get_optional_type, is_forward_ref,
+                                             get_forward_ref_arg, is_Any,
+                                             get_Tuple_name,
+                                             is_ClassVar, get_ClassVar_arg, is_Type,
+                                             is_Callable, get_Callable_info, get_union_types,
+                                             is_union, is_Dict,
+                                             get_Dict_name_K_V, is_Tuple, get_List_arg,
+                                             is_List, is_Set, get_Set_arg, get_Set_name_V,
+                                             get_List_name, get_Dict_args)
 from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm, \
     ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
     JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, JSC_INTEGER, ID_ATT, \
     JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, JSC_TITLE_NUMPY, JSC_NULL, \
     JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME, \
     JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF, JSC_ANYOF
-from zuper_typing.my_dict import make_dict, CustomDict, make_set, CustomSet, get_set_Set_or_CustomSet_Value, is_CustomDict, \
-    is_CustomSet
+
+from zuper_typing.my_dict import (make_dict, CustomDict, make_set, CustomSet,
+                                  get_set_Set_or_CustomSet_Value, is_CustomDict,
+                                  is_CustomSet, is_Dict_or_CustomDict,
+                                  get_Dict_or_CustomDict_Key_Value)
 from zuper_typing.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
@@ -233,11 +241,10 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
     res = {}
     # pprint('suggest_type ', ob=ob, suggest_type=suggest_type)
 
-    if is_Dict(suggest_type):
-        # noinspection PyUnresolvedReferences
-        K, V = suggest_type.__args__
-    elif isinstance(suggest_type, type) and issubclass(suggest_type, CustomDict):
-        K, V = suggest_type.__dict_type__
+    if is_Dict_or_CustomDict(suggest_type):
+        K, V = get_Dict_or_CustomDict_Key_Value(suggest_type)
+    # elif is_CustomDict(suggest_type):
+    #     K, V = suggest_type.__dict_type__
     elif (suggest_type is None) or is_Any(suggest_type):
         all_str = all(type(_) is str for _ in ob)
         if all_str:

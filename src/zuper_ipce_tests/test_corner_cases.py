@@ -4,6 +4,7 @@ from typing import Optional, Union
 from nose.tools import raises
 
 from zuper_ipce.ipce import ipce_from_object, type_to_schema, object_from_ipce
+from zuper_typing.annotations_tricks import make_Union
 from zuper_typing.subcheck import can_be_used_as2
 
 
@@ -72,3 +73,6 @@ def test_corner_cases08():
     T = Optional[bool]
     assert not can_be_used_as2(int, T, {}).result
     object_from_ipce(12, {}, expect_type=Optional[bool])
+
+
+

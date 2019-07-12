@@ -87,14 +87,6 @@ def test_none1():
     ipce_to_object(None, {}, {}, expect_type=A)
 
 
-def test_making_union():
-    make_Union(int)
-    make_Union(int, float)
-    make_Union(int, float, bool)
-    make_Union(int, float, bool, str)
-    make_Union(int, float, bool, str, bytes)
-    make_Union(int, float, bool, str, bytes, int)
-
 
 if __name__ == '__main__':
     test_default_arguments()

@@ -1,5 +1,6 @@
 import typing
-from typing import Union, Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
+
 
 from .constants import NAME_ARG, PYTHON_36
 
@@ -7,10 +8,12 @@ from .constants import NAME_ARG, PYTHON_36
 # noinspection PyProtectedMember
 def is_optional(x):
     if PYTHON_36:  # pragma: no cover
-        return isinstance(x, typing._Union) and len(x.__args__) == 2 and x.__args__[-1] is type(None)
-    else:
-        return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and len(x.__args__) == 2 and x.__args__[
+        return isinstance(x, typing._Union) and len(x.__args__) == 2 and x.__args__[
             -1] is type(None)
+    else:
+        return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and len(
+              x.__args__) == 2 and x.__args__[
+                   -1] is type(None)
 
 
 def get_optional_type(x):
@@ -23,7 +26,8 @@ def is_union(x):
     if PYTHON_36:  # pragma: no cover
         return not is_optional(x) and isinstance(x, typing._Union)
     else:
-        return not is_optional(x) and isinstance(x, typing._GenericAlias) and (x.__origin__ is Union)
+        return not is_optional(x) and isinstance(x, typing._GenericAlias) and (
+              x.__origin__ is Union)
 
 
 def get_union_types(x):
@@ -140,9 +144,11 @@ def is_Type(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
+        return (x is typing.Type) or (
+              isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
     else:
-        return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
+        return (x is typing.Type) or (
+              isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
 
 
 def is_NewType(x):
@@ -150,9 +156,11 @@ def is_NewType(x):
 
     # if PYTHON_36:  # pragma: no cover
     #     # noinspection PyUnresolvedReferences
-    #     return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__ is typing.Type))
+    #     return (x is typing.Type) or (isinstance(x, typing.GenericMeta) and (x.__origin__
+    #     is typing.Type))
     # else:
-    # return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is type))
+    # return (x is typing.Type) or (isinstance(x, typing._GenericAlias) and (x.__origin__ is
+    # type))
 
     return hasattr(x, '__supertype__')
 
@@ -176,7 +184,9 @@ def is_List(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return x is typing.List or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.List
+        return x is typing.List or isinstance(x,
+                                              typing.GenericMeta) and x.__origin__ is \
+               typing.List
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'List')
 
@@ -186,7 +196,9 @@ def is_Iterator(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return x is typing.Iterator or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Iterator
+        return x is typing.Iterator or isinstance(x,
+                                                  typing.GenericMeta) and x.__origin__ is \
+               typing.Iterator
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Iterator')
 
@@ -196,7 +208,9 @@ def is_Sequence(x):
 
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
-        return x is typing.Sequence or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Sequence
+        return x is typing.Sequence or isinstance(x,
+                                                  typing.GenericMeta) and x.__origin__ is \
+               typing.Sequence
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Sequence')
 
@@ -295,7 +309,7 @@ def get_Set_arg(x):
         if x is typing.Set:
             return Any
     t = x.__args__[0]
-    if isinstance(t, typing.TypeVar):
+    if is_placeholder_typevar(t):
         return Any
 
     return t
@@ -368,20 +382,32 @@ def get_Set_name(V):
     return 'Set[%s]' % name_for_type_like(v)
 
 
+def get_Set_or_CustomSet_name(V):
+    from zuper_typing.my_dict import get_set_Set_or_CustomSet_Value
+    v = get_set_Set_or_CustomSet_Value(V)
+    return 'Set[%s]' % name_for_type_like(v)
+
+
 def get_Tuple_name(V):
     return 'Tuple[%s]' % ",".join(name_for_type_like(_) for _ in get_tuple_types(V))
 
 
 def get_tuple_types(V):
+    if PYTHON_36:
+        if V.__args__ is None:
+            return ()
     return V.__args__  # XXX
 
 
 def name_for_type_like(x):
-    from zuper_typing.my_dict import is_Dict_or_CustomDict
+    from .my_dict import is_Dict_or_CustomDict
+    from .my_dict import is_set_or_CustomSet
     if is_Any(x):
         return 'Any'
     elif isinstance(x, typing.TypeVar):
         return x.__name__
+    elif x is type(None):
+        return 'NoneType'
     elif is_union(x):
         return get_Union_name(x)
     elif is_List(x):
@@ -392,10 +418,12 @@ def name_for_type_like(x):
         return get_Tuple_name(x)
     elif is_Set(x):
         return get_Set_name(x)
+    elif is_set_or_CustomSet(x):
+        return get_Set_or_CustomSet_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
     elif is_Dict_or_CustomDict(x):
-        from zuper_typing.my_dict import get_Dict_or_CustomDict_name
+        from .my_dict import get_Dict_or_CustomDict_name
         return get_Dict_or_CustomDict_name(x)
     elif is_Type(x):
         return get_Type_name(x)
@@ -428,9 +456,6 @@ def name_for_type_like(x):
         return str(x)
 
 
-from .logging import logger
-
-
 # do not make a dataclass
 class CallableInfo:
     parameters_by_name: Dict[str, Any]
@@ -450,7 +475,8 @@ class CallableInfo:
         self.returns = returns
 
     def __repr__(self):
-        return f'CallableInfo({self.parameters_by_name!r}, {self.parameters_by_position!r}, {self.ordering}, {self.returns})'
+        return f'CallableInfo({self.parameters_by_name!r}, {self.parameters_by_position!r}, ' \
+            f'{self.ordering}, {self.returns})'
 
     def replace(self, f: typing.Callable[[Any], Any]) -> 'CallableInfo':
         parameters_by_name = {k: f(v) for k, v in self.parameters_by_name.items()}

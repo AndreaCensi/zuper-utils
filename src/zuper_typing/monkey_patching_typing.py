@@ -1,10 +1,13 @@
+import copy
 import dataclasses
+import types
 import typing
 from datetime import datetime
 from typing import TypeVar, Generic, Dict
 
 import termcolor
 
+from zuper_typing.annotations_tricks import is_optional, name_for_type_like
 from .constants import PYTHON_36, ANNOTATIONS_ATT, DEPENDS_ATT
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
@@ -59,7 +62,7 @@ else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
 
-if PYTHON_36: # pragma: no cover
+if PYTHON_36:  # pragma: no cover
     original_dict_getitem = lambda a: Dict[a[0], a[1]]
 else:
     original_dict_getitem = Dict.__getitem__
@@ -115,28 +118,71 @@ NAME_ARG = '__name_arg__'
 # need to have this otherwise it's not possible to say that two types are the same
 class Reg:
     already = {}
+#
+# class MyNamedArg:
+#     def __init__(self, T, name):
+#         self.T = T
+#         self.name = name
+
+def MyNamedArg(T, name):
+    key = f'{T} {name}'
+    if key in Reg.already:
+        return Reg.already[key]
 
 
-def MyNamedArg(x: type, name):
+    class C:
+        pass
+    setattr(C, NAME_ARG, name)
+    setattr(C, 'original', T)
+
+    Reg.already[key] = C
+    return C
+
+def MyNamedArg_old(x: type, name: str):
     key = f'{x} {name}'
     if key in Reg.already:
         return Reg.already[key]
-    meta = getattr(x, '__metaclass_', type)
 
-    d = {NAME_ARG: name, 'original': x}
-    # FIXME not sure why this is needed
-    # if not hasattr(x, '__name__'):
-    #     setattr(x, NAME_ARG, name)
-    #     # setattr(x, 'original', x)
-    #     return x
-    #     raise Exception(x)
+    x2 = copy.copy(x)
+    try:
+        setattr(x2, NAME_ARG, name)
+    except:
+        return x
 
-    cname = x.__name__
+    return x2
 
-    res = meta(cname, (x,), d)
 
-    res.__module__ = 'MyNamedArg'
+    try:
+        meta = getattr(x, '__metaclass__', type)
 
+        d = {NAME_ARG: name, 'original': x}
+        # FIXME not sure why this is needed
+        # if not hasattr(x, '__name__'):
+        #     setattr(x, NAME_ARG, name)
+        #     # setattr(x, 'original', x)
+        #     return x
+        #     raise Exception(x)
+
+        if not hasattr(x, '__name__'):
+            cname = name_for_type_like(x)
+        else:
+            # raise NotImplementedError(x)
+            cname = x.__name__
+
+
+
+        try:
+            res = meta(cname, (x,), d)
+        except:
+            res = types.new_class(cname, (x,), d)
+
+        res.__module__ = 'MyNamedArg'
+
+
+    except:
+        from .logging import logger
+        logger.info(f'Could not create MyNamedArg({x!r},{name!r})')
+        raise
     Reg.already[key] = res
     return res
 
@@ -195,8 +241,15 @@ def get_all_annotations(cls: type) -> Dict[str, type]:
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
     original_doc = getattr(_cls, '__doc__', None)
-
+    # logger.info(_cls.__dict__)
     unsafe_hash = True
+
+    if hasattr(_cls, 'nominal'):
+        # logger.info('nominal for {_cls}')
+        nominal = True
+    else:
+        nominal = False
+        #
 
     # if the class does not have a metaclass, add one
     # We copy both annotations and constants. This is needed for cases like:
@@ -228,6 +281,29 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
         old_annotations.update(getattr(_cls, ANNOTATIONS_ATT, {}))
         setattr(_cls, ANNOTATIONS_ATT, old_annotations)
 
+    k = '__' + _cls.__name__.replace('[', '_').replace(']', '_')
+    if nominal:
+        # # annotations = getattr(K, '__annotations__', {})
+        old_annotations[k] = typing.Optional[bool]
+        setattr(_cls, k, True)
+
+    # reorder the fields
+    # def field_is_optional(x):
+    #     has_default = hasattr(_cls, x)
+    #     optional = is_optional(old_annotations[x])
+    #     return int(has_default) + int(optional)
+    # ordered_fields = sorted(old_annotations, key=field_is_optional)
+    # ordered_annotations = {}
+    # for k in ordered_fields:
+    #     ordered_annotations[k] = old_annotations[k]
+    # setattr(_cls, ANNOTATIONS_ATT, ordered_annotations)
+
+    #
+    # from .logging import logger
+    # logger.info(f'old: {list(old_annotations)}')
+    # logger.info(f'ord: {list(ordered_annotations)}')
+    # logger.info(f'_cls: {_cls.__annotations__}')
+
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
@@ -246,6 +322,9 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     # res.__doc__  = res.__doc__.replace(' ', '')
     # if original_doc is None:
     setattr(res, '__doc__', original_doc)
+
+    if nominal:
+        setattr(_cls, k, True)
     return res
 
 

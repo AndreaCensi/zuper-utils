@@ -40,25 +40,3 @@ def test_pretty2():
     Z = TypeVar('Z', covariant=True)
     print(Z)
 
-
-def test_names():
-    from typing import Iterator, List, Tuple, Set, Type, Callable
-
-    xs = (ClassVar[int],
-          Iterator[int],
-          List[int],
-          Tuple[int],
-          Set[int],
-          Type[int],
-          Dict[int, int],
-          original_dict_getitem((int, int)),
-          Callable[[int], int],
-          Callable[[], int],
-          Callable[[NamedArg(int, 'a')], int],
-          Callable)
-    for x in xs:
-        print(name_for_type_like(x))
-
-
-if __name__ == '__main__':
-    test_names()
