@@ -206,5 +206,9 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
             msg = f'Type {T1}\n is not a subclass of {T2}'
             return CanBeUsed(False, msg, matches)
 
+    if is_List(T1):
+        msg = f'Needs a List, got {T2}'
+        return CanBeUsed(False, msg, matches)
+
     msg = f'{T1} ? {T2}'  # pragma: no cover
     raise NotImplementedError(msg)

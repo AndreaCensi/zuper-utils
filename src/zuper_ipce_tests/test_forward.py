@@ -6,12 +6,6 @@ from nose.tools import assert_equal
 from zuper_ipce.ipce import type_to_schema
 from zuper_typing import dataclass
 
-# try:
-#     # noinspection PyUnresolvedReferences
-#     from typing import ForwardRef
-# except ImportError:  # pragma: no cover
-#     # noinspection PyUnresolvedReferences
-#     from typing import _ForwardRef as ForwardRef
 
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 

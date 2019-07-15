@@ -1,11 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypeVar, Dict, ClassVar
-
-from mypy_extensions import NamedArg
-
-from zuper_typing.annotations_tricks import name_for_type_like
-from zuper_typing.monkey_patching_typing import original_dict_getitem
+from typing import TypeVar, Dict
 
 
 def test_pretty1():
