@@ -202,6 +202,18 @@ def is_Iterator(x):
         return isinstance(x, typing._GenericAlias) and (x._name == 'Iterator')
 
 
+def is_Iterable(x):
+    _check_valid_arg(x)
+
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        return x is typing.Iterable or isinstance(x,
+                                                  typing.GenericMeta) and x.__origin__ is \
+               typing.Iterable
+    else:
+        return isinstance(x, typing._GenericAlias) and (x._name == 'Iterable')
+
+
 def is_Sequence(x):
     _check_valid_arg(x)
 
