@@ -162,6 +162,9 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
                 matches = can.matches
             return CanBeUsed(True, '', matches)
 
+    if is_Tuple(T2):
+        assert not is_Tuple(T1)
+        return CanBeUsed(False, '', matches)
     if is_Any(T1):
         assert not is_union(T2)
         if not is_Any(T2):

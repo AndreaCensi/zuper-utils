@@ -1,6 +1,7 @@
 from typing import Any, ClassVar, Tuple
 
-from .annotations_tricks import get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict
+from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, get_List_name,
+                                 name_for_type_like)
 
 
 class CustomDict(dict):
@@ -88,10 +89,30 @@ class CustomSet(set):
             return h
 
 
+class CustomList(set):
+    __list_type__: ClassVar[type]
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(tuple(self))
+            return h
+
+
 def make_set(V) -> type:
     attrs = {'__set_type__': V}
     name = get_Set_name_V(V)
     res = type(name, (CustomSet,), attrs)
+    return res
+
+
+def make_list(V) -> type:
+    attrs = {'__list_type__': V}
+    # name = get_List_name(V)
+    name = 'List[%s]' % name_for_type_like(V)
+
+    res = type(name, (CustomList,), attrs)
     return res
 
 
