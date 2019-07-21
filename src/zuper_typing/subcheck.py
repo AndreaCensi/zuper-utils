@@ -7,7 +7,8 @@ from .annotations_tricks import (get_List_arg, get_optional_type, get_tuple_type
                                  is_optional, is_union)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_set_Set_or_CustomSet_Value,
-                      is_Dict_or_CustomDict, is_set_or_CustomSet)
+                      is_Dict_or_CustomDict, is_set_or_CustomSet, is_list_or_List_or_CustomList,
+                      get_list_or_List_or_CustomList_arg)
 
 
 @dataclass
@@ -171,13 +172,13 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
             msg = 'Any is the top'
             return CanBeUsed(False, msg, matches)
 
-    if is_List(T2):
-        if not is_List(T1):
+    if is_list_or_List_or_CustomList(T2):
+        if not is_list_or_List_or_CustomList(T1):
             msg = 'A List can only be used as a List'
             return CanBeUsed(False, msg, matches)
 
-        t1 = get_List_arg(T1)
-        t2 = get_List_arg(T2)
+        t1 = get_list_or_List_or_CustomList_arg(T1)
+        t2 = get_list_or_List_or_CustomList_arg(T2)
         # print(f'matching List with {t1} {t2}')
         can = can_be_used_as2(t1, t2, matches, assumptions)
 
