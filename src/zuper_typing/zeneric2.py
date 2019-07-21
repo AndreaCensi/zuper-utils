@@ -174,11 +174,12 @@ class StructuralTyping(type):
             return True
 
         # loadable
-        if hasattr(instance, 'T'):
-            T = getattr(instance, 'T')
-            can = can_be_used_as2(T, self, {})
-            if can.result:
-                return True
+        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'):
+            if hasattr(instance, 'T'):
+                T = getattr(instance, 'T')
+                can = can_be_used_as2(T, self, {})
+                if can.result:
+                    return True
 
         res = can_be_used_as2(type(instance), self, {})
 

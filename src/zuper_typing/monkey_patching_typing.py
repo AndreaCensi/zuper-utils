@@ -383,8 +383,8 @@ def debug_print_str(x: str, prefix: str):
             colored[0] += '  ' + prefix
         s = "\n".join(colored)
         return s
-
-    return x.__repr__() + ' ' + prefix
+    ps = ' ' + prefix if prefix else ''
+    return x.__repr__() + ps
 
 
 def debug_print_date(x: datetime, prefix=None):
