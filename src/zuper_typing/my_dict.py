@@ -1,7 +1,6 @@
 from typing import Any, ClassVar, Tuple
 
-from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, get_List_name,
-                                 name_for_type_like)
+from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, name_for_type_like)
 
 
 class CustomDict(dict):
@@ -89,7 +88,7 @@ class CustomSet(set):
             return h
 
 
-class CustomList(set):
+class CustomList(list):
     __list_type__: ClassVar[type]
 
     def __hash__(self):
@@ -121,6 +120,24 @@ def is_list_or_List(x):
     return is_List(x) or (isinstance(x, type) and issubclass(x, list))
 
 
+def is_list_or_List_or_CustomList(x):
+    from zuper_typing.annotations_tricks import is_List
+    return (x is list) or is_List(x) or is_CustomList(x)
+
+
+def get_list_or_List_or_CustomList_arg(x):
+    from zuper_typing.annotations_tricks import is_List, get_List_arg
+    if x is list:
+        return Any
+    if is_List(x):
+        return get_List_arg(x)
+
+    if isinstance(x, type) and issubclass(x, CustomList):
+        return x.__list_type__
+
+    assert False, x
+
+
 def get_list_List_Value(x):
     from zuper_typing.annotations_tricks import is_List, get_List_arg
     if x is list:
@@ -137,6 +154,10 @@ def get_list_List_Value(x):
 
 def is_CustomSet(x):
     return isinstance(x, type) and issubclass(x, CustomSet)
+
+
+def is_CustomList(x):
+    return isinstance(x, type) and issubclass(x, CustomList)
 
 
 def is_set_or_CustomSet(x):
