@@ -55,6 +55,15 @@ def get_CustomDict_args(x):
     return x.__dict_type__
 
 
+def get_CustomSet_arg(x):
+    assert is_CustomSet(x)
+    return x.__set_type__
+
+def get_CustomList_arg(x):
+    assert is_CustomList(x)
+    return x.__list_type__
+
+
 def get_Dict_or_CustomDict_Key_Value(x):
     assert is_Dict_or_CustomDict(x), x
     # if x is typing.Dict:
