@@ -251,6 +251,15 @@ def get_Iterator_arg(x):
     return t
 
 
+def get_Iterable_arg(x):
+    assert is_Iterable(x), x
+    if x.__args__ is None:
+        return Any
+    t = x.__args__[0]
+    if is_placeholder_typevar(t):
+        return Any
+    return t
+
 def get_Sequence_arg(x):
     assert is_Sequence(x), x
     if x.__args__ is None:
