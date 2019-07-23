@@ -170,7 +170,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
 
     y1e = encode_bytes_before_json_serialization(y1)
     y1es = json.dumps(y1e, indent=2)
-    logger.info(f'y1es: {y1es}')
+    # logger.info(f'y1es: {y1es}')
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
     y1eslo = object_from_ipce(y1esl, use_globals)
 

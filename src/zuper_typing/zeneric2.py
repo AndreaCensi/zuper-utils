@@ -356,7 +356,7 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         # XXX
         return already[id(cls)]
 
-    elif cls in bindings:
+    elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
         return bindings[cls]
     elif is_TypeVar(cls):
         name = get_TypeVar_name(cls)

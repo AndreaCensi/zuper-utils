@@ -19,6 +19,7 @@ class CustomDict(dict):
                 raise ValueError(msg)
         dict.__setitem__(self, key, val)
 
+
     def __hash__(self):
         try:
             return self._cached_hash
@@ -27,18 +28,6 @@ class CustomDict(dict):
             return h
 
 
-# from . import logger
-def make_dict(K, V) -> type:
-    if isinstance(V, str):
-        msg = f'Trying to make dict with K = {K!r} and V = {V!r}; I need types, not strings.'
-        raise ValueError(msg)
-    # warnings.warn('Creating dict', stacklevel=2)
-    attrs = {'__dict_type__': (K, V)}
-    from zuper_typing.annotations_tricks import get_Dict_name_K_V
-    name = get_Dict_name_K_V(K, V)
-
-    res = type(name, (CustomDict,), attrs)
-    return res
 
 
 def is_CustomDict(x):
@@ -109,20 +98,52 @@ class CustomList(list):
 
 
 def make_set(V) -> type:
+    from .logging import logger
+    class MyType(type):
+        def __eq__(self, other):
+            res = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == self.__set_type__
+            return res
+
+            # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
     attrs = {'__set_type__': V}
     name = get_Set_name_V(V)
-    res = type(name, (CustomSet,), attrs)
+    res = MyType(name, (CustomSet,), attrs)
     return res
 
 
 def make_list(V) -> type:
+    from .logging import logger
+    class MyType(type):
+        def __eq__(self, other):
+            res = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == self.__list_type__
+            return res
+
+            # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
     attrs = {'__list_type__': V}
+
     # name = get_List_name(V)
     name = 'List[%s]' % name_for_type_like(V)
 
-    res = type(name, (CustomList,), attrs)
+    res = MyType(name, (CustomList,), attrs)
     return res
 
+# from . import logger
+def make_dict(K, V) -> type:
+    class MyType(type):
+        def __eq__(self, other):
+            res = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == self.__dict_type__
+            return res
+
+    if isinstance(V, str):
+        msg = f'Trying to make dict with K = {K!r} and V = {V!r}; I need types, not strings.'
+        raise ValueError(msg)
+    # warnings.warn('Creating dict', stacklevel=2)
+    attrs = {'__dict_type__': (K, V)}
+    from zuper_typing.annotations_tricks import get_Dict_name_K_V
+    name = get_Dict_name_K_V(K, V)
+
+    res = MyType(name, (CustomDict,), attrs)
+    return res
 
 def is_list_or_List(x):
     from zuper_typing.annotations_tricks import is_List
