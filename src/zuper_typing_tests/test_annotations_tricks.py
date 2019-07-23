@@ -108,10 +108,10 @@ def test_NewType():
     # assert get_ClassVar_arg(a) is int
 
 
-@known_failure
+
 def test_DictName():
     D = original_dict_getitem((int, str))
-    print(D.__dict__)
+    # print(D.__dict__)
     assert is_Dict(D)
     # assert get_Dict_name(D) == 'Dict[int,str]'
 

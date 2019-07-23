@@ -3,7 +3,7 @@ import dataclasses
 import types
 import typing
 from datetime import datetime
-from typing import Dict, Generic, TypeVar
+from typing import Dict, Generic, TypeVar, _GenericAlias
 
 import termcolor
 
@@ -36,6 +36,13 @@ class Alias1:
 
 
 if PYTHON_36:  # pragma: no cover
+    original_dict_getitem = lambda a: Dict[a[0], a[1]]
+else:
+    orig = _GenericAlias.__getitem__
+    def original_dict_getitem(a):
+         return orig(Dict, a)  # Dict.__getitem__
+
+if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
 
     old_one = GenericMeta.__getitem__
@@ -62,10 +69,6 @@ else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
 
-if PYTHON_36:  # pragma: no cover
-    original_dict_getitem = lambda a: Dict[a[0], a[1]]
-else:
-    original_dict_getitem = Dict.__getitem__
 
 Dict.__getitem__ = Alias1.__getitem__
 

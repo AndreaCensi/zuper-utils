@@ -1,6 +1,7 @@
 from typing import Any, ClassVar, Tuple
 
-from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, name_for_type_like)
+from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, name_for_type_like, is_List,
+                                 get_List_arg, is_Set, get_Set_arg)
 
 
 class CustomDict(dict):
@@ -101,8 +102,14 @@ def make_set(V) -> type:
     from .logging import logger
     class MyType(type):
         def __eq__(self, other):
-            res = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == self.__set_type__
+            V = getattr(self, '__set_type__')
+            if is_Set(other):
+                return V == get_Set_arg(other)
+            res = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == V
             return res
+
+        def __hash__(cls):
+            return 1  # XXX
 
             # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
     attrs = {'__set_type__': V}
@@ -115,9 +122,14 @@ def make_list(V) -> type:
     from .logging import logger
     class MyType(type):
         def __eq__(self, other):
-            res = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == self.__list_type__
+            V = getattr(self, '__list_type__')
+            if is_List(other):
+                return V == get_List_arg(other)
+            res = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == V
             return res
 
+        def __hash__(cls):
+            return 1  # XXX
             # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
     attrs = {'__list_type__': V}
 
@@ -131,8 +143,14 @@ def make_list(V) -> type:
 def make_dict(K, V) -> type:
     class MyType(type):
         def __eq__(self, other):
-            res = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == self.__dict_type__
+            K, V = getattr(self, '__dict_type__')
+            if is_Dict(other):
+                K1, V1 = get_Dict_args(other)
+                return K == K1 and V == V1
+            res = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == (K, V)
             return res
+        def __hash__(cls):
+            return 1 # XXX
 
     if isinstance(V, str):
         msg = f'Trying to make dict with K = {K!r} and V = {V!r}; I need types, not strings.'
