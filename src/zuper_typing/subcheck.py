@@ -2,13 +2,12 @@ from dataclasses import dataclass, is_dataclass
 from typing import *
 
 from zuper_commons.text import indent
-from .annotations_tricks import (get_List_arg, get_optional_type, get_tuple_types,
-                                 get_union_types, is_Any, is_List, is_Tuple, is_TypeVar,
-                                 is_optional, is_union)
+from .annotations_tricks import (get_Iterable_arg, get_optional_type, get_tuple_types, get_union_types, is_Any,
+                                 is_Iterable, is_List, is_Tuple, is_TypeVar, is_optional, is_union)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
-from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_set_Set_or_CustomSet_Value,
-                      is_Dict_or_CustomDict, is_set_or_CustomSet, is_list_or_List_or_CustomList,
-                      get_list_or_List_or_CustomList_arg)
+from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_list_or_List_or_CustomList_arg,
+                      get_set_Set_or_CustomSet_Value, is_Dict_or_CustomDict, is_list_or_List_or_CustomList,
+                      is_set_or_CustomSet)
 
 
 @dataclass
@@ -128,9 +127,10 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         for k, v2 in h2.items():
             if not k in h1:
-                msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does ' \
-                    f'' \
-                    f'not have it. '
+                # msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does ' \
+                #     f'' \
+                #     f'not have it. '
+                msg = k
                 return CanBeUsed(False, msg, matches)
             v1 = h1[k]
             can = can_be_used_as2(v1, v2, matches, assumptions)
@@ -166,6 +166,21 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     if is_Tuple(T2):
         assert not is_Tuple(T1)
         return CanBeUsed(False, '', matches)
+    #
+    # if is_Iterable(T1):
+    #     t1 = get_Iterable_arg(T1)
+    #
+    #     if is_Tuple(T2):
+    #         for t2 in get_tuple_types(T2):
+    #             can = can_be_used_as2(t1, t2, matches, assumptions)
+    #             if not can.result:
+    #                 return CanBeUsed(False, f'{t1} {T2}', matches)
+    #             matches = can.matches
+    #         return CanBeUsed(True, '', matches)
+    #     else:
+    #
+    #         return CanBeUsed(False, 'not implemented', matches)
+
     if is_Any(T1):
         assert not is_union(T2)
         if not is_Any(T2):

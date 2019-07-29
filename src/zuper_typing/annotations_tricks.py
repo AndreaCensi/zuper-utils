@@ -168,6 +168,20 @@ def get_NewType_arg(x):
     return x.__supertype__
 
 
+def get_NewType_name(x):
+    return x.__name__
+
+
+def get_NewType_repr(x):
+    n = get_NewType_name(x)
+    p = get_NewType_arg(x)
+    if is_Any(p):
+        return f'NewType({n!r})'
+    else:
+        sp = name_for_type_like(p)
+        return f'NewType({n!r}, {sp})'
+
+
 def is_Tuple(x):
     _check_valid_arg(x)
 
@@ -259,6 +273,7 @@ def get_Iterable_arg(x):
     if is_placeholder_typevar(t):
         return Any
     return t
+
 
 def get_Sequence_arg(x):
     assert is_Sequence(x), x
@@ -453,7 +468,8 @@ def name_for_type_like(x):
         return get_Sequence_name(x)
     elif is_optional(x):
         return get_Optional_name(x)
-
+    elif is_NewType(x):
+        return get_NewType_repr(x)
     elif is_Callable(x):
         info = get_Callable_info(x)
 
@@ -496,7 +512,7 @@ class CallableInfo:
 
     def __repr__(self):
         return f'CallableInfo({self.parameters_by_name!r}, {self.parameters_by_position!r}, ' \
-            f'{self.ordering}, {self.returns})'
+               f'{self.ordering}, {self.returns})'
 
     def replace(self, f: typing.Callable[[Any], Any]) -> 'CallableInfo':
         parameters_by_name = {k: f(v) for k, v in self.parameters_by_name.items()}
