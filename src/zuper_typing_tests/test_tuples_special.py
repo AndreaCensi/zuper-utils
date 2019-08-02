@@ -1,6 +1,6 @@
 from typing import Any, Tuple, TypeVar
 
-from zuper_typing.annotations_tricks import get_VarTuple_arg, is_Any, is_FixedTuple, is_Tuple, is_VarTuple
+from zuper_typing.annotations_tricks import get_VarTuple_arg, is_Any, is_FixedTuple, is_Tuple, is_VarTuple, make_Tuple
 
 #
 # T1 = Tuple
@@ -41,6 +41,14 @@ def test_tuple_special_3():
 
 def test_tuple_special_4():
     T1 = Tuple[int, str]
+    assert is_Tuple(T1), T1
+    assert is_FixedTuple(T1), T1
+    assert not is_VarTuple(T1), T1
+
+
+
+def test_tuple_special_5():
+    T1 = make_Tuple()
     assert is_Tuple(T1), T1
     assert is_FixedTuple(T1), T1
     assert not is_VarTuple(T1), T1

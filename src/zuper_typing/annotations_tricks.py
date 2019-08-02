@@ -51,10 +51,15 @@ def make_Union(*a):
         x = Union.__getitem__(tuple(a))
     return x
 
-
+TUPLE_EMPTY_ATTR = '__empty__'
 def make_Tuple(*a):
     if len(a) == 0:
-        x = Tuple
+        x = Tuple[bool]
+        # from .logging import logger
+        # logger.info(f'x : {x.__args__!r}')
+        #
+        x.__args__ = ()
+        setattr(x, TUPLE_EMPTY_ATTR, True)
     elif len(a) == 1:
         x = Tuple[a[0]]
     elif len(a) == 2:
@@ -196,11 +201,12 @@ def is_FixedTuple(x) -> bool:
     if not is_Tuple(x):
         return False
     ts = get_tuple_types(x)
-    if len(ts) == 0:
+    # if len(ts) == 0:
+    #     return False
+    if len(ts) == 2 and ts[-1] == ...:
         return False
-    if len(ts) != 2:
+    else:
         return True
-    return ts[-1] != ...
 
 
 def get_FixedTuple_args(x) -> Tuple[type, ...]:
@@ -212,11 +218,16 @@ def is_VarTuple(x) -> bool:
     if not is_Tuple(x):
         return False
     ts = get_tuple_types(x)
-    if len(ts) == 0:
+    if len(ts) == 2 and ts[-1] == ...:
         return True
-    if len(ts) != 2:
+    else:
         return False
-    return ts[-1] == ...
+    #
+    # if len(ts) == 0:
+    #     return True
+    # if len(ts) != 2:
+    #     return False
+    # return ts[-1] == ...
 
 
 def get_VarTuple_arg(x):
@@ -465,8 +476,16 @@ def get_Tuple_name(V):
 def get_tuple_types(V):
     if PYTHON_36:
         if V.__args__ is None:
+            return Any, ...
+    args = V.__args__  # XXX
+    if args == ():
+        if hasattr(V, TUPLE_EMPTY_ATTR):
             return ()
-    return V.__args__  # XXX
+        else:
+            return Any, ...
+    else:
+        return args
+
 
 
 def name_for_type_like(x):
