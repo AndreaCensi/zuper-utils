@@ -25,7 +25,10 @@ class CustomDict(dict):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self.items())))
+            try:
+                h = self._cached_hash = hash(tuple(sorted(self.items())))
+            except TypeError:
+                h = self._cached_hash = hash(tuple(self.items()))
             return h
 
 
@@ -83,7 +86,10 @@ class CustomSet(set):
         try:
             return self._cached_hash
         except AttributeError:
-            h = self._cached_hash = hash(tuple(sorted(self)))
+            try:
+                h = self._cached_hash = hash(tuple(sorted(self)))
+            except TypeError:
+                h = self._cached_hash = hash(tuple(self))
             return h
 
 

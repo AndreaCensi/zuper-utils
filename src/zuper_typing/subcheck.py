@@ -2,8 +2,8 @@ from dataclasses import dataclass, is_dataclass
 from typing import *
 
 from zuper_commons.text import indent
-from .annotations_tricks import (get_Iterable_arg, get_optional_type, get_tuple_types, get_union_types, is_Any,
-                                 is_Iterable, is_List, is_Tuple, is_TypeVar, is_optional, is_union)
+from .annotations_tricks import (get_optional_type, get_tuple_types, get_union_types, is_Any,
+                                 is_List, is_Tuple, is_TypeVar, is_optional, is_union, is_Sequence, get_Sequence_arg)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_list_or_List_or_CustomList_arg,
                       get_set_Set_or_CustomSet_Value, is_Dict_or_CustomDict, is_list_or_List_or_CustomList,
@@ -116,7 +116,7 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         if not is_dataclass(T1):
             msg = f'Expecting dataclass to match to {T2}, got something that is not a ' \
-                f'dataclass: {T1}'
+                  f'dataclass: {T1}'
             msg += f'  union: {is_union(T1)}'
             return CanBeUsed(False, msg, matches)
         # h1 = get_type_hints(T1)
@@ -217,6 +217,23 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, '', can.matches)
 
+
+    if is_Sequence(T1):
+        t1 = get_Sequence_arg(T1)
+
+        if is_list_or_List_or_CustomList(T2):
+            t2 = get_list_or_List_or_CustomList_arg(T2)
+            can = can_be_used_as2(t1, t2, matches, assumptions)
+
+            if not can.result:
+                return CanBeUsed(False, f'{t1} {T2}', matches)
+
+            return CanBeUsed(True, '', can.matches)
+
+        msg = f'Needs a Sequence[{t1}], got {T2}'
+        return CanBeUsed(False, msg, matches)
+
+
     if isinstance(T1, type) and isinstance(T2, type):
         # NOTE: issubclass(A, B) == type(T2).__subclasscheck__(T2, T1)
         if type.__subclasscheck__(T2, T1):
@@ -228,6 +245,13 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     if is_List(T1):
         msg = f'Needs a List, got {T2}'
         return CanBeUsed(False, msg, matches)
+
+    if T1 is type(None):
+        if T2 is type(None):
+            return CanBeUsed(True, '', matches)
+        else:
+            msg = f'Needs type(None), got {T2}'
+            return CanBeUsed(False, msg, matches)
 
     msg = f'{T1} ? {T2}'  # pragma: no cover
     raise NotImplementedError(msg)

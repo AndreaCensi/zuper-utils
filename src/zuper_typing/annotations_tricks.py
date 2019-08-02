@@ -182,7 +182,7 @@ def get_NewType_repr(x):
         return f'NewType({n!r}, {sp})'
 
 
-def is_Tuple(x):
+def is_Tuple(x) -> bool:
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -190,6 +190,41 @@ def is_Tuple(x):
         return isinstance(x, typing.TupleMeta)
     else:
         return isinstance(x, typing._GenericAlias) and (x._name == 'Tuple')
+
+
+def is_FixedTuple(x) -> bool:
+    if not is_Tuple(x):
+        return False
+    ts = get_tuple_types(x)
+    if len(ts) == 0:
+        return False
+    if len(ts) != 2:
+        return True
+    return ts[-1] != ...
+
+
+def get_FixedTuple_args(x) -> Tuple[type, ...]:
+    assert is_FixedTuple(x)
+    return get_tuple_types(x)
+
+
+def is_VarTuple(x) -> bool:
+    if not is_Tuple(x):
+        return False
+    ts = get_tuple_types(x)
+    if len(ts) == 0:
+        return True
+    if len(ts) != 2:
+        return False
+    return ts[-1] == ...
+
+
+def get_VarTuple_arg(x):
+    assert is_VarTuple(x)
+    ts = get_tuple_types(x)
+    if len(ts) == 0:
+        return Any
+    return ts[0]
 
 
 def is_List(x):
