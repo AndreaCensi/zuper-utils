@@ -30,6 +30,11 @@ class CustomDict(dict):
                 h = self._cached_hash = hash(tuple(self.items()))
             return h
 
+    def copy(self):
+        return type(self)(self)
+
+
+
 
 def is_CustomDict(x):
     return isinstance(x, type) and issubclass(x, CustomDict)

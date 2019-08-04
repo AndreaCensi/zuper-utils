@@ -9,7 +9,8 @@ from typing import Any, ClassVar, Dict, Sequence, Tuple, Type, TypeVar, _eval_ty
 
 from zuper_commons.text import indent, pretty_dict
 from zuper_typing.my_dict import (get_Dict_or_CustomDict_Key_Value, is_Dict_or_CustomDict,
-                                  make_dict)
+                                  make_dict, is_set_or_CustomSet, get_set_Set_or_CustomSet_Value, make_set,
+                                  is_CustomList, get_CustomList_arg, make_list)
 from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Iterator_arg,
                                  get_List_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
                                  get_Type_arg,
@@ -278,7 +279,7 @@ class Fake:
 
 
 @loglevel
-def resolve_types(T, locals_=None, refs=(), nrefs=None):
+def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]]=None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
     rl = RecLogger()
@@ -398,6 +399,18 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
                              rl=rl.child('v'))
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
         return make_dict(K, V)
+    elif is_set_or_CustomSet(cls):
+        V0 = get_set_Set_or_CustomSet_Value(cls)
+        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('v'))
+
+        return make_set(V)
+    elif is_CustomList(cls):
+        V0 = get_CustomList_arg(cls)
+        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
+                             rl=rl.child('v'))
+
+        return make_list(V)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, '__annotations__'):
         return make_type(cls, bindings)
