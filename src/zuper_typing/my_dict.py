@@ -1,7 +1,7 @@
 from typing import Any, ClassVar, Tuple
 
-from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_Set_name_V, is_Dict, name_for_type_like, is_List,
-                                 get_List_arg, is_Set, get_Set_arg)
+from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_List_arg, get_Set_arg, get_Set_name_V, is_Dict,
+                                 is_List, is_Set, name_for_type_like)
 
 
 class CustomDict(dict):
@@ -20,7 +20,6 @@ class CustomDict(dict):
                 raise ValueError(msg)
         dict.__setitem__(self, key, val)
 
-
     def __hash__(self):
         try:
             return self._cached_hash
@@ -30,8 +29,6 @@ class CustomDict(dict):
             except TypeError:
                 h = self._cached_hash = hash(tuple(self.items()))
             return h
-
-
 
 
 def is_CustomDict(x):
@@ -51,6 +48,7 @@ def get_CustomDict_args(x):
 def get_CustomSet_arg(x):
     assert is_CustomSet(x)
     return x.__set_type__
+
 
 def get_CustomList_arg(x):
     assert is_CustomList(x)
@@ -105,7 +103,6 @@ class CustomList(list):
 
 
 def make_set(V) -> type:
-    from .logging import logger
     class MyType(type):
         def __eq__(self, other):
             V = getattr(self, '__set_type__')
@@ -117,15 +114,16 @@ def make_set(V) -> type:
         def __hash__(cls):
             return 1  # XXX
 
-            # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
-    attrs = {'__set_type__': V}
+    def copy(self):
+        return type(self)(self)
+
+    attrs = {'__set_type__': V, 'copy': copy}
     name = get_Set_name_V(V)
     res = MyType(name, (CustomSet,), attrs)
     return res
 
 
 def make_list(V) -> type:
-    from .logging import logger
     class MyType(type):
         def __eq__(self, other):
             V = getattr(self, '__list_type__')
@@ -137,13 +135,21 @@ def make_list(V) -> type:
         def __hash__(cls):
             return 1  # XXX
             # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
-    attrs = {'__list_type__': V}
+
+    def copy(self):
+        return type(self)(self)
+
+    attrs = {
+          '__list_type__': V,
+          'copy':          copy
+          }
 
     # name = get_List_name(V)
     name = 'List[%s]' % name_for_type_like(V)
 
     res = MyType(name, (CustomList,), attrs)
     return res
+
 
 # from . import logger
 def make_dict(K, V) -> type:
@@ -155,8 +161,9 @@ def make_dict(K, V) -> type:
                 return K == K1 and V == V1
             res = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == (K, V)
             return res
+
         def __hash__(cls):
-            return 1 # XXX
+            return 1  # XXX
 
     if isinstance(V, str):
         msg = f'Trying to make dict with K = {K!r} and V = {V!r}; I need types, not strings.'
@@ -168,6 +175,7 @@ def make_dict(K, V) -> type:
 
     res = MyType(name, (CustomDict,), attrs)
     return res
+
 
 def is_list_or_List(x):
     from zuper_typing.annotations_tricks import is_List

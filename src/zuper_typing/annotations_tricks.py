@@ -231,7 +231,7 @@ def is_VarTuple(x) -> bool:
 
 
 def get_VarTuple_arg(x):
-    assert is_VarTuple(x)
+    assert is_VarTuple(x), x
     ts = get_tuple_types(x)
     if len(ts) == 0:
         return Any
@@ -524,6 +524,9 @@ def name_for_type_like(x):
         return get_Optional_name(x)
     elif is_NewType(x):
         return get_NewType_repr(x)
+    elif is_forward_ref(x):
+        a = get_forward_ref_arg(x)
+        return f'ForwardRef({a!r})'
     elif is_Callable(x):
         info = get_Callable_info(x)
 
