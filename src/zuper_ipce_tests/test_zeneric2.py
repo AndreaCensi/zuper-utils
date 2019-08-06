@@ -235,41 +235,46 @@ type: object
     print(T.__annotations__)
 
 
-if not USE_REMEMBERED_CLASSES:
-    @known_failure
-    def test_more2():
-        X = TypeVar('X')
-        Y = TypeVar('Y')
+# if not USE_REMEMBERED_CLASSES:
+#     f = lambda x: x
+# else:
+#     f = lambda x: x
+#     # f = known_failure
+#
+# @f
+def test_more2():
+    X = TypeVar('X')
+    Y = TypeVar('Y')
 
-        @dataclass
-        class Entity11(Generic[X]):
-            data0: X
+    @dataclass
+    class Entity11(Generic[X]):
+        data0: X
 
-            parent: "Optional[Entity11[X]]" = None
+        parent: "Optional[Entity11[X]]" = None
 
-        type_to_schema(Entity11, {})
+    type_to_schema(Entity11, {})
 
-        EI = Entity11[int]
+    EI = Entity11[int]
 
-        assert_type_roundtrip(Entity11, {})
-        assert_type_roundtrip(EI, {})
+    assert_type_roundtrip(Entity11, {})
+    assert_type_roundtrip(EI, {})
 
-        @dataclass
-        class Entity2(Generic[Y]):
-            parent: Optional[Entity11[Y]] = None
+    @dataclass
+    class Entity2(Generic[Y]):
+        parent: Optional[Entity11[Y]] = None
 
-        type_to_schema(Entity2, {})
+    type_to_schema(Entity2, {})
 
-        assert_type_roundtrip(Entity2, {})  # boom
+    assert_type_roundtrip(Entity2, {})  # boom
 
-        if True:  # pragma: no cover
-            E2I = Entity2[int]
-            assert_type_roundtrip(E2I, {})
+    if True:  # pragma: no cover
+        E2I = Entity2[int]
+        assert_type_roundtrip(E2I, {})
 
-            x = E2I(parent=EI(data0=4))
-            # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-            assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
-                                    works_without_schema=False)
+        x = E2I(parent=EI(data0=4))
+        # print(json.dumps(type_to_schema(type(x), {}), indent=2))
+        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
+                                works_without_schema=False)
 
 
 def test_more2b():

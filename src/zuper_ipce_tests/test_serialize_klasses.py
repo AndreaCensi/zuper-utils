@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from typing import Dict
 
+from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_ipce.ipce import ipce_from_object
 from zuper_ipce.pretty import pprint
 from .test_utils import assert_type_roundtrip, assert_object_roundtrip
@@ -33,7 +34,8 @@ def test_serialize_klasses1():
     a = MyLanguage({'a': A})
     assert_type_roundtrip(MyLanguage, {})
 
-    assert_object_roundtrip(a, {}, expect_equality=False)  # because of classes
+    expect_equality = USE_REMEMBERED_CLASSES
+    assert_object_roundtrip(a, {}, expect_equality=expect_equality)  # because of classes
 
 
 def test_serialize_klasses2():

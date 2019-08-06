@@ -1166,6 +1166,16 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
     assert res[JSC_TYPE] == JSC_OBJECT
     assert JSC_DEFINITIONS in res
     cls_name = res[JSC_TITLE]
+    if X_PYTHON_MODULE_ATT in res:
+        module_name = res[X_PYTHON_MODULE_ATT]
+        k = module_name, cls_name
+        if USE_REMEMBERED_CLASSES:
+            if k in RegisteredClasses.klasses:
+                return RegisteredClasses.klasses[k]
+            else:
+                logger.info(f'cannot find generic {k}')
+    else:
+        module_name = None
 
     encountered = dict(encountered)
 
@@ -1533,19 +1543,23 @@ def eval_just_string(t: str, globals_):
 def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered: EncounteredDict,
                              schema_id=None, rl: RecLogger = None) -> Type:
     # rl = rl or RecLogger()
-    # rl.pp('schema_to_type_dataclass', res=res, global_symbols=global_symbols, encountered=encountered)
+    # rl.pp('schema_to_type_dataclass', res=res) #, global_symbols=global_symbols, encountered=encountered)
     assert res[JSC_TYPE] == JSC_OBJECT
     cls_name = res[JSC_TITLE]
     if X_PYTHON_MODULE_ATT in res:
         module_name = res[X_PYTHON_MODULE_ATT]
-    else:
-        module_name = None
 
         k = module_name, cls_name
         if USE_REMEMBERED_CLASSES:
             if k in RegisteredClasses.klasses:
                 # logger.error(f'We can use the class {k}')
+                logger.info(f'using the cached dataclass {k}')
                 return RegisteredClasses.klasses[k]
+            else:
+                logger.info(f'cannot find dataclass {k}')
+
+    else:
+        module_name = None
 
     # It's already done by the calling function
     # if ID_ATT in res:
@@ -1724,9 +1738,9 @@ def recursive_type_subst(T, f, ignore=()):
 
 def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered):
     # print('fix_annotations_with_self_reference')
-    logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
-    logger.info(f'encountered: {encountered}')
-    logger.info(f'global_symbols: {global_symbols}')
+    # logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
+    # logger.info(f'encountered: {encountered}')
+    # logger.info(f'global_symbols: {global_symbols}')
 
     def f(M):
         # print((M, Placeholder, M is Placeholder, M == Placeholder, id(M), id(Placeholder)))
@@ -1753,13 +1767,13 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
             d1 = getattr(r, '__doc__', 'NO DOC')
         else:
             d0 = d1 = None
-        logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
+        # logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
         # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
         return r
 
     for k, v0 in T.__annotations__.items():
         v = recursive_type_subst(v0, f2)
-        logger.info(f'annotation {k} {v0} -> {v}')
+        # logger.info(f'annotation {k} {v0} -> {v}')
         T.__annotations__[k] = v
         # d0 = getattr(v0, '__doc__', 'NO DOC')
         # d1 = getattr(v, '__doc__', 'NO DOC')
@@ -1769,4 +1783,5 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
         f.type = T.__annotations__[f.name]
 
 
-    logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
+    # logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
+#

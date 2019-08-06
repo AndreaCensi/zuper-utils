@@ -4,7 +4,7 @@ from typing import *
 from nose.tools import raises
 
 from zuper_typing.annotations_tricks import make_Union, make_Tuple
-from zuper_ipce_tests.test_not_implemented import test_default_arguments
+
 from zuper_ipce.ipce import ipce_to_object
 from zuper_typing.my_dict import make_set
 from zuper_typing.my_intersection import Intersection
@@ -136,5 +136,3 @@ def test_dict_with_optional_key():
     assert_type_roundtrip(T, {})
 
 
-if __name__ == '__main__':
-    test_default_arguments()

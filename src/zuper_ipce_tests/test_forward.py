@@ -3,6 +3,7 @@ from typing import *
 import yaml
 from nose.tools import assert_equal
 
+from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_ipce.ipce import type_to_schema
 from zuper_typing import dataclass
 from zuper_typing_tests.test_utils import known_failure
@@ -110,7 +111,15 @@ def test_forward08():
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
-@known_failure
+
+
+if  USE_REMEMBERED_CLASSES:
+    f = lambda x: x
+else:
+    f = known_failure
+
+
+@f
 def test_forward09():
     X = TypeVar('X')
 
