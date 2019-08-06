@@ -1,13 +1,11 @@
 import copy
 import dataclasses
-import types
 import typing
 from datetime import datetime
 from typing import Dict, Generic, TypeVar
 
 import termcolor
 
-from zuper_typing.annotations_tricks import name_for_type_like
 from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
@@ -35,15 +33,10 @@ class Alias1:
         return previous_getitem(self, params)
 
 
-# if PYTHON_36:  # pragma: no cover
-#     # original_dict_getitem = lambda a: Dict[a[0], a[1]]
 def original_dict_getitem(a):
-     return previous_getitem(Dict, a)  # Dict.__getitem__
+    # noinspection PyArgumentList
+    return previous_getitem(Dict, a)
 
-# else:
-#     # orig = _GenericAlias.__getitem__
-#     def original_dict_getitem(a):
-#          return previous_getitem(Dict, a)  # Dict.__getitem__
 
 if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
@@ -71,7 +64,6 @@ if PYTHON_36:  # pragma: no cover
 else:
     Generic.__class_getitem__ = ZenericFix.__class_getitem__
     _GenericAlias.__getitem__ = Alias1.__getitem__
-
 
 Dict.__getitem__ = Alias1.__getitem__
 
@@ -126,12 +118,6 @@ class Reg:
     already = {}
 
 
-#
-# class MyNamedArg:
-#     def __init__(self, T, name):
-#         self.T = T
-#         self.name = name
-
 def MyNamedArg(T, name):
     key = f'{T} {name}'
     if key in Reg.already:
@@ -153,44 +139,45 @@ def MyNamedArg_old(x: type, name: str):
         return Reg.already[key]
 
     x2 = copy.copy(x)
+    # noinspection PyBroadException
     try:
         setattr(x2, NAME_ARG, name)
     except:
         return x
 
     return x2
-
-    try:
-        meta = getattr(x, '__metaclass__', type)
-
-        d = {NAME_ARG: name, 'original': x}
-        # FIXME not sure why this is needed
-        # if not hasattr(x, '__name__'):
-        #     setattr(x, NAME_ARG, name)
-        #     # setattr(x, 'original', x)
-        #     return x
-        #     raise Exception(x)
-
-        if not hasattr(x, '__name__'):
-            cname = name_for_type_like(x)
-        else:
-            # raise NotImplementedError(x)
-            cname = x.__name__
-
-        try:
-            res = meta(cname, (x,), d)
-        except:
-            res = types.new_class(cname, (x,), d)
-
-        res.__module__ = 'MyNamedArg'
-
-
-    except:
-        from .logging import logger
-        logger.info(f'Could not create MyNamedArg({x!r},{name!r})')
-        raise
-    Reg.already[key] = res
-    return res
+    #
+    # try:
+    #     meta = getattr(x, '__metaclass__', type)
+    #
+    #     d = {NAME_ARG: name, 'original': x}
+    #     # FIXME not sure why this is needed
+    #     # if not hasattr(x, '__name__'):
+    #     #     setattr(x, NAME_ARG, name)
+    #     #     # setattr(x, 'original', x)
+    #     #     return x
+    #     #     raise Exception(x)
+    #
+    #     if not hasattr(x, '__name__'):
+    #         cname = name_for_type_like(x)
+    #     else:
+    #         # raise NotImplementedError(x)
+    #         cname = x.__name__
+    #
+    #     try:
+    #         res = meta(cname, (x,), d)
+    #     except:
+    #         res = types.new_class(cname, (x,), d)
+    #
+    #     res.__module__ = 'MyNamedArg'
+    #
+    #
+    # except:
+    #     from .logging import logger
+    #     logger.info(f'Could not create MyNamedArg({x!r},{name!r})')
+    #     raise
+    # Reg.already[key] = res
+    # return res
 
 
 import mypy_extensions
@@ -315,7 +302,7 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     res = original_dataclass(_cls, init=init, repr=repr, eq=eq, order=order,
                              unsafe_hash=unsafe_hash, frozen=frozen)
     remember_created_class(res)
-    assert dataclasses.is_dataclass(res)
+    # assert dataclasses.is_dataclass(res)
     refs = getattr(_cls, DEPENDS_ATT, ())
     resolve_types(res, refs=refs)
 

@@ -5,7 +5,7 @@ from nose.tools import assert_equal
 
 from zuper_ipce.ipce import type_to_schema
 from zuper_typing import dataclass
-
+from zuper_typing_tests.test_utils import known_failure
 
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
@@ -110,7 +110,7 @@ def test_forward08():
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
-
+@known_failure
 def test_forward09():
     X = TypeVar('X')
 

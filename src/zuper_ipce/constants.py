@@ -64,3 +64,4 @@ SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
                                JSC_FORMAT: JSC_FORMAT_CID,
                                SCHEMA_ATT: SCHEMA_ID})
 
+USE_REMEMBERED_CLASSES = True

@@ -31,7 +31,7 @@ from zuper_typing.annotations_tricks import (is_optional, get_optional_type, is_
                                              get_Dict_name_K_V, is_Tuple, get_List_arg,
                                              is_List, is_Set, get_Set_arg, get_Set_name_V, is_Sequence,
                                              get_Sequence_arg, is_VarTuple, get_VarTuple_arg, make_Tuple, is_TupleLike,
-                                             get_FixedTuple_args, is_FixedTuple)
+                                             get_FixedTuple_args, is_FixedTuple, make_Union, get_Dict_args)
 from .constants import (X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm,
                         ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER,
                         JSC_OBJECT, JSC_TITLE,
@@ -40,14 +40,15 @@ from .constants import (X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, Glob
                         JSC_NULL,
                         JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME,
                         JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF,
-                        JSC_ANYOF, JSC_TITLE_SLICE)
+                        JSC_ANYOF, JSC_TITLE_SLICE, USE_REMEMBERED_CLASSES)
 
 from zuper_typing.my_dict import (make_dict, CustomDict, make_set, CustomSet,
                                   get_set_Set_or_CustomSet_Value, is_CustomDict,
                                   is_CustomSet, is_Dict_or_CustomDict,
                                   get_Dict_or_CustomDict_Key_Value, is_list_or_List_or_CustomList,
                                   get_list_or_List_or_CustomList_arg, get_list_or_List_or_CustomList_name,
-                                  is_set_or_CustomSet)
+                                  is_set_or_CustomSet, is_CustomList, get_CustomList_arg, make_list, get_CustomSet_arg,
+                                  get_CustomDict_args)
 from zuper_typing.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
@@ -59,7 +60,7 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     pass
 else:
 
-    from zuper_typing.monkey_patching_typing import my_dataclass
+    from zuper_typing.monkey_patching_typing import my_dataclass, RegisteredClasses
 
 __all__ = ['object_from_ipce', 'ipce_from_object']
 PASS_THROUGH = (KeyboardInterrupt, RecursionError)
@@ -1114,8 +1115,8 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return type_numpy_to_schema(T, globals_, processing)
 
     msg = f'Cannot interpret this type: {T!r}'
-    msg += f'\n globals_: {globals_}'
-    msg += f'\n globals_: {processing}'
+    msg += f'\n   globals_: {globals_}'
+    msg += f'\n processing: {processing}'
     raise ValueError(msg)
 
 
@@ -1211,7 +1212,7 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
     class Placeholder:
         pass
 
-    fix_annotations_with_self_reference(T, cls_name, Placeholder)
+    fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered)
 
     if JSC_DESCRIPTION in res:
         setattr(T, '__doc__', res[JSC_DESCRIPTION])
@@ -1531,10 +1532,20 @@ def eval_just_string(t: str, globals_):
 @loglevel
 def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered: EncounteredDict,
                              schema_id=None, rl: RecLogger = None) -> Type:
-    rl = rl or RecLogger()
+    # rl = rl or RecLogger()
     # rl.pp('schema_to_type_dataclass', res=res, global_symbols=global_symbols, encountered=encountered)
     assert res[JSC_TYPE] == JSC_OBJECT
     cls_name = res[JSC_TITLE]
+    if X_PYTHON_MODULE_ATT in res:
+        module_name = res[X_PYTHON_MODULE_ATT]
+    else:
+        module_name = None
+
+        k = module_name, cls_name
+        if USE_REMEMBERED_CLASSES:
+            if k in RegisteredClasses.klasses:
+                # logger.error(f'We can use the class {k}')
+                return RegisteredClasses.klasses[k]
 
     # It's already done by the calling function
     # if ID_ATT in res:
@@ -1553,7 +1564,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
     fields = []  # (name, type, Field)
     for pname, v in res.get(JSC_PROPERTIES, {}).items():
         ptype = schema_to_type(v, global_symbols, encountered)
-        # assert isinstance(ptype)
+
         if pname in required:
             _Field = field()
         else:
@@ -1593,7 +1604,7 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         logger.error(msg)
         raise
 
-    fix_annotations_with_self_reference(T, cls_name, Placeholder)
+    fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered)
 
     for pname, v in res.get(X_CLASSATTS, {}).items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
@@ -1608,11 +1619,10 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         # the original one did not have it
         setattr(T, '__doc__', None)
 
+    if module_name is not None:
+        setattr(T, '__module__', module_name)
     # if ATT_PYTHON_NAME in res:
     #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
-
-    if X_PYTHON_MODULE_ATT in res:
-        setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
     return T
 
 
@@ -1622,45 +1632,88 @@ def recursive_type_subst(T, f, ignore=()):
     r = lambda X: recursive_type_subst(X, f, ignore + (T,))
     if is_optional(T):
         a = get_optional_type(T)
-        return Optional[r(a)]
+        a2 = r(a)
+        # logger.info(f'optional {a} -> {a2}')
+        if a == a2:
+            return T
+        return Optional[a2]
     elif is_forward_ref(T):
         return f(T)
     elif is_union(T):
-        ts = tuple(r(_) for _ in get_union_types(T))
-        return Union[ts]
+        ts0 = get_union_types(T)
+        ts = tuple(r(_) for _ in ts0)
+        # logger.info(f'ts0 {ts0} -> {ts}')
+        if ts0 == ts:
+            return T
+        return make_Union(*ts)
     elif is_TupleLike(T):
         if is_VarTuple(T):
             X = get_VarTuple_arg(T)
-            return Tuple[r(X), ...]
+            X2 = r(X)
+            if X == X2:
+                return T
+            return Tuple[X2, ...]
         elif is_FixedTuple(T):
             args = get_FixedTuple_args(T)
             ts = tuple(r(_) for _ in args)
+            if args == ts:
+                return T
             return make_Tuple(*ts)
         else:
             assert False
     elif is_Dict(T):
-        K, V = T.__args__
-        return Dict[r(K), r(V)]
+        K, V = get_Dict_args(T)
+        K2, V2 = r(K), r(V)
+        if (K, V) == (K2, V2):
+            return T
+        return Dict[K, V]
     elif is_CustomDict(T):
-        K, V = T.__dict_type__
-        return make_dict(r(K), r(V))
+        K, V = get_CustomDict_args(T)
+        K2, V2 = r(K), r(V)
+        if (K, V) == (K2, V2):
+            return T
+        return make_dict(K2, V2)
     elif is_List(T):
-        return List[r(get_List_arg(T))]
+        V = get_List_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return List[V2]
+    elif is_CustomList(T):
+        V = get_CustomList_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return make_list(V2)
     elif is_Set(T):
-        return Set[r(get_Set_arg(T))]
+        V = get_Set_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return make_set(V2)
     elif is_CustomSet(T):
-        X = r(T.__set_type__)
-        return make_set(X)
+        V = get_CustomSet_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return make_set(V2)
     elif is_dataclass(T):
         annotations = dict(getattr(T, '__annotations__', {}))
+        annotations2 = {}
+        nothing_changed = True
         for k, v0 in list(annotations.items()):
-            annotations[k] = r(v0)
+            v2 = r(v0)
+            nothing_changed &= (v0==v2)
+            annotations2[k] = v2
+        if nothing_changed:
+            return T
+
         T2 = my_dataclass(type(T.__name__, (), {
               '__annotations__': annotations,
               '__module__':      T.__module__,
               '__doc__':         getattr(T, '__doc__', None)
               }))
-        # setattr(T2, '__module__', T.__module__)
+
         return T2
         # for f in dataclasses.fields(T):
         #     f.type = T.__annotations__[f.name]
@@ -1669,8 +1722,12 @@ def recursive_type_subst(T, f, ignore=()):
         return f(T)
 
 
-def fix_annotations_with_self_reference(T, cls_name, Placeholder):
+def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered):
     # print('fix_annotations_with_self_reference')
+    logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
+    logger.info(f'encountered: {encountered}')
+    logger.info(f'global_symbols: {global_symbols}')
+
     def f(M):
         # print((M, Placeholder, M is Placeholder, M == Placeholder, id(M), id(Placeholder)))
         if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
@@ -1696,11 +1753,13 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
             d1 = getattr(r, '__doc__', 'NO DOC')
         else:
             d0 = d1 = None
+        logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
         # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
         return r
 
     for k, v0 in T.__annotations__.items():
         v = recursive_type_subst(v0, f2)
+        logger.info(f'annotation {k} {v0} -> {v}')
         T.__annotations__[k] = v
         # d0 = getattr(v0, '__doc__', 'NO DOC')
         # d1 = getattr(v, '__doc__', 'NO DOC')
@@ -1709,4 +1768,5 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
 
-    # print(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
+
+    logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))

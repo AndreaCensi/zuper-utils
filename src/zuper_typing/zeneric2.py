@@ -282,7 +282,7 @@ class Fake:
 def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]]=None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
-    rl = RecLogger()
+    # rl = RecLogger()
 
     symbols = dict(locals_ or {})
 
@@ -390,6 +390,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         x = get_Type_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('classvar arg'))
+        if x == r:
+            return cls
         return Type[r]
     elif is_Dict_or_CustomDict(cls):
         K0, V0 = get_Dict_or_CustomDict_Key_Value(cls)
@@ -398,18 +400,22 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('v'))
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
+        if (K0, V0) == (K, V):
+            return cls
         return make_dict(K, V)
     elif is_set_or_CustomSet(cls):
         V0 = get_set_Set_or_CustomSet_Value(cls)
         V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('v'))
-
+        if V0 == V:
+            return cls
         return make_set(V)
     elif is_CustomList(cls):
         V0 = get_CustomList_arg(cls)
         V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('v'))
-
+        if V0 == V:
+            return cls
         return make_list(V)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, '__annotations__'):
@@ -418,37 +424,52 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         x = get_ClassVar_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('classvar arg'))
+        if x == r:
+            return cls
         return typing.ClassVar[r]
     elif is_Type(cls):
         x = get_Type_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('classvar arg'))
+        if x == r:
+            return cls
         return typing.Type[r]
     elif is_Iterator(cls):
         x = get_Iterator_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('classvar arg'))
+        if x == r:
+            return cls
         return typing.Iterator[r]
     elif is_Sequence(cls):
         x = get_Sequence_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('classvar arg'))
+        if x == r:
+            return cls
+
         return typing.Sequence[r]
 
     elif is_List(cls):
         arg = get_List_arg(cls)
         arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
                                 rl=rl.child('list arg'))
+        if arg == arg2:
+            return cls
         return typing.List[arg2]
     elif is_Set(cls):
         arg = get_Set_arg(cls)
         arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
                                 rl=rl.child('set arg'))
+        if arg == arg2:
+            return cls
         return typing.Set[arg2]
     elif is_optional(cls):
         x = get_optional_type(cls)
         x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                               rl=rl.child('optional arg'))
+        if x == x2:
+            return cls
         return typing.Optional[x2]
 
     elif is_union(cls):
@@ -456,6 +477,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
                                     rl=rl.child())
                    for _ in xs)
+        if ys == xs:
+            return cls
         return typing.Union[ys]
     elif is_Tuple(cls):
 
@@ -463,6 +486,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
                                     rl=rl.child())
                    for _ in xs)
+        if ys == xs:
+            return cls
         return typing.Tuple[ys]
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)

@@ -6,6 +6,7 @@ from typing import Generic
 import yaml
 from nose.tools import raises, assert_equal
 
+from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_typing.annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import resolve_types
@@ -17,7 +18,6 @@ from zuper_ipce.ipce import type_to_schema, schema_to_type
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from .test_utils import known_failure
-
 
 
 def test_basic():
@@ -235,40 +235,41 @@ type: object
     print(T.__annotations__)
 
 
-@known_failure
-def test_more2():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+if not USE_REMEMBERED_CLASSES:
+    @known_failure
+    def test_more2():
+        X = TypeVar('X')
+        Y = TypeVar('Y')
 
-    @dataclass
-    class Entity11(Generic[X]):
-        data0: X
+        @dataclass
+        class Entity11(Generic[X]):
+            data0: X
 
-        parent: "Optional[Entity11[X]]" = None
+            parent: "Optional[Entity11[X]]" = None
 
-    type_to_schema(Entity11, {})
+        type_to_schema(Entity11, {})
 
-    EI = Entity11[int]
+        EI = Entity11[int]
 
-    assert_type_roundtrip(Entity11, {})
-    assert_type_roundtrip(EI, {})
+        assert_type_roundtrip(Entity11, {})
+        assert_type_roundtrip(EI, {})
 
-    @dataclass
-    class Entity2(Generic[Y]):
-        parent: Optional[Entity11[Y]] = None
+        @dataclass
+        class Entity2(Generic[Y]):
+            parent: Optional[Entity11[Y]] = None
 
-    type_to_schema(Entity2, {})
+        type_to_schema(Entity2, {})
 
-    assert_type_roundtrip(Entity2, {})  # boom
+        assert_type_roundtrip(Entity2, {})  # boom
 
-    if True:  # pragma: no cover
-        E2I = Entity2[int]
-        assert_type_roundtrip(E2I, {})
+        if True:  # pragma: no cover
+            E2I = Entity2[int]
+            assert_type_roundtrip(E2I, {})
 
-        x = E2I(parent=EI(data0=4))
-        # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
-                                works_without_schema=False)
+            x = E2I(parent=EI(data0=4))
+            # print(json.dumps(type_to_schema(type(x), {}), indent=2))
+            assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
+                                    works_without_schema=False)
 
 
 def test_more2b():
