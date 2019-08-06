@@ -51,7 +51,10 @@ def make_Union(*a):
         x = Union.__getitem__(tuple(a))
     return x
 
+
 TUPLE_EMPTY_ATTR = '__empty__'
+
+
 def make_Tuple(*a):
     if len(a) == 0:
         x = Tuple[bool]
@@ -187,6 +190,10 @@ def get_NewType_repr(x):
         return f'NewType({n!r}, {sp})'
 
 
+def is_TupleLike(x):
+    return is_Tuple(x) or x is tuple
+
+
 def is_Tuple(x) -> bool:
     _check_valid_arg(x)
 
@@ -215,6 +222,8 @@ def get_FixedTuple_args(x) -> Tuple[type, ...]:
 
 
 def is_VarTuple(x) -> bool:
+    if x is tuple:
+        return True
     if not is_Tuple(x):
         return False
     ts = get_tuple_types(x)
@@ -231,6 +240,8 @@ def is_VarTuple(x) -> bool:
 
 
 def get_VarTuple_arg(x):
+    if x is tuple:
+        return Any
     assert is_VarTuple(x), x
     ts = get_tuple_types(x)
     if len(ts) == 0:
@@ -474,6 +485,8 @@ def get_Tuple_name(V):
 
 
 def get_tuple_types(V):
+    if V is tuple:
+        return Any, ...
     if PYTHON_36:
         if V.__args__ is None:
             return Any, ...
@@ -485,7 +498,6 @@ def get_tuple_types(V):
             return Any, ...
     else:
         return args
-
 
 
 def name_for_type_like(x):

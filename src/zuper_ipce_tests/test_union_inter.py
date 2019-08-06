@@ -3,10 +3,12 @@ from typing import *
 
 from nose.tools import raises
 
-from zuper_typing.annotations_tricks import make_Union
+from zuper_typing.annotations_tricks import make_Union, make_Tuple
 from zuper_ipce_tests.test_not_implemented import test_default_arguments
 from zuper_ipce.ipce import ipce_to_object
+from zuper_typing.my_dict import make_set
 from zuper_typing.my_intersection import Intersection
+from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
@@ -26,6 +28,21 @@ def test_union_1():
 
 def test_union_2():
     T = Union[int, str]
+    assert_type_roundtrip(T, {})
+
+
+def test_union_2b():
+    T = Union[Tuple[str], int]
+    assert_type_roundtrip(T, {})
+
+
+def test_union_2c():
+    T = Tuple[int, ...]
+    assert_type_roundtrip(T, {})
+
+
+def test_tuple_empty():
+    T = make_Tuple()
     assert_type_roundtrip(T, {})
 
 
@@ -86,6 +103,37 @@ def test_none1():
 
     ipce_to_object(None, {}, {}, expect_type=A)
 
+
+def test_tuple_wiht_optional_inside():
+    T = Tuple[int, Optional[int], str]
+    assert_type_roundtrip(T, {})
+
+
+def test_dict_with_optional():
+    T = Dict[str, Optional[int]]
+    assert_type_roundtrip(T, {})
+
+
+def test_list_with_optional():
+    T = List[Optional[int]]
+    assert_type_roundtrip(T, {})
+
+
+def test_set_with_optional():
+    # even though it does not make sense ...
+    T = make_set(Optional[int])
+    assert_type_roundtrip(T, {})
+
+@known_failure
+def test_set_with_optional2():
+    # even though it does not make sense ...
+    T = Set[Optional[int]]
+    assert_type_roundtrip(T, {})
+
+
+def test_dict_with_optional_key():
+    T = Dict[Optional[int], int]
+    assert_type_roundtrip(T, {})
 
 
 if __name__ == '__main__':

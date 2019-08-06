@@ -144,6 +144,14 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, 'dataclass', matches)
 
+    if T1 is int:
+        if T2 is int:
+
+            return CanBeUsed(True, '', matches)
+        else:
+            msg = 'Need int'
+            return CanBeUsed(False, msg, matches)
+
     if T1 is str:
         assert T2 is not str
         msg = 'A string can only be used a string'
@@ -252,6 +260,8 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
         else:
             msg = f'Needs type(None), got {T2}'
             return CanBeUsed(False, msg, matches)
-
+    if T2 is type(None):
+        msg = f'Needs type(None), got {T1}'
+        return CanBeUsed(False, msg, matches)
     msg = f'{T1} ? {T2}'  # pragma: no cover
     raise NotImplementedError(msg)

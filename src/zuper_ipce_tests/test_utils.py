@@ -28,7 +28,7 @@ from zuper_ipce.pretty import pretty_dict
 
 
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
-    assert T is not None
+    # assert T is not None
     rl = RecLogger()
     # resolve_types(T)
     schema0 = type_to_schema(T, use_globals)
@@ -209,6 +209,8 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
         u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
 
+
+    # s = {x1b}
     return locals()
 
 

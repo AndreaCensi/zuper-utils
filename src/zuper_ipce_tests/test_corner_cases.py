@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Union, NewType, Any
 
-from nose.tools import raises
+from nose.tools import raises, assert_equal
 
 from zuper_ipce.ipce import ipce_from_object, type_to_schema, object_from_ipce
-from zuper_typing.annotations_tricks import make_Union
+from zuper_typing.annotations_tricks import (make_Union, is_NewType, get_NewType_arg, get_NewType_name,
+                                             get_NewType_repr,
+                                             name_for_type_like, is_Any)
+from zuper_typing.my_dict import get_list_or_List_or_CustomList_arg, make_set, get_CustomSet_arg
 from zuper_typing.subcheck import can_be_used_as2
 
 
@@ -75,4 +78,28 @@ def test_corner_cases08():
     object_from_ipce(12, {}, expect_type=Optional[bool])
 
 
+def test_newtype1():
+    T = NewType('a', int)
+    assert is_NewType(T)
+    assert_equal(get_NewType_arg(T), int)
+    assert_equal(get_NewType_name(T), 'a')
+    assert_equal(get_NewType_repr(T), "NewType('a', int)")
+    assert_equal(name_for_type_like(T), "NewType('a', int)")
 
+
+def test_newtype2():
+    T = NewType('a', Any)
+    assert is_NewType(T)
+    assert is_Any(get_NewType_arg(T))
+    assert_equal(get_NewType_repr(T), "NewType('a')")
+    assert_equal(name_for_type_like(T), "NewType('a')")
+
+
+def test_list0():
+    v = get_list_or_List_or_CustomList_arg(list)
+    assert is_Any(v)
+
+
+def test_set0():
+    a = get_CustomSet_arg(make_set(int))
+    assert a is int

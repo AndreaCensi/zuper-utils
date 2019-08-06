@@ -192,6 +192,10 @@ def is_list_or_List_or_CustomList(x):
     return (x is list) or is_List(x) or is_CustomList(x)
 
 
+def get_list_or_List_or_CustomList_name(x):
+    X = get_list_or_List_or_CustomList_arg(x)
+    return 'List[%s]' % name_for_type_like(X)
+
 def get_list_or_List_or_CustomList_arg(x):
     from zuper_typing.annotations_tricks import is_List, get_List_arg
     if x is list:

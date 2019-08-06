@@ -7,8 +7,9 @@ from zuper_commons.logs import setup_logging
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.annotations_tricks import is_Any
 from zuper_ipce.constants import SCHEMA_ATT, SCHEMA_ID
-from zuper_ipce.ipce import make_dict, object_from_ipce, ipce_from_object, type_to_schema, schema_to_type, \
-    CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field
+from zuper_ipce.ipce import (make_dict, object_from_ipce, ipce_from_object, type_to_schema, schema_to_type,
+                             CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field)
+from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 #
@@ -126,15 +127,17 @@ def get_symbols():
     class FB:
         mine: int
 
-    symbols = {'Office': Office,
-               'Person': Person,
-               'Address': Address,
-               'Name': Name,
-               'Contents': Contents,
-               'Empty': Empty,
-               'FA': FA,
-               'FB': FB,
-               'Chain': Chain}
+    symbols = {
+          'Office':   Office,
+          'Person':   Person,
+          'Address':  Address,
+          'Name':     Name,
+          'Contents': Contents,
+          'Empty':    Empty,
+          'FA':       FA,
+          'FB':       FB,
+          'Chain':    Chain
+          }
     return symbols
 
 
@@ -203,8 +206,10 @@ def test_ser_dict_object():
     class M:
         a: Dict[L, str]
 
-    d = {L(0, 0): 'one',
-         L(1, 1): 'two'}
+    d = {
+          L(0, 0): 'one',
+          L(1, 1): 'two'
+          }
     m = M(d)
     symbols2 = {L.__qualname__: L}
     assert_object_roundtrip(m, symbols2)
@@ -251,7 +256,7 @@ def test_the_tester_no_links2_in_snd_not2():
     type_to_schema(T, get_symbols())
 
 
-@raises(AssertionError)
+# @raises(AssertionError)
 def test_not_optional():
     T = Optional[int]
     type_to_schema(T, get_symbols())
@@ -287,7 +292,7 @@ def test_any_instantiate():
     object_from_ipce(schema, {})
 
 
-# @raises(TypeError)
+@known_failure
 def test_not_dict_naked():
     class A(dict):
         ...
@@ -458,6 +463,41 @@ def test_newtype_2():
     #
     # def __init__(self, cid):
     #     self.cid = cid
+
+
+def test_nonetype0():
+    T = type(None)
+
+    assert_type_roundtrip(T, {})
+    assert_object_roundtrip(T, {})
+
+
+def test_none2():
+    T = None
+    assert_object_roundtrip(T, {})
+
+@raises(ValueError)
+def test_none3():
+    T = None
+    assert_type_roundtrip(T, {})
+
+
+def test_nonetype1():
+    @dataclass
+    class M12:
+        a: type(None)
+
+    assert_type_roundtrip(M12, {})
+
+    assert_object_roundtrip(M12, {})
+
+
+def test_optional0():
+    T = Optional[int]
+
+    assert_type_roundtrip(T, {})
+    assert_object_roundtrip(T, {})
+
 
 if __name__ == '__main__':
     setup_logging()

@@ -2,11 +2,12 @@ import datetime
 import hashlib
 import inspect
 import typing
+import warnings
 from dataclasses import make_dataclass, _FIELDS, field, Field, is_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union, \
-    Generic, List, Tuple, Callable, Set
+from typing import (Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union,
+                    Generic, List, Tuple, Callable, Set)
 
 import base58
 import cbor2
@@ -28,19 +29,25 @@ from zuper_typing.annotations_tricks import (is_optional, get_optional_type, is_
                                              is_Callable, get_Callable_info, get_union_types,
                                              is_union, is_Dict,
                                              get_Dict_name_K_V, is_Tuple, get_List_arg,
-                                             is_List, is_Set, get_Set_arg, get_Set_name_V,
-                                             get_List_name, get_Dict_args)
-from .constants import X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm, \
-    ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER, JSC_OBJECT, JSC_TITLE, \
-    JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, JSC_INTEGER, ID_ATT, \
-    JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, JSC_TITLE_NUMPY, JSC_NULL, \
-    JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME, \
-    JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF, JSC_ANYOF
+                                             is_List, is_Set, get_Set_arg, get_Set_name_V, is_Sequence,
+                                             get_Sequence_arg, is_VarTuple, get_VarTuple_arg, make_Tuple, is_TupleLike,
+                                             get_FixedTuple_args, is_FixedTuple)
+from .constants import (X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm,
+                        ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER,
+                        JSC_OBJECT, JSC_TITLE,
+                        JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, JSC_INTEGER, ID_ATT,
+                        JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, JSC_TITLE_NUMPY,
+                        JSC_NULL,
+                        JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME,
+                        JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF,
+                        JSC_ANYOF, JSC_TITLE_SLICE)
 
 from zuper_typing.my_dict import (make_dict, CustomDict, make_set, CustomSet,
                                   get_set_Set_or_CustomSet_Value, is_CustomDict,
                                   is_CustomSet, is_Dict_or_CustomDict,
-                                  get_Dict_or_CustomDict_Key_Value)
+                                  get_Dict_or_CustomDict_Key_Value, is_list_or_List_or_CustomList,
+                                  get_list_or_List_or_CustomList_arg, get_list_or_List_or_CustomList_name,
+                                  is_set_or_CustomSet)
 from zuper_typing.my_intersection import is_Intersection, get_Intersection_args, Intersection
 from .numpy_encoding import numpy_from_dict, dict_from_numpy
 from .pretty import pretty_dict
@@ -63,11 +70,6 @@ def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_s
     globals_ = globals_ or {}
     return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
-
-# def object_to_ipce(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
-#     globals_ = globals_ or {}
-#     return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
-#
 
 def ipce_from_object__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
@@ -105,7 +107,9 @@ def ipce_from_object_(ob,
                       with_schema: bool,
                       suggest_type: Type = None,
                       ) -> IPCE:
-    trivial = (bool, int, str, float, type(None), bytes, Decimal, datetime.datetime)
+    if ob is None:
+        return ob
+    trivial = (bool, int, str, float,  bytes, Decimal, datetime.datetime)
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
             msg = 'Cannot serialize dates without a timezone.'
@@ -114,7 +118,7 @@ def ipce_from_object_(ob,
         for T in trivial:
             if isinstance(ob, T):
                 if (suggest_type is not None) and (suggest_type is not T) and (not is_Any(suggest_type)) and \
-                        (not can_be_used_as2(T, suggest_type, {}).result):
+                      (not can_be_used_as2(T, suggest_type, {}).result):
                     msg = f'Found object of type {type(ob)!r} when expected a {suggest_type!r}'
                     raise ValueError(msg)
                 return ob
@@ -133,14 +137,17 @@ def ipce_from_object_(ob,
         return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
                                  with_schema=with_schema) for _ in ob]
 
+    if isinstance(ob, slice):
+        res = {
+              'start': ob.start,
+              'step':  ob.step,
+              'stop':  ob.stop
+              }
+        if with_schema:
+            res[SCHEMA_ATT] = type_slice_schema()
+        return res
+
     if isinstance(ob, set):
-        # if is_Set(suggest_type):
-        #     suggest_type_l = get_Set_arg(suggest_type)
-        # else:
-        #     suggest_type_l = None
-        #
-        # return [ipce_from_object(_, globals_, suggest_type=suggest_type_l,
-        #                        with_schema=with_schema) for _ in ob]
         return set_to_ipce(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
     if isinstance(ob, (dict, frozendict)):
@@ -149,7 +156,8 @@ def ipce_from_object_(ob,
     if isinstance(ob, type):
         return type_to_schema(ob, globals_, processing={})
 
-    if is_Any(ob) or is_List(ob) or is_Dict(ob) or is_Set(ob) or is_Tuple(ob) or is_Callable(ob):
+    if is_Any(ob) or is_List(ob) or is_Dict(ob) or is_Set(ob) or is_Tuple(ob) \
+          or is_Callable(ob) or is_union(ob) or is_Sequence(ob) or is_optional(ob):
         # TODO: put more here
         return type_to_schema(ob, globals_, processing={})
 
@@ -205,6 +213,8 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
         except BaseException as e:
             msg = f'Obtained {type(e).__name__} while serializing attribute {k}  of type {type(v)}.'
             msg += f'\nThe schema for {type(ob)} says that it should be of type {f.type}.'
+
+            msg += '\n' + f'{v}'
             raise ValueError(msg) from e
     return res
 
@@ -278,7 +288,7 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
 
 
 def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
-    if is_Set(suggest_type):
+    if suggest_type is not None and is_Set(suggest_type):
         V = get_Set_arg(suggest_type)
     else:
         V = None
@@ -286,7 +296,10 @@ def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], wi
     res = {}
 
     if with_schema:
-        res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
+        if suggest_type is not None:
+            res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
+        else:
+            res[SCHEMA_ATT] = type_to_schema(type(ob), globals_)
 
     for v in ob:
         vj = ipce_from_object(v, globals_, with_schema=with_schema,
@@ -413,11 +426,11 @@ def object_from_ipce_(mj: IPCE,
                                 expect_type=K)
 
     if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K) or \
-            (isinstance(K, type) and issubclass(K, CustomDict)):
+          (isinstance(K, type) and issubclass(K, CustomDict)):
         return deserialize_Dict(K, mj, global_symbols, encountered)
 
     if (isinstance(K, type) and issubclass(K, set)) or is_Set(K) or \
-            (isinstance(K, type) and issubclass(K, CustomSet)):
+          (isinstance(K, type) and issubclass(K, CustomSet)):
         return deserialize_Set(K, mj, global_symbols, encountered)
 
     if is_dataclass(K):
@@ -668,7 +681,11 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
     if JSC_ANYOF in schema:
         options = schema[JSC_ANYOF]
         args = [schema_to_type(_, global_symbols, encountered) for _ in options]
-        return Union[tuple(args)]
+        if args and args[-1] is type(None):
+            V = args[0]
+            return Optional[V]
+        else:
+            return Union[tuple(args)]
 
     if JSC_ALLOF in schema:
         options = schema[JSC_ALLOF]
@@ -733,14 +750,15 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
 def schema_array_to_type(schema, global_symbols, encountered):
     items = schema['items']
     if isinstance(items, list):
-        assert len(items) > 0
+        # assert len(items) > 0
         args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
 
-        if PYTHON_36:  # pragma: no cover
-            return typing.Tuple[args]
-        else:
-            # noinspection PyArgumentList
-            return Tuple.__getitem__(args)
+        return make_Tuple(*args)
+        # if PYTHON_36:  # pragma: no cover
+        #     return typing.Tuple[args]
+        # else:
+        #     # noinspection PyArgumentList
+        #     return Tuple.__getitem__(args)
     else:
         if 'Tuple' in schema[JSC_TITLE]:
 
@@ -800,15 +818,18 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
             # res =  cast(JSONSchema, {REF_ATT: refname})
             # return res
         if T is type:
-            res = cast(JSONSchema, {REF_ATT: SCHEMA_ID,
-                                    JSC_TITLE: JSC_TITLE_TYPE
-                                    # JSC_DESCRIPTION: T.__doc__
-                                    })
+            res = cast(JSONSchema, {
+                  REF_ATT:   SCHEMA_ID,
+                  JSC_TITLE: JSC_TITLE_TYPE
+                  # JSC_DESCRIPTION: T.__doc__
+                  })
             return res
 
         if T is type(None):
-            res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID,
-                                    JSC_TYPE: JSC_NULL})
+            res = cast(JSONSchema, {
+                  SCHEMA_ATT: SCHEMA_ID,
+                  JSC_TYPE:   JSC_NULL
+                  })
             return res
 
         if isinstance(T, type):
@@ -837,8 +858,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
         if hasattr(T, '__name__'):
             m += f' (name = {T.__name__!r})'
         msg = pretty_dict(m, dict(  # globals0=globals0,
-                # globals=globals_,
-                processing=processing))
+              # globals=globals_,
+              processing=processing))
         # msg += '\n' + traceback.format_exc()
         raise type(e)(msg) from e
     except PASS_THROUGH:
@@ -849,8 +870,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
             m += f' (name = {T.__name__!r})'
             m += f' {T.__name__ in processing}'
         msg = pretty_dict(m, dict(  # globals0=globals0,
-                # globals=globals_,
-                processing=processing))
+              # globals=globals_,
+              processing=processing))
         raise TypeError(msg) from e
 
     assert_in(SCHEMA_ATT, schema)
@@ -879,14 +900,7 @@ class FakeValues(Generic[KK, VV]):
 
 
 def dict_to_schema(T, globals_, processing) -> JSONSchema:
-    assert is_Dict(T) or (isinstance(T, type) and issubclass(T, CustomDict))
-
-    if is_Dict(T):
-        K, V = T.__args__
-    elif issubclass(T, CustomDict):
-        K, V = T.__dict_type__
-    else:  # pragma: no cover
-        assert False
+    K, V = get_Dict_or_CustomDict_Key_Value(T)
 
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
@@ -904,7 +918,7 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
 
 
 def set_to_schema(T, globals_, processing) -> JSONSchema:
-    assert is_Set(T) or (isinstance(T, type) and issubclass(T, set))
+    assert is_Set(T) or (isinstance(T, type) and issubclass(T, set)), T
 
     V = get_set_Set_or_CustomSet_Value(T)
 
@@ -917,17 +931,20 @@ def set_to_schema(T, globals_, processing) -> JSONSchema:
 
 
 def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    assert is_Tuple(T)
-    args = T.__args__
-    if args[-1] == Ellipsis:
-        items = args[0]
+    assert is_TupleLike(T), T
+    # args = T.__args__
+    if is_VarTuple(T):
+        items = get_VarTuple_arg(T)
+        # if args[-1] == Ellipsis:
+        #     items = args[0]
         res = cast(JSONSchema, {})
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
         res[JSC_TITLE] = get_Tuple_name(T)
         return res
-    else:
+    elif is_FixedTuple(T):
+        args = get_FixedTuple_args(T)
         res = cast(JSONSchema, {})
 
         res[SCHEMA_ATT] = SCHEMA_ID
@@ -937,16 +954,18 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         for a in args:
             res[JSC_ITEMS].append(type_to_schema(a, globals_, processing))
         return res
+    else:
+        assert False
 
 
 def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    assert is_List(T)
-    items = get_List_arg(T)
+    assert is_list_or_List_or_CustomList(T)
+    items = get_list_or_List_or_CustomList_arg(T)
     res = cast(JSONSchema, {})
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
     res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
-    res[JSC_TITLE] = get_List_name(T)
+    res[JSC_TITLE] = get_list_or_List_or_CustomList_name(T)
     return res
 
 
@@ -954,9 +973,11 @@ def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: Processi
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
 
-    res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT, SCHEMA_ATT: SCHEMA_ID,
-                            JSC_TITLE: JSC_TITLE_CALLABLE,
-                            'special': 'callable'})
+    res = cast(JSONSchema, {
+          JSC_TYPE:  JSC_OBJECT, SCHEMA_ATT: SCHEMA_ID,
+          JSC_TITLE: JSC_TITLE_CALLABLE,
+          'special': 'callable'
+          })
 
     p = res[JSC_DEFINITIONS] = {}
     for k, v in cinfo.parameters_by_name.items():
@@ -984,10 +1005,10 @@ def schema_to_type_callable(schema: JSONSchema, global_symbols: GlobalsDict, enc
 
 def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     if T is None:
-        raise ValueError()
-    if is_optional(T):  # pragma: no cover
-        msg = f'Should not be needed to have an Optional here yet: {T}'
-        raise AssertionError(msg)
+        raise ValueError('None is not a type!')
+
+    # This can actually happen inside a Tuple (or Dict, etc.) even though
+    # we have a special case for dataclass
 
     if is_forward_ref(T):  # pragma: no cover
         arg = get_forward_ref_arg(T)
@@ -1021,6 +1042,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         res = cast(JSONSchema, {JSC_TYPE: JSC_INTEGER, SCHEMA_ATT: SCHEMA_ID})
         return res
 
+    if T is slice:
+        res = type_slice_schema()
+        return res
+
     if T is Decimal:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DECIMAL, SCHEMA_ATT: SCHEMA_ID})
         return res
@@ -1040,16 +1065,20 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_union(T):
         return schema_Union(T, globals_, processing)
 
-    if is_Dict(T) or (isinstance(T, type) and issubclass(T, CustomDict)):
-        return dict_to_schema(T, globals_, processing)
+    if is_optional(T):
+        return schema_Optional(T, globals_, processing)
 
-    if isinstance(T, type) and issubclass(T, dict):  # pragma: no cover
-        msg = f'A regular "dict" slipped through.\n{T}'
-        T = Dict[Any, Any]
-        # raise TypeError(msg)
+    if is_Dict_or_CustomDict(T):
         return dict_to_schema(T, globals_, processing)
+    #
+    # if isinstance(T, type) and issubclass(T, dict):  # pragma: no cover
+    #     # msg = f'A regular "dict" slipped through.\n{T}'
+    #     T = Dict[Any, Any]
+    #     # raise TypeError(msg)
+    #     return dict_to_schema(T, globals_, processing)
 
-    if is_Set(T) or (isinstance(T, type) and issubclass(T, set)):
+    # if is_Set(T) or (isinstance(T, type) and issubclass(T, set)):
+    if is_set_or_CustomSet(T):
         return set_to_schema(T, globals_, processing)
 
     if is_Intersection(T):
@@ -1058,10 +1087,18 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     if is_Callable(T):
         return type_callable_to_schema(T, globals_, processing)
 
-    if is_List(T):
+    if is_Sequence(T):
+        msg =('Translating Sequence into List')
+        warnings.warn(msg)
+        # raise ValueError(msg)
+        V = get_Sequence_arg(T)
+        T = List[V]
         return List_to_schema(T, globals_, processing)
 
-    if is_Tuple(T):
+    if is_list_or_List_or_CustomList(T):
+        return List_to_schema(T, globals_, processing)
+
+    if is_TupleLike(T):
         # noinspection PyTypeChecker
         return Tuple_to_schema(T, globals_, processing)
 
@@ -1092,10 +1129,24 @@ def type_numpy_to_schema(T, globals_, processing) -> JSONSchema:
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_NUMPY
     res[JSC_PROPERTIES] = {
-        'shape': {},  # TODO
-        'dtype': {},  # TODO
-        'data': SCHEMA_BYTES
-    }
+          'shape': {},  # TODO
+          'dtype': {},  # TODO
+          'data':  SCHEMA_BYTES
+          }
+
+    return res
+
+
+def type_slice_schema() -> JSONSchema:
+    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
+    res[JSC_TYPE] = JSC_OBJECT
+    res[JSC_TITLE] = JSC_TITLE_SLICE
+    T = type_to_schema(Optional[int], {}, {})
+    res[JSC_PROPERTIES] = {
+          'start': T,  # TODO
+          'stop':  T,  # TODO
+          'step':  T,
+          }
 
     return res
 
@@ -1353,11 +1404,11 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         res = cast(JSONSchema, make_ref(SCHEMA_ID))
         return Result(res)
 
-    if is_Tuple(t):
+    if is_TupleLike(t):
         res = Tuple_to_schema(t, globals_, processing)
         return Result(res)
 
-    if is_List(t):
+    if is_list_or_List_or_CustomList(t):
         res = List_to_schema(t, globals_, processing)
         return Result(res)
 
@@ -1421,6 +1472,13 @@ def schema_Union(t, globals_, processing):
     return res
 
 
+def schema_Optional(t, globals_, processing):
+    types = [get_optional_type(t), type(None)]
+    options = [type_to_schema(t, globals_, processing) for t in types]
+    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
+    return res
+
+
 def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     check_isinstance(t, str)
     globals2 = dict(globals_)
@@ -1450,8 +1508,10 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
 
 def eval_just_string(t: str, globals_):
     from typing import Optional
-    eval_locals = {'Optional': Optional, 'List': List,
-                   'Dict': Dict, 'Union': Union, 'Set': typing.Set, 'Any': Any}
+    eval_locals = {
+          'Optional': Optional, 'List': List,
+          'Dict':     Dict, 'Union': Union, 'Set': typing.Set, 'Any': Any
+          }
     # TODO: put more above?
     # do not pollute environment
     if t in globals_:
@@ -1568,10 +1628,16 @@ def recursive_type_subst(T, f, ignore=()):
     elif is_union(T):
         ts = tuple(r(_) for _ in get_union_types(T))
         return Union[ts]
-    elif is_Tuple(T):
-        args = T.__args__  # XXX
-        ts = tuple(r(_) for _ in args)
-        return Tuple[ts]
+    elif is_TupleLike(T):
+        if is_VarTuple(T):
+            X = get_VarTuple_arg(T)
+            return Tuple[r(X), ...]
+        elif is_FixedTuple(T):
+            args = get_FixedTuple_args(T)
+            ts = tuple(r(_) for _ in args)
+            return make_Tuple(*ts)
+        else:
+            assert False
     elif is_Dict(T):
         K, V = T.__args__
         return Dict[r(K), r(V)]
@@ -1589,9 +1655,11 @@ def recursive_type_subst(T, f, ignore=()):
         annotations = dict(getattr(T, '__annotations__', {}))
         for k, v0 in list(annotations.items()):
             annotations[k] = r(v0)
-        T2 = my_dataclass(type(T.__name__, (), {'__annotations__': annotations,
-                                                '__module__': T.__module__,
-                                                '__doc__': getattr(T, '__doc__', None)}))
+        T2 = my_dataclass(type(T.__name__, (), {
+              '__annotations__': annotations,
+              '__module__':      T.__module__,
+              '__doc__':         getattr(T, '__doc__', None)
+              }))
         # setattr(T2, '__module__', T.__module__)
         return T2
         # for f in dataclasses.fields(T):

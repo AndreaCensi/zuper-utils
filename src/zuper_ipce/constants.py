@@ -44,6 +44,7 @@ X_PYTHON_MODULE_ATT = '__module__'
 ATT_PYTHON_NAME = '__qualname__'
 
 JSC_TITLE_NUMPY = 'numpy'
+JSC_TITLE_SLICE = 'slice'
 JSC_TITLE_BYTES = 'bytes'
 JSC_TITLE_DECIMAL = 'decimal'
 JSC_TITLE_FLOAT = 'float'
