@@ -235,13 +235,6 @@ type: object
     print(T.__annotations__)
 
 
-# if not USE_REMEMBERED_CLASSES:
-#     f = lambda x: x
-# else:
-#     f = lambda x: x
-#     # f = known_failure
-#
-# @f
 def test_more2():
     X = TypeVar('X')
     Y = TypeVar('Y')

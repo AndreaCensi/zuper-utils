@@ -8,6 +8,7 @@ _SpecialForm = Any
 
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = '$schema'
+HINTS_ATT='$hints'
 
 ID_ATT = '$id'
 REF_ATT = '$ref'

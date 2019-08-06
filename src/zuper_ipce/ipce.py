@@ -40,7 +40,7 @@ from .constants import (X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, Glob
                         JSC_NULL,
                         JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME,
                         JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF,
-                        JSC_ANYOF, JSC_TITLE_SLICE, USE_REMEMBERED_CLASSES)
+                        JSC_ANYOF, JSC_TITLE_SLICE, USE_REMEMBERED_CLASSES, HINTS_ATT)
 
 from zuper_typing.my_dict import (make_dict, CustomDict, make_set, CustomSet,
                                   get_set_Set_or_CustomSet_Value, is_CustomDict,
@@ -110,7 +110,7 @@ def ipce_from_object_(ob,
                       ) -> IPCE:
     if ob is None:
         return ob
-    trivial = (bool, int, str, float,  bytes, Decimal, datetime.datetime)
+    trivial = (bool, int, str, float, bytes, Decimal, datetime.datetime)
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
             msg = 'Cannot serialize dates without a timezone.'
@@ -169,7 +169,7 @@ def ipce_from_object_(ob,
         return res
 
     if is_dataclass(ob):
-        return serialize_dataclass(ob, globals_, with_schema=with_schema)
+        return serialize_dataclass_instance(ob, globals_, with_schema=with_schema)
 
     msg = f'I do not know a way to convert object of type {type(ob)} ({ob}).'
     raise NotImplementedError(msg)
@@ -178,7 +178,8 @@ def ipce_from_object_(ob,
 import dataclasses
 
 
-def serialize_dataclass(ob, globals_, with_schema: bool):
+def serialize_dataclass_instance(ob, globals_, with_schema: bool):
+
     globals_ = dict(globals_)
     res = {}
     T = type(ob)
@@ -187,6 +188,7 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
         res[SCHEMA_ATT] = type_to_schema(T, globals_)
 
     globals_[T.__name__] = T
+    hints = {}
 
     for f in dataclasses.fields(ob):
         k = f.name
@@ -207,8 +209,11 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
 
             if is_optional(suggest_type):
                 suggest_type = get_optional_type(suggest_type)
+
             res[k] = ipce_from_object(v, globals_,
                                       suggest_type=suggest_type, with_schema=with_schema)
+            if with_schema and isinstance(v, (list, tuple)) and is_Any(f.type):
+                hints[k] = type_to_schema(type(v), globals_)
         except PASS_THROUGH:
             raise
         except BaseException as e:
@@ -217,6 +222,8 @@ def serialize_dataclass(ob, globals_, with_schema: bool):
 
             msg += '\n' + f'{v}'
             raise ValueError(msg) from e
+    if hints:
+        res[HINTS_ATT] = hints
     return res
 
 
@@ -329,7 +336,7 @@ def object_from_ipce(mj: IPCE,
                      encountered: Optional[dict] = None,
                      expect_type: Optional[type] = None) -> object:
     try:
-        res = object_from_ipce_(mj, global_symbols, encountered, expect_type)
+        res = object_from_ipce_(mj, global_symbols, encountered=encountered, expect_type=expect_type)
         return res
 
     except PASS_THROUGH:
@@ -347,7 +354,7 @@ def ipce_to_object(mj: IPCE,
                    global_symbols,
                    encountered: Optional[dict] = None,
                    expect_type: Optional[type] = None) -> object:
-    res = object_from_ipce(mj, global_symbols, encountered, expect_type)
+    res = object_from_ipce(mj, global_symbols, encountered=encountered, expect_type=expect_type)
     return res
 
 
@@ -370,13 +377,21 @@ def object_from_ipce_(mj: IPCE,
         return mj
 
     if isinstance(mj, list):
-        if expect_type and is_Tuple(expect_type):
-            # noinspection PyTypeChecker
-            return deserialize_tuple(expect_type, mj, global_symbols, encountered)
-        elif expect_type and is_List(expect_type):
-            suggest = get_List_arg(expect_type)
-            seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
-            return seq
+        if expect_type is not None:
+            # logger.info(f'expect_type for list is {expect_type}')
+            if is_Any(expect_type):
+                suggest = None
+                seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+                return seq
+            elif is_TupleLike(expect_type):
+                # noinspection PyTypeChecker
+                return deserialize_tuple(expect_type, mj, global_symbols, encountered)
+            elif is_List(expect_type):
+                suggest = get_List_arg(expect_type)
+                seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+                return seq
+            else:
+                assert False, expect_type
         else:
             suggest = None
             seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
@@ -465,15 +480,26 @@ def object_from_ipce_(mj: IPCE,
 
 
 def deserialize_tuple(expect_type, mj, global_symbols, encountered):
-    seq = []
-    for i, ob in enumerate(mj):
-        expect_type_i = expect_type.__args__[i]
-        seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=expect_type_i))
+    if is_FixedTuple(expect_type):
+        seq = []
+        for i, ob in enumerate(mj):
+            expect_type_i = expect_type.__args__[i]
+            seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=expect_type_i))
 
-    return tuple(seq)
+        return tuple(seq)
+    elif is_VarTuple(expect_type):
+        T = get_VarTuple_arg(expect_type)
+        seq = []
+        for i, ob in enumerate(mj):
+            seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=T))
+
+        return tuple(seq)
+    else:
+        assert False
 
 
 def deserialize_dataclass(K, mj, global_symbols, encountered):
+    # assert  isinstance(K, type), K
     global_symbols = dict(global_symbols)
     global_symbols[K.__name__] = K
     # logger.debug(global_symbols)
@@ -487,6 +513,9 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
         # logger.warning(f'No annotations for class {K}')
     # pprint(f'annotations: {anns}')
     attrs = {}
+    hints = mj.get(HINTS_ATT, {})
+    # logger.info(f'hints for {K.__name__} = {hints}')
+
     for k, v in mj.items():
         if k in anns:
             expect_type = resolve_all(anns[k], global_symbols)
@@ -500,8 +529,14 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
                 msg += f'\n\n%s' % indent(yaml.dump(mj), ' > ')
                 raise TypeError(msg)
 
+            if k in hints:
+                expect_type = schema_to_type(hints[k], global_symbols, encountered)
+                # logger.info(f'hint for member {k} is {expect_type} of {K.__name__}')
+            # else:
+                # logger.info(f'no hint for member {k} of {K.__name__}')
             try:
                 attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
+
             except PASS_THROUGH:
                 raise
             except BaseException as e:
@@ -1089,7 +1124,7 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return type_callable_to_schema(T, globals_, processing)
 
     if is_Sequence(T):
-        msg =('Translating Sequence into List')
+        msg = ('Translating Sequence into List')
         warnings.warn(msg)
         # raise ValueError(msg)
         V = get_Sequence_arg(T)
@@ -1173,7 +1208,8 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
             if k in RegisteredClasses.klasses:
                 return RegisteredClasses.klasses[k]
             else:
-                logger.info(f'cannot find generic {k}')
+                pass
+                # logger.info(f'cannot find generic {k}')
     else:
         module_name = None
 
@@ -1553,10 +1589,11 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
         if USE_REMEMBERED_CLASSES:
             if k in RegisteredClasses.klasses:
                 # logger.error(f'We can use the class {k}')
-                logger.info(f'using the cached dataclass {k}')
+                # logger.info(f'using the cached dataclass {k}')
                 return RegisteredClasses.klasses[k]
             else:
-                logger.info(f'cannot find dataclass {k}')
+                pass
+                # logger.info(f'cannot find dataclass {k}')
 
     else:
         module_name = None
@@ -1717,7 +1754,7 @@ def recursive_type_subst(T, f, ignore=()):
         nothing_changed = True
         for k, v0 in list(annotations.items()):
             v2 = r(v0)
-            nothing_changed &= (v0==v2)
+            nothing_changed &= (v0 == v2)
             annotations2[k] = v2
         if nothing_changed:
             return T
@@ -1781,7 +1818,6 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
-
 
     # logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
 #
