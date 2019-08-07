@@ -5,7 +5,7 @@ from .constants import NAME_ARG, PYTHON_36
 
 
 # noinspection PyProtectedMember
-def is_optional(x):
+def is_Optional(x):
     if PYTHON_36:  # pragma: no cover
         return isinstance(x, typing._Union) and len(x.__args__) == 2 and x.__args__[
             -1] is type(None)
@@ -15,12 +15,12 @@ def is_optional(x):
                    -1] is type(None)
 
 
-def get_optional_type(x):
+def get_Optional_arg(x):
     assert is_optional(x)
     return x.__args__[0]
 
 
-def is_union(x):
+def is_Union(x):
     """ Union[X, None] is not considered a Union"""
     if PYTHON_36:  # pragma: no cover
         return not is_optional(x) and isinstance(x, typing._Union)
@@ -29,7 +29,7 @@ def is_union(x):
               x.__origin__ is Union)
 
 
-def get_union_types(x):
+def get_Union_args(x):
     assert is_union(x)
     return tuple(x.__args__)
 
@@ -89,7 +89,7 @@ def _check_valid_arg(x):
         raise ValueError(msg)
 
 
-def is_forward_ref(x):
+def is_ForwardRef(x):
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -98,7 +98,7 @@ def is_forward_ref(x):
         return isinstance(x, typing.ForwardRef)
 
 
-def get_forward_ref_arg(x) -> str:
+def get_ForwardRef_arg(x) -> str:
     assert is_forward_ref(x)
     return x.__forward_arg__
 
@@ -634,3 +634,13 @@ def get_Callable_info(x) -> CallableInfo:
                         parameters_by_position=tuple(parameters_by_position),
                         ordering=tuple(ordering),
                         returns=returns)
+
+
+is_optional = is_Optional
+get_optional_type = get_Optional_arg
+is_union = is_Union
+
+get_union_types = get_Union_args
+
+is_forward_ref = is_ForwardRef
+get_forward_ref_arg = get_ForwardRef_arg

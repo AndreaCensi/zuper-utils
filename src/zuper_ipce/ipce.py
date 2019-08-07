@@ -3,58 +3,50 @@ import hashlib
 import inspect
 import typing
 import warnings
-from dataclasses import make_dataclass, _FIELDS, field, Field, is_dataclass
+from dataclasses import Field, _FIELDS, field, is_dataclass, make_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import (Type, Dict, Any, TypeVar, Optional, ClassVar, cast, Union,
-                    Generic, List, Tuple, Callable, Set)
+from typing import (Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union, cast)
 
 import base58
 import cbor2
 import numpy as np
 import yaml
 from frozendict import frozendict
-from jsonschema.validators import validator_for, validate
+from jsonschema.validators import validate, validator_for
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
-from zuper_typing.constants import PYTHON_36, GENERIC_ATT2, BINDINGS_ATT
-from . import logger
-from zuper_typing.annotations_tricks import (is_optional, get_optional_type, is_forward_ref,
-                                             get_forward_ref_arg, is_Any,
-                                             get_Tuple_name,
-                                             is_ClassVar, get_ClassVar_arg, is_Type,
-                                             is_Callable, get_Callable_info, get_union_types,
-                                             is_union, is_Dict,
-                                             get_Dict_name_K_V, is_Tuple, get_List_arg,
-                                             is_List, is_Set, get_Set_arg, get_Set_name_V, is_Sequence,
-                                             get_Sequence_arg, is_VarTuple, get_VarTuple_arg, make_Tuple, is_TupleLike,
-                                             get_FixedTuple_args, is_FixedTuple, make_Union, get_Dict_args)
-from .constants import (X_PYTHON_MODULE_ATT, ATT_PYTHON_NAME, SCHEMA_BYTES, GlobalsDict, JSONSchema, _SpecialForm,
-                        ProcessingDict, EncounteredDict, SCHEMA_ATT, SCHEMA_ID, JSC_TYPE, JSC_STRING, JSC_NUMBER,
-                        JSC_OBJECT, JSC_TITLE,
-                        JSC_ADDITIONAL_PROPERTIES, JSC_DESCRIPTION, JSC_PROPERTIES, JSC_INTEGER, ID_ATT,
-                        JSC_DEFINITIONS, REF_ATT, JSC_REQUIRED, X_CLASSVARS, X_CLASSATTS, JSC_BOOL, JSC_TITLE_NUMPY,
-                        JSC_NULL,
-                        JSC_TITLE_BYTES, JSC_ARRAY, JSC_ITEMS, JSC_DEFAULT, JSC_TITLE_DECIMAL, JSC_TITLE_DATETIME,
-                        JSC_TITLE_FLOAT, JSC_TITLE_CALLABLE, JSC_TITLE_TYPE, SCHEMA_CID, JSC_PROPERTY_NAMES, JSC_ALLOF,
-                        JSC_ANYOF, JSC_TITLE_SLICE, USE_REMEMBERED_CLASSES, HINTS_ATT)
-
-from zuper_typing.my_dict import (make_dict, CustomDict, make_set, CustomSet,
-                                  get_set_Set_or_CustomSet_Value, is_CustomDict,
-                                  is_CustomSet, is_Dict_or_CustomDict,
-                                  get_Dict_or_CustomDict_Key_Value, is_list_or_List_or_CustomList,
-                                  get_list_or_List_or_CustomList_arg, get_list_or_List_or_CustomList_name,
-                                  is_set_or_CustomSet, is_CustomList, get_CustomList_arg, make_list, get_CustomSet_arg,
-                                  get_CustomDict_args)
-from zuper_typing.my_intersection import is_Intersection, get_Intersection_args, Intersection
-from .numpy_encoding import numpy_from_dict, dict_from_numpy
-from .pretty import pretty_dict
+from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_args, get_Dict_name_K_V,
+                                             get_FixedTuple_args, get_ForwardRef_arg, get_List_arg, get_Optional_arg,
+                                             get_Sequence_arg, get_Set_arg, get_Set_name_V, get_Tuple_name,
+                                             get_Union_args, get_VarTuple_arg, is_Any, is_Callable, is_ClassVar,
+                                             is_Dict, is_FixedTuple, is_ForwardRef, is_List, is_Optional, is_Sequence,
+                                             is_Set, is_Tuple, is_TupleLike, is_Type, is_Union, is_VarTuple, make_Tuple,
+                                             make_Union)
+from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2, PYTHON_36
+from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, get_DictLike_args,
+                                  get_ListLike_arg, get_SetLike_arg,
+                                  get_list_or_List_or_CustomList_name, is_CustomDict,
+                                  is_CustomList, is_CustomSet, is_DictLike, is_ListLike,
+                                  is_SetLike, make_dict, make_list,
+                                  make_set)
+from zuper_typing.my_intersection import Intersection, get_Intersection_args, is_Intersection
 from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing.zeneric2 import RecLogger, get_name_without_brackets, loglevel, replace_typevars
+from . import logger
+from .constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, HINTS_ATT, ID_ATT, JSC_ADDITIONAL_PROPERTIES,
+                        JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT, JSC_DEFINITIONS, JSC_DESCRIPTION,
+                        JSC_INTEGER, JSC_ITEMS, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES, JSC_PROPERTY_NAMES,
+                        JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME,
+                        JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE,
+                        JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID,
+                        USE_REMEMBERED_CLASSES, X_CLASSATTS, X_CLASSVARS, X_PYTHON_MODULE_ATT, _SpecialForm)
+from .numpy_encoding import dict_from_numpy, numpy_from_dict
+from .pretty import pretty_dict
 from .types import IPCE
-from zuper_typing.zeneric2 import get_name_without_brackets, replace_typevars, loglevel, RecLogger
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     pass
@@ -158,7 +150,7 @@ def ipce_from_object_(ob,
         return type_to_schema(ob, globals_, processing={})
 
     if is_Any(ob) or is_List(ob) or is_Dict(ob) or is_Set(ob) or is_Tuple(ob) \
-          or is_Callable(ob) or is_union(ob) or is_Sequence(ob) or is_optional(ob):
+          or is_Callable(ob) or is_Union(ob) or is_Sequence(ob) or is_Optional(ob):
         # TODO: put more here
         return type_to_schema(ob, globals_, processing={})
 
@@ -203,11 +195,11 @@ def serialize_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: 
                 continue
 
             if v is None:
-                if is_optional(suggest_type):
+                if is_Optional(suggest_type):
                     continue
 
-            if is_optional(suggest_type):
-                suggest_type = get_optional_type(suggest_type)
+            if is_Optional(suggest_type):
+                suggest_type = get_Optional_arg(suggest_type)
 
             res[k] = ipce_from_object(v, globals_,
                                       suggest_type=suggest_type, with_schema=with_schema)
@@ -240,12 +232,12 @@ def resolve_all(T, globals_):
         T = eval_just_string(T, globals_)
         return T
 
-    if is_forward_ref(T):
-        tn = get_forward_ref_arg(T)
+    if is_ForwardRef(T):
+        tn = get_ForwardRef_arg(T)
         return resolve_all(tn, globals_)
 
-    if is_optional(T):
-        t = get_optional_type(T)
+    if is_Optional(T):
+        t = get_Optional_arg(T)
         t = resolve_all(t, globals_)
         return Optional[t]
 
@@ -263,14 +255,14 @@ def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
     try:
         if len(set(type_keys)) == 1:
             K = type_keys[0]
-    except: # XXX
+    except:  # XXX
         pass
     V = Any
     # noinspection PyBroadException
     try:
         if len(set(type_values)) == 1:
             V = type_values[0]
-    except: # XXX
+    except:  # XXX
         pass
     return K, V
 
@@ -279,8 +271,8 @@ def get_best_type_for_serializing_dict(ob: dict, suggest_type: Optional[type]) -
     T = type(ob)
     if is_CustomDict(T):
         K, V = get_CustomDict_args(T)
-    elif is_Dict_or_CustomDict(suggest_type):
-        K, V = get_Dict_or_CustomDict_Key_Value(suggest_type)
+    elif is_DictLike(suggest_type):
+        K, V = get_DictLike_args(suggest_type)
     elif (suggest_type is None) or is_Any(suggest_type):
         K, V = guess_type_for_naked_dict(ob)
     else:  # pragma: no cover
@@ -317,8 +309,8 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
 
 
 def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
-    if suggest_type is not None and is_Set(suggest_type):
-        V = get_Set_arg(suggest_type)
+    if suggest_type is not None and is_SetLike(suggest_type):
+        V = get_SetLike_arg(suggest_type)
     else:
         V = None
 
@@ -423,7 +415,7 @@ def object_from_ipce_(mj: IPCE,
             return None
         elif expect_type is type(None):
             return None
-        elif is_optional(expect_type):
+        elif is_Optional(expect_type):
             return None
         else:
             msg = f'The value is None but the expected type is {expect_type}.'
@@ -453,29 +445,28 @@ def object_from_ipce_(mj: IPCE,
 
     # assert isinstance(K, type), K
 
-    if is_optional(K):
+    if is_Optional(K):
         assert mj is not None  # excluded before
-        K = get_optional_type(K)
+        K = get_Optional_arg(K)
 
         return object_from_ipce(mj,
                                 global_symbols,
                                 encountered,
                                 expect_type=K)
 
-    if (isinstance(K, type) and issubclass(K, dict)) or is_Dict(K) or \
-          (isinstance(K, type) and issubclass(K, CustomDict)):
+    if is_DictLike(K):
         return deserialize_Dict(K, mj, global_symbols, encountered)
 
-    if (isinstance(K, type) and issubclass(K, set)) or is_Set(K) or \
-          (isinstance(K, type) and issubclass(K, CustomSet)):
+    if is_SetLike(K):
         return deserialize_Set(K, mj, global_symbols, encountered)
 
     if is_dataclass(K):
         return deserialize_dataclass(K, mj, global_symbols, encountered)
 
-    if is_union(K):
+    if is_Union(K):
         errors = []
-        for T in get_union_types(K):
+        ts = get_Union_args(K)
+        for T in ts:
             try:
                 return object_from_ipce(mj,
                                         global_symbols,
@@ -485,7 +476,7 @@ def object_from_ipce_(mj: IPCE,
                 raise
             except BaseException as e:
                 errors.append(e)
-        msg = f'Cannot deserialize with any of {get_union_types(K)}'
+        msg = f'Cannot deserialize with any of {ts}'
         msg += '\n'.join(str(e) for e in errors)
         raise Exception(msg)
 
@@ -503,8 +494,8 @@ def object_from_ipce_(mj: IPCE,
 def deserialize_tuple(expect_type, mj, global_symbols, encountered):
     if is_FixedTuple(expect_type):
         seq = []
-        for i, ob in enumerate(mj):
-            expect_type_i = expect_type.__args__[i]
+        ts = get_FixedTuple_args(expect_type)
+        for expect_type_i, ob in zip(ts, mj):
             seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=expect_type_i))
 
         return tuple(seq)
@@ -540,8 +531,8 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
     for k, v in mj.items():
         if k in anns:
             expect_type = resolve_all(anns[k], global_symbols)
-            if is_optional(expect_type):
-                expect_type = get_optional_type(expect_type)
+            if is_Optional(expect_type):
+                expect_type = get_Optional_arg(expect_type)
 
             if inspect.isabstract(expect_type):
                 msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
@@ -572,7 +563,7 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
             continue
         if not k in mj:
             msg = f'Cannot find field {k!r} in data. Know {sorted(mj)}'
-            if is_optional(T):
+            if is_Optional(T):
                 attrs[k] = None
                 pass
             else:
@@ -594,19 +585,22 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
 
 
 def deserialize_Dict(D, mj, global_symbols, encountered):
-    if isinstance(D, type) and issubclass(D, CustomDict):
-        K, V = D.__dict_type__
-        ob = D()
-    elif is_Dict(D):
-        K, V = D.__args__
-        D2 = make_dict(K, V)
-        ob = D2()
-    elif isinstance(D, type) and issubclass(D, dict):
-        K, V = Any, Any
-        ob = D()
-    else:  # pragma: no cover
-        msg = pretty_dict("not sure", dict(D=D))
-        raise NotImplementedError(msg)
+    K, V = get_DictLike_args(D)
+    D = make_dict(K, V)
+    ob = D()
+    # if isinstance(D, type) and issubclass(D, CustomDict):
+    #     K, V = D.__dict_type__
+    #     ob = D()
+    # elif is_Dict(D):
+    #     K, V = D.__args__
+    #     D2 = make_dict(K, V)
+    #     ob = D2()
+    # elif isinstance(D, type) and issubclass(D, dict):
+    #     K, V = Any, Any
+    #     ob = D()
+    # else:  # pragma: no cover
+    #     msg = pretty_dict("not sure", dict(D=D))
+    #     raise NotImplementedError(msg)
 
     attrs = {}
 
@@ -643,7 +637,7 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
 
 
 def deserialize_Set(D, mj, global_symbols, encountered):
-    V = get_set_Set_or_CustomSet_Value(D)
+    V = get_SetLike_arg(D)
 
     res = set()
 
@@ -811,28 +805,16 @@ def schema_array_to_type(schema, global_symbols, encountered):
         args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
 
         return make_Tuple(*args)
-        # if PYTHON_36:  # pragma: no cover
-        #     return typing.Tuple[args]
-        # else:
-        #     # noinspection PyArgumentList
-        #     return Tuple.__getitem__(args)
     else:
         if 'Tuple' in schema[JSC_TITLE]:
 
-            args = schema_to_type(items, global_symbols, encountered)
-            if PYTHON_36:  # pragma: no cover
-                return typing.Tuple[args, ...]
-            else:
-                # noinspection PyArgumentList
-                return Tuple.__getitem__((args, Ellipsis))
+            V = schema_to_type(items, global_symbols, encountered)
+            args = (V, ...)
+            return make_Tuple(*args)
         else:
 
-            args = schema_to_type(items, global_symbols, encountered)
-            if PYTHON_36:  # pragma: no cover
-                return List[args]
-            else:
-                # noinspection PyArgumentList
-                return List[args]
+            V = schema_to_type(items, global_symbols, encountered)
+            return List[V]
 
 
 def schema_dict_to_DictType(schema, global_symbols, encountered):
@@ -957,8 +939,8 @@ class FakeValues(Generic[KK, VV]):
 
 
 def dict_to_schema(T, globals_, processing) -> JSONSchema:
-    K, V = get_Dict_or_CustomDict_Key_Value(T)
-
+    assert is_DictLike(T), T
+    K, V = get_DictLike_args(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if isinstance(K, type) and issubclass(K, str):
@@ -975,10 +957,8 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
 
 
 def set_to_schema(T, globals_, processing) -> JSONSchema:
-    assert is_Set(T) or (isinstance(T, type) and issubclass(T, set)), T
-
-    V = get_set_Set_or_CustomSet_Value(T)
-
+    assert is_SetLike(T), T
+    V = get_SetLike_arg(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Set_name_V(V)
     res[JSC_PROPERTY_NAMES] = SCHEMA_CID
@@ -989,7 +969,7 @@ def set_to_schema(T, globals_, processing) -> JSONSchema:
 
 def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     assert is_TupleLike(T), T
-    # args = T.__args__
+
     if is_VarTuple(T):
         items = get_VarTuple_arg(T)
         # if args[-1] == Ellipsis:
@@ -1016,8 +996,8 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
 
 
 def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    assert is_list_or_List_or_CustomList(T)
-    items = get_list_or_List_or_CustomList_arg(T)
+    assert is_ListLike(T), T
+    items = get_ListLike_arg(T)
     res = cast(JSONSchema, {})
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
@@ -1027,7 +1007,7 @@ def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSON
 
 
 def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
-    assert is_Callable(T)
+    assert is_Callable(T), T
     cinfo = get_Callable_info(T)
 
     res = cast(JSONSchema, {
@@ -1067,8 +1047,8 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     # This can actually happen inside a Tuple (or Dict, etc.) even though
     # we have a special case for dataclass
 
-    if is_forward_ref(T):  # pragma: no cover
-        arg = get_forward_ref_arg(T)
+    if is_ForwardRef(T):  # pragma: no cover
+        arg = get_ForwardRef_arg(T)
         # if arg == MemoryJSON.__name__:
         #     return type_to_schema_(MemoryJSON, globals_, processing)
         msg = f'It is not supported to have an ForwardRef here yet: {T}'
@@ -1119,23 +1099,16 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
         return res
 
-    if is_union(T):
+    if is_Union(T):
         return schema_Union(T, globals_, processing)
 
-    if is_optional(T):
+    if is_Optional(T):
         return schema_Optional(T, globals_, processing)
 
-    if is_Dict_or_CustomDict(T):
+    if is_DictLike(T):
         return dict_to_schema(T, globals_, processing)
-    #
-    # if isinstance(T, type) and issubclass(T, dict):  # pragma: no cover
-    #     # msg = f'A regular "dict" slipped through.\n{T}'
-    #     T = Dict[Any, Any]
-    #     # raise TypeError(msg)
-    #     return dict_to_schema(T, globals_, processing)
 
-    # if is_Set(T) or (isinstance(T, type) and issubclass(T, set)):
-    if is_set_or_CustomSet(T):
+    if is_SetLike(T):
         return set_to_schema(T, globals_, processing)
 
     if is_Intersection(T):
@@ -1152,7 +1125,7 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         T = List[V]
         return List_to_schema(T, globals_, processing)
 
-    if is_list_or_List_or_CustomList(T):
+    if is_ListLike(T):
         return List_to_schema(T, globals_, processing)
 
     if is_TupleLike(T):
@@ -1251,6 +1224,7 @@ def schema_to_type_generic(res: JSONSchema, global_symbols: dict, encountered: d
             encountered[t[ID_ATT]] = tv
 
     typevars: Tuple[TypeVar, ...] = tuple(typevars)
+    # TODO: typevars
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         base = Generic.__getitem__(typevars)
@@ -1476,35 +1450,36 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         res = Tuple_to_schema(t, globals_, processing)
         return Result(res)
 
-    if is_list_or_List_or_CustomList(t):
+    if is_ListLike(t):
         res = List_to_schema(t, globals_, processing)
         return Result(res)
 
-    if is_forward_ref(t):
-        tn = get_forward_ref_arg(t)
+    if is_DictLike(t):
+        schema = dict_to_schema(t, globals_, processing)
+        return Result(schema)
+
+    if is_SetLike(t):
+        schema = set_to_schema(t, globals_, processing)
+        return Result(schema)
+
+    if is_ForwardRef(t):
+        tn = get_ForwardRef_arg(t)
         # tt = t._eval_type(globals_, processing)
         # print(f'tn: {tn!r} tt: {tt!r}')
 
         return eval_type_string(tn, globals_, processing)
 
-    if is_optional(t):
-        tt = get_optional_type(t)
+    if is_Optional(t):
+        tt = get_Optional_arg(t)
         result = eval_field(tt, globals_, processing)
         return Result(result.schema, optional=True)
 
-    if is_union(t):
+    if is_Union(t):
         return Result(schema_Union(t, globals_, processing))
 
     if is_Any(t):
         res = cast(JSONSchema, {})
         return Result(res)
-
-    if is_Dict(t):
-        schema = dict_to_schema(t, globals_, processing)
-        return Result(schema)
-    if is_Set(t):
-        schema = set_to_schema(t, globals_, processing)
-        return Result(schema)
 
     if isinstance(t, TypeVar):
         l = t.__name__
@@ -1534,14 +1509,14 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
 
 
 def schema_Union(t, globals_, processing):
-    types = get_union_types(t)
+    types = get_Union_args(t)
     options = [type_to_schema(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
     return res
 
 
 def schema_Optional(t, globals_, processing):
-    types = [get_optional_type(t), type(None)]
+    types = [get_Optional_arg(t), type(None)]
     options = [type_to_schema(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
     return res
@@ -1698,16 +1673,16 @@ def recursive_type_subst(T, f, ignore=()):
     if T in ignore:
         return T
     r = lambda X: recursive_type_subst(X, f, ignore + (T,))
-    if is_optional(T):
-        a = get_optional_type(T)
+    if is_Optional(T):
+        a = get_Optional_arg(T)
         a2 = r(a)
         if a == a2:
             return T
         return Optional[a2]
-    elif is_forward_ref(T):
+    elif is_ForwardRef(T):
         return f(T)
-    elif is_union(T):
-        ts0 = get_union_types(T)
+    elif is_Union(T):
+        ts0 = get_Union_args(T)
         ts = tuple(r(_) for _ in ts0)
         if ts0 == ts:
             return T
@@ -1798,8 +1773,8 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
             return T
         if M == Placeholder:
             return T
-        elif is_forward_ref(M):
-            arg = get_forward_ref_arg(M)
+        elif is_ForwardRef(M):
+            arg = get_ForwardRef_arg(M)
             if arg == cls_name:
                 return T
             else:

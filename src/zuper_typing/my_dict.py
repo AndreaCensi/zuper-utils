@@ -38,6 +38,12 @@ def is_CustomDict(x):
     return isinstance(x, type) and issubclass(x, CustomDict)
 
 
+def is_DictLike(x):
+    return x is dict or is_Dict(x) or is_CustomDict(x)
+
+def get_DictLike_args(x):
+    return get_Dict_or_CustomDict_Key_Value(x)
+
 def is_Dict_or_CustomDict(x):
     from zuper_typing.annotations_tricks import is_Dict
     return x is dict or is_Dict(x) or is_CustomDict(x)
@@ -105,7 +111,18 @@ class CustomList(list):
             return h
 
 
+class Caches:
+    use_cache = True
+    make_set_cache = {}
+    make_list_cache = {}
+    make_dict_cache = {}
+
+
 def make_set(V) -> type:
+    if Caches.use_cache:
+        if V in Caches.make_set_cache:
+            return Caches.make_set_cache[V]
+
     class MyType(type):
         def __eq__(self, other):
             V = getattr(self, '__set_type__')
@@ -123,10 +140,16 @@ def make_set(V) -> type:
     attrs = {'__set_type__': V, 'copy': copy}
     name = get_Set_name_V(V)
     res = MyType(name, (CustomSet,), attrs)
+
+    Caches.make_set_cache[V] = res
     return res
 
 
 def make_list(V) -> type:
+    if Caches.use_cache:
+        if V in Caches.make_list_cache:
+            return Caches.make_list_cache[V]
+
     class MyType(type):
         def __eq__(self, other):
             V = getattr(self, '__list_type__')
@@ -151,11 +174,17 @@ def make_list(V) -> type:
     name = 'List[%s]' % name_for_type_like(V)
 
     res = MyType(name, (CustomList,), attrs)
+
+    Caches.make_list_cache[V] = res
     return res
 
 
 # from . import logger
 def make_dict(K, V) -> type:
+    if Caches.use_cache:
+        if (K, V) in Caches.make_dict_cache:
+            return Caches.make_dict_cache[(K, V)]
+
     class MyType(type):
         def __eq__(self, other):
             K, V = getattr(self, '__dict_type__')
@@ -177,6 +206,7 @@ def make_dict(K, V) -> type:
     name = get_Dict_name_K_V(K, V)
 
     res = MyType(name, (CustomDict,), attrs)
+    Caches.make_dict_cache[V] = res
     return res
 
 
@@ -185,7 +215,7 @@ def is_list_or_List(x):
     return is_List(x) or (isinstance(x, type) and issubclass(x, list))
 
 
-def is_list_or_List_or_CustomList(x):
+def is_ListLike(x):
     from zuper_typing.annotations_tricks import is_List
     return (x is list) or is_List(x) or is_CustomList(x)
 
@@ -195,7 +225,7 @@ def get_list_or_List_or_CustomList_name(x):
     return 'List[%s]' % name_for_type_like(X)
 
 
-def get_list_or_List_or_CustomList_arg(x):
+def get_ListLike_arg(x):
     from zuper_typing.annotations_tricks import is_List, get_List_arg
     if x is list:
         return Any
@@ -206,7 +236,6 @@ def get_list_or_List_or_CustomList_arg(x):
         return x.__list_type__
 
     assert False, x
-
 
 def get_list_List_Value(x):
     from zuper_typing.annotations_tricks import is_List, get_List_arg
@@ -221,7 +250,6 @@ def get_list_List_Value(x):
 
     assert False, x
 
-
 def is_CustomSet(x):
     return isinstance(x, type) and issubclass(x, CustomSet)
 
@@ -229,13 +257,11 @@ def is_CustomSet(x):
 def is_CustomList(x):
     return isinstance(x, type) and issubclass(x, CustomList)
 
-
-def is_set_or_CustomSet(x):
+def is_SetLike(x):
     from zuper_typing.annotations_tricks import is_Set
     return (x is set) or is_Set(x) or is_CustomSet(x)
 
-
-def get_set_Set_or_CustomSet_Value(x):
+def get_SetLike_arg(x):
     from zuper_typing.annotations_tricks import is_Set, get_Set_arg
     if x is set:
         return Any
@@ -247,3 +273,10 @@ def get_set_Set_or_CustomSet_Value(x):
         return x.__set_type__
 
     assert False, x
+
+is_set_or_CustomSet = is_SetLike
+get_set_Set_or_CustomSet_Value = get_SetLike_arg
+
+is_list_or_List_or_CustomList = is_ListLike
+get_list_or_List_or_CustomList_arg = get_ListLike_arg
+
