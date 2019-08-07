@@ -58,14 +58,10 @@ __all__ = ['object_from_ipce', 'ipce_from_object']
 PASS_THROUGH = (KeyboardInterrupt, RecursionError)
 
 
-# new interface
-def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
-    globals_ = globals_ or {}
-    return ipce_from_object__(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
-
-def ipce_from_object__(ob, globals_: GlobalsDict, suggest_type=None, with_schema=True) -> IPCE:
+def ipce_from_object(ob, globals_: GlobalsDict=None, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
+    globals_ = globals_ or {}
     try:
         res = ipce_from_object_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     except TypeError as e:
@@ -736,12 +732,12 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             V = args[0]
             return Optional[V]
         else:
-            return Union[tuple(args)]
+            return make_Union(*args)
 
     if JSC_ALLOF in schema:
         options = schema[JSC_ALLOF]
         args = [schema_to_type(_, global_symbols, encountered) for _ in options]
-        res = Intersection[tuple(args)]
+        res = Intersection[tuple(args)]  # XXX
         return res
 
     jsc_type = schema.get(JSC_TYPE, None)
@@ -878,8 +874,6 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                 if klass is object:
                     continue
 
-                # globals_[klass.__name__] = klass
-
                 globals_[get_name_without_brackets(klass.__name__)] = klass
 
                 bindings = getattr(klass, BINDINGS_ATT, {})
@@ -915,14 +909,6 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
     assert_in(SCHEMA_ATT, schema)
     assert schema[SCHEMA_ATT] in [SCHEMA_ID]
-    # assert_equal(schema[SCHEMA_ATT], SCHEMA_ID)
-
-    if schema[SCHEMA_ATT] == SCHEMA_ID:
-        # print(yaml.dump(schema))
-
-        if False:
-            cls = validator_for(schema)
-            cls.check_schema(schema)
     return schema
 
 
@@ -1177,7 +1163,6 @@ def type_slice_schema() -> JSONSchema:
           'stop':  T,  # TODO
           'step':  T,
           }
-
     return res
 
 

@@ -1,6 +1,8 @@
+from typing import Union
+
 from nose.tools import raises
 
-from zuper_typing.annotations_tricks import make_Union
+from zuper_typing.annotations_tricks import get_Optional_arg, get_Union_args, is_Optional, is_Union, make_Union
 
 
 def test_making_union():
@@ -12,7 +14,6 @@ def test_making_union():
     make_Union(int, float, bool, str, bytes, int)
 
 
-
 @raises(ValueError)
 def test_corner_cases_empty_union():
     make_Union()
@@ -21,3 +22,20 @@ def test_corner_cases_empty_union():
 # @raises(ValueError)
 def test_corner_cases_empty_union1():
     print(make_Union(int))
+
+
+def test_multiple_optional():
+    a = Union[int, str, type(None)]
+    assert is_Optional(a)
+    U = get_Optional_arg(a)
+    assert is_Union(U)
+    assert int, str == get_Union_args(U)
+
+
+def test_multiple_optional2():
+    ts = (int, str, type(None))
+    a = make_Union(*ts)
+    assert is_Optional(a)
+    U = get_Optional_arg(a)
+    assert is_Union(U)
+    assert int, str == get_Union_args(U)

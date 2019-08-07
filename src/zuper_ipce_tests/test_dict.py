@@ -6,9 +6,9 @@ from zuper_ipce import logger
 from zuper_ipce.ipce import ipce_from_object, make_dict, object_from_ipce, type_to_schema
 from zuper_ipce.pretty import pprint
 from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import is_Any, is_List, is_Set
-from zuper_typing.my_dict import (get_Dict_or_CustomDict_Key_Value, get_list_List_Value, get_set_Set_or_CustomSet_Value,
-                                  is_list_or_List, is_set_or_CustomSet, make_set)
+from zuper_typing.annotations_tricks import get_Set_arg, is_Any, is_List, is_Set
+from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_ListLike,
+                                  make_set, is_SetLike)
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
@@ -101,11 +101,8 @@ def test_dict_int_str3():
     res = assert_object_roundtrip(c, {})
     x1b = res['x1b']
     # print(f"x1b: {debug_print(res['x1b'])}")
-    K, V = get_Dict_or_CustomDict_Key_Value(type(x1b.d))
+    K, V = get_DictLike_args(type(x1b.d))
     assert_equal(V, int)
-
-
-
 
 
 def test_dict_int_str4_type():
@@ -113,8 +110,8 @@ def test_dict_int_str4_type():
     ipce = ipce_from_object(D)
     D2 = object_from_ipce(ipce, {})
 
-    K, V = get_Dict_or_CustomDict_Key_Value(D)
-    K2, V2 = get_Dict_or_CustomDict_Key_Value(D2)
+    K, V = get_DictLike_args(D)
+    K2, V2 = get_DictLike_args(D2)
     assert_equal((K, V), (K2, V2))
 
 
@@ -122,7 +119,7 @@ def test_dict_int_str4():
     D = make_dict(str, int)
 
     c = D({'a': 1, 'b': 2})
-    K, V = get_Dict_or_CustomDict_Key_Value(type(c))
+    K, V = get_DictLike_args(type(c))
     debug_print = str
     logger.info(f'c: {debug_print(c)}')
 
@@ -132,58 +129,60 @@ def test_dict_int_str4():
     logger.info(f'ipce: {yaml.dump(ipce)}')
     logger.info(f'c2: {debug_print(c2)}')
 
-    K2, V2 = get_Dict_or_CustomDict_Key_Value(type(c2))
+    K2, V2 = get_DictLike_args(type(c2))
     assert_equal((K, V), (K2, V2))
 
 
 def test_dict_kv01():
-    x = get_Dict_or_CustomDict_Key_Value(dict)
+    x = get_DictLike_args(dict)
     assert_equal(x, (Any, Any))
 
 
 def test_dict_kv02():
-    x = get_Dict_or_CustomDict_Key_Value(Dict)
+    x = get_DictLike_args(Dict)
     assert_equal(x, (Any, Any))
 
 
 def test_dict_kv03():
-    x = get_Dict_or_CustomDict_Key_Value(Dict[int, str])
+    x = get_DictLike_args(Dict[int, str])
     assert_equal(x, (int, str))
 
 
 def test_set_misc01():
-    assert is_set_or_CustomSet(Set)
+    assert is_SetLike(Set)
 
 
 def test_set_misc02():
-    assert is_set_or_CustomSet(Set[int])
+    assert is_SetLike(Set[int])
 
 
 def test_set_misc03():
-    assert is_set_or_CustomSet(set)
+    assert is_SetLike(set)
 
 
 def test_set_misc04():
-    assert is_set_or_CustomSet(make_set(int))
+    assert is_SetLike(make_set(int))
 
 
 def test_set_getvalue01():
     assert is_Set(Set[int])
-    assert get_set_Set_or_CustomSet_Value(Set[int]) is int
+    assert get_SetLike_arg(Set[int]) is int
 
 
 def test_set_getvalue02():
     assert is_Set(Set)
-    x = get_set_Set_or_CustomSet_Value(Set)
+    x = get_Set_arg(Set)
+    assert is_Any(x), x
+    x = get_SetLike_arg(Set)
     assert is_Any(x), x
 
 
 def test_set_getvalue03():
-    assert get_set_Set_or_CustomSet_Value(make_set(int)) is int
+    assert get_SetLike_arg(make_set(int)) is int
 
 
 def test_set_getvalue04():
-    assert is_Any(get_set_Set_or_CustomSet_Value(set))
+    assert is_Any(get_SetLike_arg(set))
 
 
 def test_list_is01():
@@ -199,26 +198,26 @@ def test_list_is03():
 
 
 def test_list_arg01():
-    x = get_list_List_Value(List)
+    x = get_ListLike_arg(List)
     assert is_Any(x), x
 
 
 def test_list_arg02():
-    x = get_list_List_Value(list)
+    x = get_ListLike_arg(list)
     assert is_Any(x), x
 
 
 def test_list_arg03():
-    assert get_list_List_Value(List[int]) is int
+    assert get_ListLike_arg(List[int]) is int
 
 
 def test_islist_01():
-    assert is_list_or_List(list)
+    assert is_ListLike(list)
 
 
 def test_islist_02():
-    assert is_list_or_List(List)
+    assert is_ListLike(List)
 
 
 def test_islist_03():
-    assert is_list_or_List(List[int])
+    assert is_ListLike(List[int])

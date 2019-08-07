@@ -7,17 +7,22 @@ from .constants import NAME_ARG, PYTHON_36
 # noinspection PyProtectedMember
 def is_Optional(x):
     if PYTHON_36:  # pragma: no cover
-        return isinstance(x, typing._Union) and len(x.__args__) == 2 and x.__args__[
+        return isinstance(x, typing._Union) and len(x.__args__) >= 2 and x.__args__[
             -1] is type(None)
     else:
         return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and len(
-              x.__args__) == 2 and x.__args__[
+              x.__args__) >= 2 and x.__args__[
                    -1] is type(None)
 
 
 def get_Optional_arg(x):
     assert is_optional(x)
-    return x.__args__[0]
+    args = x.__args__
+    if len(args) == 1:
+        return args[0]
+    else:
+        return make_Union(args[:-1])
+    # return x.__args__[0]
 
 
 def is_Union(x):
@@ -30,11 +35,19 @@ def is_Union(x):
 
 
 def get_Union_args(x):
-    assert is_union(x)
+    assert is_Union(x)
     return tuple(x.__args__)
 
 
 def make_Union(*a):
+    if a and a[-1] is type(None):
+        before = a[:-1]
+        if len(before) == 1:
+            return typing.Optional[before[0]]
+        else:
+            return typing.Optional[make_Union(*before)]
+
+
     if len(a) == 0:
         raise ValueError('empty')
     if len(a) == 1:

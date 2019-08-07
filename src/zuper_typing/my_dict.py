@@ -7,18 +7,18 @@ from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_List_arg,
 class CustomDict(dict):
     __dict_type__: ClassVar[Tuple[type, type]]
 
-    def __setitem__(self, key, val):
-        K, V = self.__dict_type__
-
-        if False:
-            if not isinstance(key, K):
-                msg = f'Invalid key; expected {K}, got {type(key)}'
-                raise ValueError(msg)
-            # XXX: this should be for many more cases
-            if isinstance(V, type) and not isinstance(val, V):
-                msg = f'Invalid value; expected {V}, got {type(val)}'
-                raise ValueError(msg)
-        dict.__setitem__(self, key, val)
+    # def __setitem__(self, key, val):
+    #     K, V = self.__dict_type__
+    #
+    #     if False:
+    #         if not isinstance(key, K):
+    #             msg = f'Invalid key; expected {K}, got {type(key)}'
+    #             raise ValueError(msg)
+    #         # XXX: this should be for many more cases
+    #         if isinstance(V, type) and not isinstance(val, V):
+    #             msg = f'Invalid value; expected {V}, got {type(val)}'
+    #             raise ValueError(msg)
+    #     dict.__setitem__(self, key, val)
 
     def __hash__(self):
         try:
@@ -41,12 +41,6 @@ def is_CustomDict(x):
 def is_DictLike(x):
     return x is dict or is_Dict(x) or is_CustomDict(x)
 
-def get_DictLike_args(x):
-    return get_Dict_or_CustomDict_Key_Value(x)
-
-def is_Dict_or_CustomDict(x):
-    from zuper_typing.annotations_tricks import is_Dict
-    return x is dict or is_Dict(x) or is_CustomDict(x)
 
 
 def get_CustomDict_args(x):
@@ -64,8 +58,8 @@ def get_CustomList_arg(x):
     return x.__list_type__
 
 
-def get_Dict_or_CustomDict_Key_Value(x):
-    assert is_Dict_or_CustomDict(x), x
+def get_DictLike_args(x):
+    assert is_DictLike(x), x
     # if x is typing.Dict:
     #     return Any, Any
     if is_Dict(x):
@@ -80,9 +74,9 @@ def get_Dict_or_CustomDict_Key_Value(x):
         assert False, x
 
 
-def get_Dict_or_CustomDict_name(T):
-    assert is_Dict_or_CustomDict(T)
-    K, V = get_Dict_or_CustomDict_Key_Value(T)
+def get_DictLike_name(T):
+    assert is_DictLike(T)
+    K, V = get_DictLike_args(T)
     return get_Dict_name_K_V(K, V)
 
 
@@ -210,18 +204,13 @@ def make_dict(K, V) -> type:
     return res
 
 
-def is_list_or_List(x):
-    from zuper_typing.annotations_tricks import is_List
-    return is_List(x) or (isinstance(x, type) and issubclass(x, list))
-
-
 def is_ListLike(x):
     from zuper_typing.annotations_tricks import is_List
     return (x is list) or is_List(x) or is_CustomList(x)
 
 
-def get_list_or_List_or_CustomList_name(x):
-    X = get_list_or_List_or_CustomList_arg(x)
+def get_ListLike_name(x):
+    X = get_ListLike_arg(x)
     return 'List[%s]' % name_for_type_like(X)
 
 
@@ -237,18 +226,6 @@ def get_ListLike_arg(x):
 
     assert False, x
 
-def get_list_List_Value(x):
-    from zuper_typing.annotations_tricks import is_List, get_List_arg
-    if x is list:
-        return Any
-
-    if is_List(x):
-        return get_List_arg(x)
-    #
-    # if isinstance(x, type) and issubclass(x, CustomSet):
-    #     return x.__set_type__
-
-    assert False, x
 
 def is_CustomSet(x):
     return isinstance(x, type) and issubclass(x, CustomSet)
@@ -257,9 +234,11 @@ def is_CustomSet(x):
 def is_CustomList(x):
     return isinstance(x, type) and issubclass(x, CustomList)
 
+
 def is_SetLike(x):
     from zuper_typing.annotations_tricks import is_Set
     return (x is set) or is_Set(x) or is_CustomSet(x)
+
 
 def get_SetLike_arg(x):
     from zuper_typing.annotations_tricks import is_Set, get_Set_arg
@@ -274,9 +253,17 @@ def get_SetLike_arg(x):
 
     assert False, x
 
+
 is_set_or_CustomSet = is_SetLike
 get_set_Set_or_CustomSet_Value = get_SetLike_arg
 
 is_list_or_List_or_CustomList = is_ListLike
 get_list_or_List_or_CustomList_arg = get_ListLike_arg
 
+get_list_or_List_or_CustomList_name = get_ListLike_name
+
+get_Dict_or_CustomDict_Key_Value = get_DictLike_args
+is_Dict_or_CustomDict = is_DictLike
+
+get_Dict_or_CustomDict_name = get_DictLike_name
+get_list_List_Value = get_ListLike_arg
