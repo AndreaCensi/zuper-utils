@@ -1,12 +1,14 @@
-from typing import *
+from typing import Any, Dict, List, Set
 
-from nose.tools import raises, assert_equal
-from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import is_Any, is_Set, is_List
-from zuper_typing.my_dict import (is_set_or_CustomSet, make_set, get_set_Set_or_CustomSet_Value, get_list_List_Value,
-                                  is_list_or_List, get_Dict_or_CustomDict_Key_Value)
-from zuper_ipce.ipce import make_dict, type_to_schema, ipce_from_object, object_from_ipce
+from nose.tools import assert_equal, raises
+
+from zuper_ipce import logger
+from zuper_ipce.ipce import ipce_from_object, make_dict, object_from_ipce, type_to_schema
 from zuper_ipce.pretty import pprint
+from zuper_typing import dataclass
+from zuper_typing.annotations_tricks import is_Any, is_List, is_Set
+from zuper_typing.my_dict import (get_Dict_or_CustomDict_Key_Value, get_list_List_Value, get_set_Set_or_CustomSet_Value,
+                                  is_list_or_List, is_set_or_CustomSet, make_set)
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
@@ -86,7 +88,6 @@ def test_dict_int_str2():
 
 
 def test_dict_int_str3():
-    from zuper_ipcl import debug_print
     D = make_dict(str, int)
 
     @dataclass
@@ -104,7 +105,7 @@ def test_dict_int_str3():
     assert_equal(V, int)
 
 
-from zuper_ipce import logger
+
 
 
 def test_dict_int_str4_type():

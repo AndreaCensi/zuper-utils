@@ -33,12 +33,14 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # resolve_types(T)
     schema0 = type_to_schema(T, use_globals)
     schema = type_to_schema(T, use_globals)
-    rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
+
     T2 = schema_to_type(schema, {}, {})
-    rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
-    print()
-    rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
-    print()
+
+    if False:
+        rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
+        rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
+        rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
+
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
     assert_equal(schema, schema0)

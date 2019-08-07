@@ -34,8 +34,6 @@ class CustomDict(dict):
         return type(self)(self)
 
 
-
-
 def is_CustomDict(x):
     return isinstance(x, type) and issubclass(x, CustomDict)
 
@@ -195,6 +193,7 @@ def is_list_or_List_or_CustomList(x):
 def get_list_or_List_or_CustomList_name(x):
     X = get_list_or_List_or_CustomList_arg(x)
     return 'List[%s]' % name_for_type_like(X)
+
 
 def get_list_or_List_or_CustomList_arg(x):
     from zuper_typing.annotations_tricks import is_List, get_List_arg

@@ -259,16 +259,18 @@ def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
     type_values = tuple(type(_) for _ in ob.values())
     type_keys = tuple(type(_) for _ in ob.keys())
     K = Any
+    # noinspection PyBroadException
     try:
         if len(set(type_keys)) == 1:
             K = type_keys[0]
-    except:
+    except: # XXX
         pass
     V = Any
+    # noinspection PyBroadException
     try:
         if len(set(type_values)) == 1:
             V = type_values[0]
-    except:
+    except: # XXX
         pass
     return K, V
 
@@ -1622,10 +1624,6 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
     #     # encountered[res[ID_ATT]] = ForwardRef(cls_name)
     #     encountered[res[ID_ATT]] = cls_name
 
-    # @dataclass
-    # class Placeholder:
-    #     pass
-    #
     Placeholder = type(f'PlaceholderFor{cls_name}', (), {})
 
     encountered[schema_id] = Placeholder
@@ -1703,7 +1701,6 @@ def recursive_type_subst(T, f, ignore=()):
     if is_optional(T):
         a = get_optional_type(T)
         a2 = r(a)
-        # logger.info(f'optional {a} -> {a2}')
         if a == a2:
             return T
         return Optional[a2]
@@ -1712,7 +1709,6 @@ def recursive_type_subst(T, f, ignore=()):
     elif is_union(T):
         ts0 = get_union_types(T)
         ts = tuple(r(_) for _ in ts0)
-        # logger.info(f'ts0 {ts0} -> {ts}')
         if ts0 == ts:
             return T
         return make_Union(*ts)
@@ -1785,9 +1781,7 @@ def recursive_type_subst(T, f, ignore=()):
               }))
 
         return T2
-        # for f in dataclasses.fields(T):
-        #     f.type = T.__annotations__[f.name]
-        # return T
+
     else:
         return f(T)
 
