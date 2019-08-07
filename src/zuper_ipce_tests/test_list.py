@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Optional
 
 from nose.tools import raises
 
@@ -69,6 +69,19 @@ def test_tuple_inside_class_withoutschema():
 
     e = MyClass((1, 2))
     assert_object_roundtrip(e, {}, works_without_schema=True)
+
+
+
+def test_Optional_fields():
+
+    @dataclass
+    class MyClass:
+        f: int
+        g: Optional[int] = None
+
+    e = MyClass(1)
+    assert_object_roundtrip(e, {}, works_without_schema=True)
+
 
 if __name__ == '__main__':
     setup_logging()

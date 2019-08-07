@@ -169,7 +169,7 @@ def ipce_from_object_(ob,
         return res
 
     if is_dataclass(ob):
-        return serialize_dataclass_instance(ob, globals_, with_schema=with_schema)
+        return serialize_dataclass_instance(ob, globals_, with_schema=with_schema, suggest_type=suggest_type)
 
     msg = f'I do not know a way to convert object of type {type(ob)} ({ob}).'
     raise NotImplementedError(msg)
@@ -178,8 +178,7 @@ def ipce_from_object_(ob,
 import dataclasses
 
 
-def serialize_dataclass_instance(ob, globals_, with_schema: bool):
-
+def serialize_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: Optional[type]):
     globals_ = dict(globals_)
     res = {}
     T = type(ob)
@@ -254,26 +253,46 @@ def resolve_all(T, globals_):
     return T
 
 
-def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
-    # assert suggest_type is not None
-    res = {}
-    # pprint('suggest_type ', ob=ob, suggest_type=suggest_type)
+def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
+    if not ob:
+        return Any, Any
+    type_values = tuple(type(_) for _ in ob.values())
+    type_keys = tuple(type(_) for _ in ob.keys())
+    K = Any
+    try:
+        if len(set(type_keys)) == 1:
+            K = type_keys[0]
+    except:
+        pass
+    V = Any
+    try:
+        if len(set(type_values)) == 1:
+            V = type_values[0]
+    except:
+        pass
+    return K, V
 
-    if is_Dict_or_CustomDict(suggest_type):
+
+def get_best_type_for_serializing_dict(ob: dict, suggest_type: Optional[type]) -> Tuple[type, type, type]:
+    T = type(ob)
+    if is_CustomDict(T):
+        K, V = get_CustomDict_args(T)
+    elif is_Dict_or_CustomDict(suggest_type):
         K, V = get_Dict_or_CustomDict_Key_Value(suggest_type)
-    # elif is_CustomDict(suggest_type):
-    #     K, V = suggest_type.__dict_type__
     elif (suggest_type is None) or is_Any(suggest_type):
-        all_str = all(type(_) is str for _ in ob)
-        if all_str:
-            K = str
-        else:
-            K = Any
-        V = Any
-        suggest_type = Dict[K, V]
+        K, V = guess_type_for_naked_dict(ob)
     else:  # pragma: no cover
         assert False, suggest_type
 
+    suggest_type = Dict[K, V]
+    return suggest_type, K, V
+
+
+def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
+    # assert suggest_type is not None
+    res = {}
+    suggest_type, K, V = get_best_type_for_serializing_dict(ob, suggest_type)
+    # logger.info(f'Using suggest_type for dict = {suggest_type}')
     if with_schema:
         res[SCHEMA_ATT] = type_to_schema(suggest_type, globals_)
 
@@ -533,7 +552,7 @@ def deserialize_dataclass(K, mj, global_symbols, encountered):
                 expect_type = schema_to_type(hints[k], global_symbols, encountered)
                 # logger.info(f'hint for member {k} is {expect_type} of {K.__name__}')
             # else:
-                # logger.info(f'no hint for member {k} of {K.__name__}')
+            # logger.info(f'no hint for member {k} of {K.__name__}')
             try:
                 attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
 
