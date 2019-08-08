@@ -4,6 +4,31 @@ from .annotations_tricks import (get_Dict_args, get_Dict_name_K_V, get_List_arg,
                                  is_List, is_Set, name_for_type_like)
 
 
+class CustomSet(set):
+    __set_type__: ClassVar[type]
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            try:
+                h = self._cached_hash = hash(tuple(sorted(self)))
+            except TypeError:
+                h = self._cached_hash = hash(tuple(self))
+            return h
+
+
+class CustomList(list):
+    __list_type__: ClassVar[type]
+
+    def __hash__(self):
+        try:
+            return self._cached_hash
+        except AttributeError:
+            h = self._cached_hash = hash(tuple(self))
+            return h
+
+
 class CustomDict(dict):
     __dict_type__: ClassVar[Tuple[type, type]]
 
@@ -34,20 +59,6 @@ class CustomDict(dict):
         return type(self)(self)
 
 
-def is_CustomDict(x):
-    return isinstance(x, type) and issubclass(x, CustomDict)
-
-
-def is_DictLike(x):
-    return x is dict or is_Dict(x) or is_CustomDict(x)
-
-
-
-def get_CustomDict_args(x):
-    assert is_CustomDict(x)
-    return x.__dict_type__
-
-
 def get_CustomSet_arg(x):
     assert is_CustomSet(x)
     return x.__set_type__
@@ -58,14 +69,65 @@ def get_CustomList_arg(x):
     return x.__list_type__
 
 
+def get_CustomDict_args(x):
+    assert is_CustomDict(x)
+    return x.__dict_type__
+
+
+def is_CustomSet(x):
+    return isinstance(x, type) and issubclass(x, CustomSet)
+
+
+def is_CustomList(x):
+    return isinstance(x, type) and issubclass(x, CustomList)
+
+
+def is_CustomDict(x):
+    return isinstance(x, type) and issubclass(x, CustomDict)
+
+
+def is_SetLike(x):
+    return (x is set) or is_Set(x) or is_CustomSet(x)
+
+
+def is_ListLike(x):
+    return (x is list) or is_List(x) or is_CustomList(x)
+
+
+def is_DictLike(x):
+    return (x is dict) or is_Dict(x) or is_CustomDict(x)
+
+
+def get_SetLike_arg(x):
+    if x is set:
+        return Any
+
+    if is_Set(x):
+        return get_Set_arg(x)
+
+    if is_CustomSet(x):
+        return get_CustomSet_arg(x)
+
+    assert False, x
+
+
+def get_ListLike_arg(x):
+    if x is list:
+        return Any
+
+    if is_List(x):
+        return get_List_arg(x)
+
+    if is_CustomList(x):
+        return x.__list_type__
+
+    assert False, x
+
+
 def get_DictLike_args(x):
     assert is_DictLike(x), x
-    # if x is typing.Dict:
-    #     return Any, Any
     if is_Dict(x):
-        k, v = get_Dict_args(x)
-
-        return k, v
+        return get_Dict_args(x)
     elif is_CustomDict(x):
         return get_CustomDict_args(x)
     elif x is dict:
@@ -80,29 +142,9 @@ def get_DictLike_name(T):
     return get_Dict_name_K_V(K, V)
 
 
-class CustomSet(set):
-    __set_type__: ClassVar[type]
-
-    def __hash__(self):
-        try:
-            return self._cached_hash
-        except AttributeError:
-            try:
-                h = self._cached_hash = hash(tuple(sorted(self)))
-            except TypeError:
-                h = self._cached_hash = hash(tuple(self))
-            return h
-
-
-class CustomList(list):
-    __list_type__: ClassVar[type]
-
-    def __hash__(self):
-        try:
-            return self._cached_hash
-        except AttributeError:
-            h = self._cached_hash = hash(tuple(self))
-            return h
+def get_ListLike_name(x):
+    X = get_ListLike_arg(x)
+    return 'List[%s]' % name_for_type_like(X)
 
 
 class Caches:
@@ -196,7 +238,6 @@ def make_dict(K, V) -> type:
         raise ValueError(msg)
     # warnings.warn('Creating dict', stacklevel=2)
     attrs = {'__dict_type__': (K, V)}
-    from zuper_typing.annotations_tricks import get_Dict_name_K_V
     name = get_Dict_name_K_V(K, V)
 
     res = MyType(name, (CustomDict,), attrs)
@@ -204,66 +245,13 @@ def make_dict(K, V) -> type:
     return res
 
 
-def is_ListLike(x):
-    from zuper_typing.annotations_tricks import is_List
-    return (x is list) or is_List(x) or is_CustomList(x)
 
 
-def get_ListLike_name(x):
-    X = get_ListLike_arg(x)
-    return 'List[%s]' % name_for_type_like(X)
 
 
-def get_ListLike_arg(x):
-    from zuper_typing.annotations_tricks import is_List, get_List_arg
-    if x is list:
-        return Any
-    if is_List(x):
-        return get_List_arg(x)
-
-    if isinstance(x, type) and issubclass(x, CustomList):
-        return x.__list_type__
-
-    assert False, x
 
 
-def is_CustomSet(x):
-    return isinstance(x, type) and issubclass(x, CustomSet)
 
-
-def is_CustomList(x):
-    return isinstance(x, type) and issubclass(x, CustomList)
-
-
-def is_SetLike(x):
-    from zuper_typing.annotations_tricks import is_Set
-    return (x is set) or is_Set(x) or is_CustomSet(x)
-
-
-def get_SetLike_arg(x):
-    from zuper_typing.annotations_tricks import is_Set, get_Set_arg
-    if x is set:
-        return Any
-
-    if is_Set(x):
-        return get_Set_arg(x)
-
-    if isinstance(x, type) and issubclass(x, CustomSet):
-        return x.__set_type__
-
-    assert False, x
-
-
-is_set_or_CustomSet = is_SetLike
-get_set_Set_or_CustomSet_Value = get_SetLike_arg
-
-is_list_or_List_or_CustomList = is_ListLike
-get_list_or_List_or_CustomList_arg = get_ListLike_arg
-
-get_list_or_List_or_CustomList_name = get_ListLike_name
-
-get_Dict_or_CustomDict_Key_Value = get_DictLike_args
-is_Dict_or_CustomDict = is_DictLike
-
-get_Dict_or_CustomDict_name = get_DictLike_name
-get_list_List_Value = get_ListLike_arg
+def get_SetLike_name(V):
+    v = get_SetLike_arg(V)
+    return 'Set[%s]' % name_for_type_like(v)

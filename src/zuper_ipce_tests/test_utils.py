@@ -3,8 +3,9 @@ import traceback
 import typing
 # noinspection PyUnresolvedReferences
 from contextlib import contextmanager
-from dataclasses import is_dataclass, fields, dataclass
+from dataclasses import dataclass, fields, is_dataclass
 
+from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
 from zuper_typing_tests.test_utils import known_failure
 
 try:
@@ -32,7 +33,10 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     rl = RecLogger()
     # resolve_types(T)
     schema0 = type_to_schema(T, use_globals)
+
+    # why 2?
     schema = type_to_schema(T, use_globals)
+    save_test_object(T, ipce=schema)
 
     T2 = schema_to_type(schema, {}, {})
 
@@ -155,6 +159,31 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
     # assert_equal(T1.mro(), T2.mro())
 
 
+def save_test_object(x: object, ipce: object):
+    try:
+        import zuper_ipcl
+    except:
+        return
+
+    ipce_bytes = cbor.dumps(ipce)
+    from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
+    from zuper_ipcl import debug_print
+    digest = get_cbor_dag_hash_bytes(ipce_bytes)
+    dn = 'test_objects'
+    # if not os.path.exists(dn):
+    #     os.makedirs(dn)
+    fn = os.path.join(dn, digest + '.ipce.cbor')
+    write_bytes_to_file(ipce_bytes, fn)
+    # fn = os.path.join(dn, digest + '.ipce.yaml')
+    # write_ustring_to_utf8_file(yaml.dump(y1), fn)
+    fn = os.path.join(dn, digest + '.object.ansi')
+    s = debug_print(x) + '\n\n as ipce: \n\n' + debug_print(ipce) + '\n\n as YAML: \n\n' + yaml.dump(ipce)
+    write_ustring_to_utf8_file(s, fn)
+
+
+import os
+
+
 def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without_schema=True):
     """
 
@@ -167,7 +196,10 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     """
 
     y1 = ipce_from_object(x1, use_globals)
-    y1_cbor = cbor.dumps(y1)
+    y1_cbor: bytes = cbor.dumps(y1)
+
+    save_test_object(x1, ipce=y1)
+
     y1 = cbor.loads(y1_cbor)
 
     y1e = encode_bytes_before_json_serialization(y1)
@@ -210,7 +242,6 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
         z2 = cbor.loads(cbor.dumps(z1))
         u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
-
 
     # s = {x1b}
     return locals()

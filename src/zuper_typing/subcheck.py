@@ -2,12 +2,12 @@ from dataclasses import dataclass, is_dataclass
 from typing import *
 
 from zuper_commons.text import indent
-from .annotations_tricks import (get_optional_type, get_tuple_types, get_union_types, is_Any,
-                                 is_List, is_Tuple, is_TypeVar, is_optional, is_union, is_Sequence, get_Sequence_arg)
+from .annotations_tricks import (get_Optional_arg, get_tuple_types, get_Union_args, is_Any,
+                                 is_List, is_Tuple, is_TypeVar, is_Optional, is_Union, is_Sequence, get_Sequence_arg)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
-from .my_dict import (get_Dict_or_CustomDict_Key_Value, get_list_or_List_or_CustomList_arg,
-                      get_set_Set_or_CustomSet_Value, is_Dict_or_CustomDict, is_list_or_List_or_CustomList,
-                      is_set_or_CustomSet)
+from .my_dict import (get_DictLike_args, get_ListLike_arg,
+                      get_SetLike_arg, is_DictLike, is_ListLike,
+                      is_SetLike)
 
 
 @dataclass
@@ -44,14 +44,14 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     if is_Any(T2):
         return CanBeUsed(True, 'Any', matches)
 
-    if is_union(T1):
-        if is_union(T2):
-            if get_union_types(T1) == get_union_types(T2):
+    if is_Union(T1):
+        if is_Union(T2):
+            if get_Union_args(T1) == get_Union_args(T2):
                 return CanBeUsed(True, 'same', matches)
         # can_be_used(Union[A,B], C)
         # == can_be_used(A,C) and can_be_used(B,C)
 
-        for t in get_union_types(T1):
+        for t in get_Union_args(T1):
             can = can_be_used_as2(t, T2, matches, assumptions)
             # logger.info(f'can_be_used_as t = {t} {T2}')
             if not can.result:
@@ -60,9 +60,9 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, '', matches)
 
-    if is_union(T2):
+    if is_Union(T2):
         reasons = []
-        for t in get_union_types(T2):
+        for t in get_Union_args(T2):
             can = can_be_used_as2(T1, t, matches, assumptions)
             if can.result:
                 return CanBeUsed(True, f'union match with {t} ', can.matches)
@@ -71,22 +71,22 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
         msg = f'Cannot use {T1} as any of {T2}:\n' + "\n".join(reasons)
         return CanBeUsed(False, msg, matches)
 
-    if is_optional(T2):
-        t2 = get_optional_type(T2)
-        if is_optional(T1):
-            t1 = get_optional_type(T1)
+    if is_Optional(T2):
+        t2 = get_Optional_arg(T2)
+        if is_Optional(T1):
+            t1 = get_Optional_arg(T1)
             return can_be_used_as2(t1, t2, matches, assumptions)
 
         return can_be_used_as2(T1, t2, matches, assumptions)
 
-    if is_Dict_or_CustomDict(T2):
+    if is_DictLike(T2):
 
-        if not is_Dict_or_CustomDict(T1):
+        if not is_DictLike(T1):
             msg = f'Expecting a dictionary, got {T1}'
             return CanBeUsed(False, msg, matches)
         else:
-            K1, V1 = get_Dict_or_CustomDict_Key_Value(T1)
-            K2, V2 = get_Dict_or_CustomDict_Key_Value(T2)
+            K1, V1 = get_DictLike_args(T1)
+            K2, V2 = get_DictLike_args(T2)
 
             rk = can_be_used_as2(K1, K2, matches, assumptions)
             if not rk:
@@ -98,11 +98,11 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
             return CanBeUsed(True, f'ok: {rk} {rv}', rv.matches)
     else:
-        if is_Dict_or_CustomDict(T1):
+        if is_DictLike(T1):
             msg = 'A Dict needs a dictionary'
             return CanBeUsed(False, msg, matches)
 
-    assert not is_union(T2)
+    assert not is_Union(T2)
 
     if is_dataclass(T2):
         # try:
@@ -117,7 +117,7 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
         if not is_dataclass(T1):
             msg = f'Expecting dataclass to match to {T2}, got something that is not a ' \
                   f'dataclass: {T1}'
-            msg += f'  union: {is_union(T1)}'
+            msg += f'  union: {is_Union(T1)}'
             return CanBeUsed(False, msg, matches)
         # h1 = get_type_hints(T1)
         # h2 = get_type_hints(T2)
@@ -158,7 +158,7 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
         return CanBeUsed(False, msg, matches)
 
     if is_Tuple(T1):
-        assert not is_union(T2)
+        assert not is_Union(T2)
         if not is_Tuple(T2):
             msg = 'A tuple can only be used as a tuple'
             return CanBeUsed(False, msg, matches)
@@ -190,18 +190,18 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     #         return CanBeUsed(False, 'not implemented', matches)
 
     if is_Any(T1):
-        assert not is_union(T2)
+        assert not is_Union(T2)
         if not is_Any(T2):
             msg = 'Any is the top'
             return CanBeUsed(False, msg, matches)
 
-    if is_list_or_List_or_CustomList(T2):
-        if not is_list_or_List_or_CustomList(T1):
+    if is_ListLike(T2):
+        if not is_ListLike(T1):
             msg = 'A List can only be used as a List'
             return CanBeUsed(False, msg, matches)
 
-        t1 = get_list_or_List_or_CustomList_arg(T1)
-        t2 = get_list_or_List_or_CustomList_arg(T2)
+        t1 = get_ListLike_arg(T1)
+        t2 = get_ListLike_arg(T2)
         # print(f'matching List with {t1} {t2}')
         can = can_be_used_as2(t1, t2, matches, assumptions)
 
@@ -210,13 +210,13 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, '', can.matches)
 
-    if is_set_or_CustomSet(T2):
-        if not is_set_or_CustomSet(T1):
+    if is_SetLike(T2):
+        if not is_SetLike(T1):
             msg = 'A Set can only be used as a Set'
             return CanBeUsed(False, msg, matches)
 
-        t1 = get_set_Set_or_CustomSet_Value(T1)
-        t2 = get_set_Set_or_CustomSet_Value(T2)
+        t1 = get_SetLike_arg(T1)
+        t2 = get_SetLike_arg(T2)
         # print(f'matching List with {t1} {t2}')
         can = can_be_used_as2(t1, t2, matches, assumptions)
 
@@ -229,8 +229,8 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     if is_Sequence(T1):
         t1 = get_Sequence_arg(T1)
 
-        if is_list_or_List_or_CustomList(T2):
-            t2 = get_list_or_List_or_CustomList_arg(T2)
+        if is_ListLike(T2):
+            t2 = get_ListLike_arg(T2)
             can = can_be_used_as2(t1, t2, matches, assumptions)
 
             if not can.result:

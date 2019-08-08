@@ -7,7 +7,7 @@ from zuper_ipce.ipce import ipce_from_object, type_to_schema, object_from_ipce
 from zuper_typing.annotations_tricks import (make_Union, is_NewType, get_NewType_arg, get_NewType_name,
                                              get_NewType_repr,
                                              name_for_type_like, is_Any)
-from zuper_typing.my_dict import get_list_or_List_or_CustomList_arg, make_set, get_CustomSet_arg
+from zuper_typing.my_dict import get_ListLike_arg, make_set, get_CustomSet_arg
 from zuper_typing.subcheck import can_be_used_as2
 
 
@@ -96,7 +96,7 @@ def test_newtype2():
 
 
 def test_list0():
-    v = get_list_or_List_or_CustomList_arg(list)
+    v = get_ListLike_arg(list)
     assert is_Any(v)
 
 

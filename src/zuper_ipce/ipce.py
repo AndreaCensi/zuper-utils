@@ -29,7 +29,7 @@ from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2, PYTHON_36
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, get_DictLike_args,
                                   get_ListLike_arg, get_SetLike_arg,
-                                  get_list_or_List_or_CustomList_name, is_CustomDict,
+                                  get_ListLike_name, is_CustomDict,
                                   is_CustomList, is_CustomSet, is_DictLike, is_ListLike,
                                   is_SetLike, make_dict, make_list,
                                   make_set)
@@ -584,19 +584,6 @@ def deserialize_Dict(D, mj, global_symbols, encountered):
     K, V = get_DictLike_args(D)
     D = make_dict(K, V)
     ob = D()
-    # if isinstance(D, type) and issubclass(D, CustomDict):
-    #     K, V = D.__dict_type__
-    #     ob = D()
-    # elif is_Dict(D):
-    #     K, V = D.__args__
-    #     D2 = make_dict(K, V)
-    #     ob = D2()
-    # elif isinstance(D, type) and issubclass(D, dict):
-    #     K, V = Any, Any
-    #     ob = D()
-    # else:  # pragma: no cover
-    #     msg = pretty_dict("not sure", dict(D=D))
-    #     raise NotImplementedError(msg)
 
     attrs = {}
 
@@ -988,7 +975,7 @@ def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSON
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
     res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
-    res[JSC_TITLE] = get_list_or_List_or_CustomList_name(T)
+    res[JSC_TITLE] = get_ListLike_name(T)
     return res
 
 

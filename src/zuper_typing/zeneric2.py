@@ -8,18 +8,13 @@ from dataclasses import dataclass, fields
 from typing import Any, ClassVar, Dict, Sequence, Tuple, Type, TypeVar, _eval_type
 
 from zuper_commons.text import indent, pretty_dict
-from zuper_typing.my_dict import (get_Dict_or_CustomDict_Key_Value, is_Dict_or_CustomDict,
-                                  make_dict, is_set_or_CustomSet, get_set_Set_or_CustomSet_Value, make_set,
-                                  is_CustomList, get_CustomList_arg, make_list)
-from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Iterator_arg,
-                                 get_List_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
-                                 get_Type_arg,
-                                 get_forward_ref_arg, get_optional_type, get_tuple_types,
-                                 get_union_types, is_Callable,
-                                 is_ClassVar, is_Iterator, is_List, is_NewType, is_Sequence,
-                                 is_Set, is_Tuple, is_Type,
-                                 is_TypeVar, is_forward_ref, is_optional, is_union,
-                                 name_for_type_like)
+from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_SetLike_arg, is_CustomList, is_DictLike,
+                                  is_SetLike, make_dict, make_list, make_set)
+from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
+                                 get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
+                                 get_Type_arg, get_tuple_types, get_Union_args, is_Callable, is_ClassVar,
+                                 is_ForwardRef, is_Iterator, is_List, is_NewType, is_Optional, is_Sequence, is_Set,
+                                 is_Tuple, is_Type, is_TypeVar, is_Union, name_for_type_like)
 from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, PYTHON_36
 from .logging import logger
 from .subcheck import can_be_used_as2
@@ -279,7 +274,7 @@ class Fake:
 
 
 @loglevel
-def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]]=None):
+def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]] = None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
     # rl = RecLogger()
@@ -320,7 +315,7 @@ def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]]=None
             annotations[k] = r
         except NameError:
             msg = f'resolve_type({T.__name__}):' \
-                f' Cannot resolve names for attribute "{k}" = {v!r}.'
+                  f' Cannot resolve names for attribute "{k}" = {v!r}.'
             msg += f'\n symbols: {symbols}'
             msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
             logger.warning(msg)
@@ -393,8 +388,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         if x == r:
             return cls
         return Type[r]
-    elif is_Dict_or_CustomDict(cls):
-        K0, V0 = get_Dict_or_CustomDict_Key_Value(cls)
+    elif is_DictLike(cls):
+        K0, V0 = get_DictLike_args(cls)
         K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('k'))
         V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
@@ -403,8 +398,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         if (K0, V0) == (K, V):
             return cls
         return make_dict(K, V)
-    elif is_set_or_CustomSet(cls):
-        V0 = get_set_Set_or_CustomSet_Value(cls)
+    elif is_SetLike(cls):
+        V0 = get_SetLike_arg(cls)
         V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
                              rl=rl.child('v'))
         if V0 == V:
@@ -464,16 +459,16 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         if arg == arg2:
             return cls
         return typing.Set[arg2]
-    elif is_optional(cls):
-        x = get_optional_type(cls)
+    elif is_Optional(cls):
+        x = get_Optional_arg(cls)
         x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
                               rl=rl.child('optional arg'))
         if x == x2:
             return cls
         return typing.Optional[x2]
 
-    elif is_union(cls):
-        xs = get_union_types(cls)
+    elif is_Union(cls):
+        xs = get_Union_args(cls)
         ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
                                     rl=rl.child())
                    for _ in xs)
@@ -510,8 +505,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
         #            for _ in xs)
         # return typing.Tuple[ys]
 
-    elif is_forward_ref(cls):
-        T = get_forward_ref_arg(cls)
+    elif is_ForwardRef(cls):
+        T = get_ForwardRef_arg(cls)
         return replace_typevars(T, bindings=bindings, already=already, symbols=symbols,
                                 rl=rl.child('forward '))
     else:
@@ -644,7 +639,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
                 try:
                     if type(val).__name__ != v.__name__ and not isinstance(val, v):
                         msg = f'Expected field "{k}" to be a "{v.__name__}"' \
-                            f'but found {type(val).__name__}'
+                              f'but found {type(val).__name__}'
                         warnings.warn(msg, stacklevel=3)
                         # raise ValueError(msg)
                 except TypeError as e:
@@ -675,9 +670,9 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
         def init_placeholder(self, *args, **kwargs):
             if args or kwargs:
                 msg = f'Default constructor of {cls2.__name__} does not know what to do with ' \
-                    f'' \
-                    f'' \
-                    f'arguments.'
+                      f'' \
+                      f'' \
+                      f'arguments.'
                 msg += f'\nargs: {args!r}\nkwargs: {kwargs!r}'
                 msg += f'\nself: {self}'
                 msg += f'\nself: {dir(type(self))}'

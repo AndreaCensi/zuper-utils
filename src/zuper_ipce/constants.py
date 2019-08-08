@@ -14,7 +14,7 @@ ID_ATT = '$id'
 REF_ATT = '$ref'
 
 X_CLASSVARS = 'classvars'
-X_CLASSATTS = 'clasatts'
+X_CLASSATTS = 'classatts'
 
 JSC_FORMAT = 'format'
 JSC_REQUIRED = 'required'

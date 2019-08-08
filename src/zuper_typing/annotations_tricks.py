@@ -16,7 +16,7 @@ def is_Optional(x):
 
 
 def get_Optional_arg(x):
-    assert is_optional(x)
+    assert is_Optional(x)
     args = x.__args__
     if len(args) == 1:
         return args[0]
@@ -28,9 +28,9 @@ def get_Optional_arg(x):
 def is_Union(x):
     """ Union[X, None] is not considered a Union"""
     if PYTHON_36:  # pragma: no cover
-        return not is_optional(x) and isinstance(x, typing._Union)
+        return not is_Optional(x) and isinstance(x, typing._Union)
     else:
-        return not is_optional(x) and isinstance(x, typing._GenericAlias) and (
+        return not is_Optional(x) and isinstance(x, typing._GenericAlias) and (
               x.__origin__ is Union)
 
 
@@ -46,7 +46,6 @@ def make_Union(*a):
             return typing.Optional[before[0]]
         else:
             return typing.Optional[make_Union(*before)]
-
 
     if len(a) == 0:
         raise ValueError('empty')
@@ -112,7 +111,7 @@ def is_ForwardRef(x):
 
 
 def get_ForwardRef_arg(x) -> str:
-    assert is_forward_ref(x)
+    assert is_ForwardRef(x)
     return x.__forward_arg__
 
 
@@ -229,11 +228,6 @@ def is_FixedTuple(x) -> bool:
         return True
 
 
-def get_FixedTuple_args(x) -> Tuple[type, ...]:
-    assert is_FixedTuple(x)
-    return get_tuple_types(x)
-
-
 def is_VarTuple(x) -> bool:
     if x is tuple:
         return True
@@ -244,12 +238,11 @@ def is_VarTuple(x) -> bool:
         return True
     else:
         return False
-    #
-    # if len(ts) == 0:
-    #     return True
-    # if len(ts) != 2:
-    #     return False
-    # return ts[-1] == ...
+
+
+def get_FixedTuple_args(x) -> Tuple[type, ...]:
+    assert is_FixedTuple(x)
+    return get_tuple_types(x)
 
 
 def get_VarTuple_arg(x):
@@ -310,6 +303,23 @@ def is_Sequence(x):
         return isinstance(x, typing._GenericAlias) and (x._name == 'Sequence')
 
 
+def is_placeholder_typevar(x):
+    return is_TypeVar(x) and get_TypeVar_name(x) in ['T', 'T_co']
+
+
+def get_Set_arg(x):
+    assert is_Set(x)
+    if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
+        if x is typing.Set:
+            return Any
+    t = x.__args__[0]
+    if is_placeholder_typevar(t):
+        return Any
+
+    return t
+
+
 def get_List_arg(x):
     assert is_List(x), x
     if x.__args__ is None:
@@ -321,8 +331,23 @@ def get_List_arg(x):
     return t
 
 
-def is_placeholder_typevar(x):
-    return is_TypeVar(x) and get_TypeVar_name(x) in ['T', 'T_co']
+def get_Dict_args(T):
+    assert is_Dict(T), T
+
+    if T is Dict:
+        return Any, Any
+    # if PYTHON_36:  # pragma: no cover
+    #     # noinspection PyUnresolvedReferences
+    #     return x is Dict or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
+    #
+    K, V = T.__args__
+
+    if is_placeholder_typevar(K):
+        K = Any
+    if is_placeholder_typevar(V):
+        V = Any
+
+    return K, V
 
 
 def get_Iterator_arg(x):
@@ -407,38 +432,6 @@ def is_Set(x: Any):
         return isinstance(x, typing._GenericAlias) and x._name == 'Set'
 
 
-def get_Set_arg(x):
-    assert is_Set(x)
-    if PYTHON_36:  # pragma: no cover
-        # noinspection PyUnresolvedReferences
-        if x is typing.Set:
-            return Any
-    t = x.__args__[0]
-    if is_placeholder_typevar(t):
-        return Any
-
-    return t
-
-
-def get_Dict_args(T):
-    assert is_Dict(T), T
-
-    if T is Dict:
-        return Any, Any
-    # if PYTHON_36:  # pragma: no cover
-    #     # noinspection PyUnresolvedReferences
-    #     return x is Dict or isinstance(x, typing.GenericMeta) and x.__origin__ is typing.Dict
-    #
-    K, V = T.__args__
-
-    if is_placeholder_typevar(K):
-        K = Any
-    if is_placeholder_typevar(V):
-        V = Any
-
-    return K, V
-
-
 def get_Dict_name(T):
     assert is_Dict(T), T
     K, V = get_Dict_args(T)
@@ -454,7 +447,7 @@ def get_Set_name_V(V):
 
 
 def get_Union_name(V):
-    return 'Union[%s]' % ",".join(name_for_type_like(_) for _ in get_union_types(V))
+    return 'Union[%s]' % ",".join(name_for_type_like(_) for _ in get_Union_args(V))
 
 
 def get_List_name(V):
@@ -478,7 +471,7 @@ def get_Sequence_name(V):
 
 
 def get_Optional_name(V):
-    v = get_optional_type(V)
+    v = get_Optional_arg(V)
     return 'Optional[%s]' % name_for_type_like(v)
 
 
@@ -487,10 +480,10 @@ def get_Set_name(V):
     return 'Set[%s]' % name_for_type_like(v)
 
 
-def get_Set_or_CustomSet_name(V):
-    from zuper_typing.my_dict import get_set_Set_or_CustomSet_Value
-    v = get_set_Set_or_CustomSet_Value(V)
-    return 'Set[%s]' % name_for_type_like(v)
+# def get_Set_or_CustomSet_name(V):
+#     from zuper_typing.my_dict import get_SetLike_arg
+#     v = get_SetLike_arg(V)
+#     return 'Set[%s]' % name_for_type_like(v)
 
 
 def get_Tuple_name(V):
@@ -514,15 +507,16 @@ def get_tuple_types(V):
 
 
 def name_for_type_like(x):
-    from .my_dict import is_Dict_or_CustomDict
-    from .my_dict import is_set_or_CustomSet
+    from .my_dict import is_DictLike, get_SetLike_name
+    from .my_dict import is_SetLike
+    from .my_dict import get_DictLike_name
     if is_Any(x):
         return 'Any'
     elif isinstance(x, typing.TypeVar):
         return x.__name__
     elif x is type(None):
         return 'NoneType'
-    elif is_union(x):
+    elif is_Union(x):
         return get_Union_name(x)
     elif is_List(x):
         return get_List_name(x)
@@ -532,25 +526,24 @@ def name_for_type_like(x):
         return get_Tuple_name(x)
     elif is_Set(x):
         return get_Set_name(x)
-    elif is_set_or_CustomSet(x):
-        return get_Set_or_CustomSet_name(x)
+    elif is_SetLike(x):
+        return get_SetLike_name(x)
     elif is_Dict(x):
         return get_Dict_name(x)
-    elif is_Dict_or_CustomDict(x):
-        from .my_dict import get_Dict_or_CustomDict_name
-        return get_Dict_or_CustomDict_name(x)
+    elif is_DictLike(x):
+        return get_DictLike_name(x)
     elif is_Type(x):
         return get_Type_name(x)
     elif is_ClassVar(x):
         return get_ClassVar_name(x)
     elif is_Sequence(x):
         return get_Sequence_name(x)
-    elif is_optional(x):
+    elif is_Optional(x):
         return get_Optional_name(x)
     elif is_NewType(x):
         return get_NewType_repr(x)
-    elif is_forward_ref(x):
-        a = get_forward_ref_arg(x)
+    elif is_ForwardRef(x):
+        a = get_ForwardRef_arg(x)
         return f'ForwardRef({a!r})'
     elif is_Callable(x):
         info = get_Callable_info(x)
@@ -648,12 +641,3 @@ def get_Callable_info(x) -> CallableInfo:
                         ordering=tuple(ordering),
                         returns=returns)
 
-
-is_optional = is_Optional
-get_optional_type = get_Optional_arg
-is_union = is_Union
-
-get_union_types = get_Union_args
-
-is_forward_ref = is_ForwardRef
-get_forward_ref_arg = get_ForwardRef_arg

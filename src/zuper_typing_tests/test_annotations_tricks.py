@@ -1,16 +1,15 @@
 import typing
-from typing import Union, Optional, Any, Tuple, TypeVar, ClassVar, Type, NewType
+from typing import Any, ClassVar, NewType, Optional, Tuple, Type, TypeVar, Union
 
 from nose.tools import assert_equal
 
-from zuper_typing.monkey_patching_typing import original_dict_getitem
-from zuper_typing.my_dict import make_dict, is_CustomDict
-from zuper_typing_tests.test_utils import known_failure
-from zuper_typing.annotations_tricks import is_optional, get_optional_type, is_forward_ref, get_forward_ref_arg, is_Any, \
-    is_Tuple, \
-    is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_NewType, get_NewType_arg, is_Dict, get_Dict_args, \
-    name_for_type_like
+from zuper_typing.annotations_tricks import (get_ClassVar_arg, get_Dict_args, get_ForwardRef_arg, get_NewType_arg,
+                                             get_Optional_arg, get_Type_arg, is_Any, is_ClassVar, is_Dict,
+                                             is_ForwardRef, is_NewType, is_Optional, is_Tuple,
+                                             is_Type, name_for_type_like)
 from zuper_typing.constants import PYTHON_36, PYTHON_37
+from zuper_typing.monkey_patching_typing import original_dict_getitem
+from zuper_typing.my_dict import is_CustomDict, make_dict
 
 
 def test_union():
@@ -25,8 +24,8 @@ def test_union():
 
 def test_optional():
     a = Optional[int]
-    assert is_optional(a)
-    assert get_optional_type(a) is int
+    assert is_Optional(a)
+    assert get_Optional_arg(a) is int
 
 
 class Tree:
@@ -39,13 +38,13 @@ symbols = {'Tree': Tree}
 def test_forward():
     x = Tree.__annotations__['n']
 
-    assert is_optional(x)
+    assert is_Optional(x)
 
-    t = get_optional_type(x)
+    t = get_Optional_arg(x)
     # print(t)
     # print(type(t))
     # print(t.__dict__)
-    assert is_forward_ref(t)
+    assert is_ForwardRef(t)
 
     # print(f'__forward_arg__: {t.__forward_arg__!r}')
     # print(f'__forward_code__: {t.__forward_code__!r}')
@@ -53,7 +52,7 @@ def test_forward():
     # print(f'__forward_value__: {t.__forward_value__!r}')
     # print(f'__forward_is_argument__: {t.__forward_is_argument__!r}')
 
-    assert get_forward_ref_arg(t) == 'Tree'
+    assert get_ForwardRef_arg(t) == 'Tree'
 
     if PYTHON_36:  # pragma: no cover
         t._eval_type(localns=locals(), globalns=globals())
@@ -108,7 +107,6 @@ def test_NewType():
     # assert get_ClassVar_arg(a) is int
 
 
-
 def test_DictName():
     D = original_dict_getitem((int, str))
     # print(D.__dict__)
@@ -133,6 +131,7 @@ def test_Dict2():
     print(K, V)
     N = name_for_type_like(X)
     assert_equal(N, 'Dict[str,int]')
+
 
 def test_Dict3():
     D = make_dict(str, int)

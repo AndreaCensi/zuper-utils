@@ -7,7 +7,7 @@ import yaml
 from nose.tools import raises, assert_equal
 
 from zuper_ipce.constants import USE_REMEMBERED_CLASSES
-from zuper_typing.annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_forward_ref
+from zuper_typing.annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_ForwardRef
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import resolve_types
 from zuper_ipce.logging import logger
@@ -427,7 +427,7 @@ type: object
     C = schema_to_type(schema, {}, {})
     print(C.__annotations__)
 
-    assert not is_forward_ref(C.__annotations__['parent'].__args__[0])
+    assert not is_ForwardRef(C.__annotations__['parent'].__args__[0])
 
 
 def test_classvar1():
@@ -600,7 +600,7 @@ def test_derived2_subst():
 
     pprint('annotations', **TY.__annotations__)
     P = TY.__annotations__['parent']
-    assert not is_forward_ref(P)
+    assert not is_ForwardRef(P)
 
     # raise Exception()
     # raise Exception()
