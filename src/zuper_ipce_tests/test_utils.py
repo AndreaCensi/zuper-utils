@@ -172,13 +172,17 @@ def save_object(x: object, ipce: object):
     dn = 'test_objects'
     # if not os.path.exists(dn):
     #     os.makedirs(dn)
-    fn = os.path.join(dn, digest + '.ipce.cbor')
-    write_bytes_to_file(ipce_bytes, fn)
-    # fn = os.path.join(dn, digest + '.ipce.yaml')
-    # write_ustring_to_utf8_file(yaml.dump(y1), fn)
-    fn = os.path.join(dn, digest + '.object.ansi')
-    s = debug_print(x) + '\n\n as ipce: \n\n' + debug_print(ipce) + '\n\n as YAML: \n\n' + yaml.dump(ipce)
-    write_ustring_to_utf8_file(s, fn)
+    fn = os.path.join(dn, digest + '.ipce.cbor.gz')
+    if os.path.exists(fn):
+        pass
+    else:
+        fn = os.path.join(dn, digest + '.ipce.cbor')
+        write_bytes_to_file(ipce_bytes, fn)
+        # fn = os.path.join(dn, digest + '.ipce.yaml')
+        # write_ustring_to_utf8_file(yaml.dump(y1), fn)
+        fn = os.path.join(dn, digest + '.object.ansi')
+        s = debug_print(x) + '\n\n as ipce: \n\n' + debug_print(ipce) + '\n\n as YAML: \n\n' + yaml.dump(ipce)
+        write_ustring_to_utf8_file(s, fn)
 
 
 import os

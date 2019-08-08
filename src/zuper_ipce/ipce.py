@@ -1,10 +1,11 @@
 import copy
+import dataclasses
 import datetime
 import hashlib
 import inspect
 import typing
 import warnings
-from dataclasses import Field, _FIELDS, field, is_dataclass, make_dataclass
+from dataclasses import Field, _FIELDS, field, fields, is_dataclass, make_dataclass
 from decimal import Decimal
 from numbers import Number
 from typing import (Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, Type, TypeVar, Union, cast)
@@ -161,9 +162,6 @@ def ipce_from_object_(ob,
     raise NotImplementedError(msg)
 
 
-import dataclasses
-
-
 def serialize_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: Optional[type]):
     globals_ = dict(globals_)
     res = {}
@@ -175,7 +173,7 @@ def serialize_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: 
     globals_[T.__name__] = T
     hints = {}
 
-    for f in dataclasses.fields(ob):
+    for f in fields(ob):
         k = f.name
         suggest_type = f.type
         if not hasattr(ob, k):  # pragma: no cover
@@ -277,6 +275,7 @@ def get_best_type_for_serializing_dict(ob: dict, suggest_type: Optional[type]) -
 
 
 def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
+    logger.info(f'dict_to_ipce suggest_type: {suggest_type}')
     # assert suggest_type is not None
     res = {}
     suggest_type, K, V = get_best_type_for_serializing_dict(ob, suggest_type)
@@ -291,10 +290,10 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
         FV = FakeValues[K, V]
 
         for k, v in ob.items():
-            kj = ipce_from_object(k, globals_)
             if isinstance(k, int):
                 h = str(k)
             else:
+                kj = ipce_from_object(k, globals_)
                 h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
             fv = FV(k, v)
             res[h] = ipce_from_object(fv, globals_, with_schema=with_schema)
@@ -878,7 +877,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
         schema = type_to_schema_(T, globals_, processing)
         check_isinstance(schema, dict)
-        if not is_Union(T):
+        if not is_Union(T):  # XXX
             set_ipce_repr_attr(T, schema)
 
     except NotImplementedError:  # pragma: no cover
@@ -906,6 +905,11 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
     assert_in(SCHEMA_ATT, schema)
     assert schema[SCHEMA_ATT] in [SCHEMA_ID]
+    try:
+        assert_canonical_ipce(schema)
+    except ValueError as e:
+        msg = f'Invalid schema for {T}'
+        raise ValueError(msg) from e
     return schema
 
 
@@ -930,12 +934,14 @@ def dict_to_schema(T, globals_, processing) -> JSONSchema:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(V, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID
+        res = sorted_dict_with_cbor_ordering(res)
         return res
     else:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
         res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(props, globals_, processing)
         res[SCHEMA_ATT] = SCHEMA_ID
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
 
@@ -947,6 +953,7 @@ def set_to_schema(T, globals_, processing) -> JSONSchema:
     res[JSC_PROPERTY_NAMES] = SCHEMA_CID
     res[JSC_ADDITIONAL_PROPERTIES] = type_to_schema(V, globals_, processing)
     res[SCHEMA_ATT] = SCHEMA_ID
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -962,6 +969,7 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
         res[JSC_TITLE] = get_Tuple_name(T)
+        res = sorted_dict_with_cbor_ordering(res)
         return res
     elif is_FixedTuple(T):
         args = get_FixedTuple_args(T)
@@ -973,6 +981,7 @@ def Tuple_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSO
         res[JSC_TITLE] = get_Tuple_name(T)
         for a in args:
             res[JSC_ITEMS].append(type_to_schema(a, globals_, processing))
+        res = sorted_dict_with_cbor_ordering(res)
         return res
     else:
         assert False
@@ -986,6 +995,7 @@ def List_to_schema(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSON
     res[JSC_TYPE] = JSC_ARRAY
     res[JSC_ITEMS] = type_to_schema(items, globals_, processing)
     res[JSC_TITLE] = get_ListLike_name(T)
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1005,6 +1015,7 @@ def type_callable_to_schema(T: Type, globals_: GlobalsDict, processing: Processi
     p['return'] = type_to_schema(cinfo.returns, globals_, processing)
     res['ordering'] = cinfo.ordering
     # print(res)
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1044,42 +1055,53 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
     # pprint('type_to_schema_', T=T)
     if T is str:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is bool:
         res = cast(JSONSchema, {JSC_TYPE: JSC_BOOL, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is Number:
         res = cast(JSONSchema, {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is float:
         res = cast(JSONSchema, {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: JSC_TITLE_FLOAT})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is int:
         res = cast(JSONSchema, {JSC_TYPE: JSC_INTEGER, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is slice:
         res = type_slice_schema()
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is Decimal:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DECIMAL, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is datetime.datetime:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DATETIME, SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if T is bytes:
-        return SCHEMA_BYTES
+        res = SCHEMA_BYTES
+        res = sorted_dict_with_cbor_ordering(res)
+        return res
 
     # we cannot use isinstance on typing.Any
     if is_Any(T):  # XXX not possible...
         res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if is_Union(T):
@@ -1148,7 +1170,7 @@ def type_numpy_to_schema(T, globals_, processing) -> JSONSchema:
           'dtype': {},  # TODO
           'data':  SCHEMA_BYTES
           }
-
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1162,6 +1184,7 @@ def type_slice_schema() -> JSONSchema:
           'stop':  T,  # TODO
           'step':  T,
           }
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1169,6 +1192,7 @@ def schema_Intersection(T, globals_, processing):
     args = get_Intersection_args(T)
     options = [type_to_schema(t, globals_, processing) for t in args]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "allOf": options})
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1324,6 +1348,7 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
     sorted_vars = sorted(original_order)
     res[JSC_PROPERTIES] = {k: properties[k] for k in sorted_vars}
     res['order'] = original_order
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1352,7 +1377,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     if hasattr(T, '__doc__') and T.__doc__:
         res[JSC_DESCRIPTION] = T.__doc__
 
-    res[JSC_PROPERTIES] = properties = {}
+    properties = {}
     classvars = {}
     classatts = {}
 
@@ -1391,6 +1416,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                 result = eval_field(t, globals_, p2)
                 if not result.optional:
                     required.append(name)
+                # result.schema['qui'] = 1
                 properties[name] = result.schema
 
                 if not result.optional:
@@ -1411,7 +1437,13 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     if classatts:
         res[X_CLASSATTS] = classatts
 
+    if properties:
+        res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
+
     res['order'] = names
+
+    res = sorted_dict_with_cbor_ordering(res)
+    # res['sroted'] = 1
     return res
 
 
@@ -1479,7 +1511,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         return Result(schema_Union(t, globals_, processing))
 
     if is_Any(t):
-        res = cast(JSONSchema, {})
+        res = cast(JSONSchema, {'$schema': 'http://json-schema.org/draft-07/schema#'})
         return Result(res)
 
     if isinstance(t, TypeVar):
@@ -1513,6 +1545,7 @@ def schema_Union(t, globals_, processing):
     types = get_Union_args(t)
     options = [type_to_schema(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1520,6 +1553,7 @@ def schema_Optional(t, globals_, processing):
     types = [get_Optional_arg(t), type(None)]
     options = [type_to_schema(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -1820,4 +1854,54 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
         f.type = T.__annotations__[f.name]
 
     # logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
+
+
 #
+
+D = TypeVar('D', bound=Dict)
+
+
+def sorted_dict_with_cbor_ordering(x: D) -> D:
+    def key(item):
+        k, v = item
+        return (len(k), k)
+
+    res = dict(sorted(x.items(), key=key))
+
+    assert_sorted_dict_with_cbor_ordering(res)
+    return res
+
+
+def sorted_list_with_cbor_ordering(x):
+    def key(k):
+        return (len(k), k)
+
+    return sorted(x, key=key)
+
+
+def assert_sorted_dict_with_cbor_ordering(x: dict):
+    keys = list(x.keys())
+    keys2 = sorted_list_with_cbor_ordering(keys)
+    if (keys != keys2):
+        msg = f'x not sorted:\n{keys}\n{keys2}'
+        raise ValueError(msg)
+
+
+def assert_canonical_ipce(ob_ipce: IPCE):
+    if isinstance(ob_ipce, dict):
+        if '/' in ob_ipce:
+            raise ValueError(ob_ipce)
+        assert_sorted_dict_with_cbor_ordering(ob_ipce)
+
+        if '$links' in ob_ipce:
+            msg = f'Should have dropped the $links part.'
+            raise ValueError(msg)
+        if '$self' in ob_ipce:
+            msg = f'Re-processing the $links: {ob_ipce}.'
+            raise ValueError(msg)
+
+        # links = set(get_links_hash(x))
+        #
+        # if links:
+        #     msg = f'Should not contain links, found {links}'
+        #     raise ValueError(msg)
