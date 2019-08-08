@@ -36,7 +36,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
 
     # why 2?
     schema = type_to_schema(T, use_globals)
-    save_test_object(T, ipce=schema)
+    save_object(T, ipce=schema)
 
     T2 = schema_to_type(schema, {}, {})
 
@@ -159,7 +159,7 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
     # assert_equal(T1.mro(), T2.mro())
 
 
-def save_test_object(x: object, ipce: object):
+def save_object(x: object, ipce: object):
     try:
         import zuper_ipcl
     except:
@@ -198,7 +198,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     y1 = ipce_from_object(x1, use_globals)
     y1_cbor: bytes = cbor.dumps(y1)
 
-    save_test_object(x1, ipce=y1)
+    save_object(x1, ipce=y1)
 
     y1 = cbor.loads(y1_cbor)
 
