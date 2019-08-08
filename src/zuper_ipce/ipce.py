@@ -878,7 +878,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
         schema = type_to_schema_(T, globals_, processing)
         check_isinstance(schema, dict)
-        set_ipce_repr_attr(T, schema)
+        if not is_Union(T):
+            set_ipce_repr_attr(T, schema)
 
     except NotImplementedError:  # pragma: no cover
         raise
