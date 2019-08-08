@@ -66,8 +66,12 @@ def make_Union(*a):
 
 TUPLE_EMPTY_ATTR = '__empty__'
 
+class Caches:
+    tuple_caches = {}
 
 def make_Tuple(*a):
+    if a in Caches.tuple_caches:
+        return Caches.tuple_caches[a]
     if len(a) == 0:
         x = Tuple[bool]
         # from .logging import logger
@@ -87,11 +91,13 @@ def make_Tuple(*a):
         x = Tuple[a[0], a[1], a[2], a[3], a[4]]
     else:
         if PYTHON_36:  # pragma: no cover
-            return Tuple[a]
+            x = Tuple[a]
         else:
             # NOTE: actually correct
             # noinspection PyArgumentList
             x = Tuple.__getitem__(tuple(a))
+
+    Caches.tuple_caches[a] = x
     return x
 
 

@@ -176,7 +176,7 @@ def make_set(V) -> type:
     attrs = {'__set_type__': V, 'copy': copy}
     name = get_Set_name_V(V)
     res = MyType(name, (CustomSet,), attrs)
-
+    setattr(res, 'EMPTY', res([]))
     Caches.make_set_cache[V] = res
     return res
 
@@ -211,15 +211,18 @@ def make_list(V) -> type:
 
     res = MyType(name, (CustomList,), attrs)
 
+    setattr(res, 'EMPTY', res([]))
     Caches.make_list_cache[V] = res
     return res
 
 
 # from . import logger
 def make_dict(K, V) -> type:
+    key = (K, V)
     if Caches.use_cache:
-        if (K, V) in Caches.make_dict_cache:
-            return Caches.make_dict_cache[(K, V)]
+
+        if key in Caches.make_dict_cache:
+            return Caches.make_dict_cache[key]
 
     class MyType(type):
         def __eq__(self, other):
@@ -237,19 +240,16 @@ def make_dict(K, V) -> type:
         msg = f'Trying to make dict with K = {K!r} and V = {V!r}; I need types, not strings.'
         raise ValueError(msg)
     # warnings.warn('Creating dict', stacklevel=2)
+
+
     attrs = {'__dict_type__': (K, V)}
     name = get_Dict_name_K_V(K, V)
 
     res = MyType(name, (CustomDict,), attrs)
-    Caches.make_dict_cache[V] = res
+
+    setattr(res, 'EMPTY', res({}))
+    Caches.make_dict_cache[key] = res
     return res
-
-
-
-
-
-
-
 
 
 def get_SetLike_name(V):
