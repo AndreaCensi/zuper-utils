@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass
 from typing import *
 
-from zuper_ipce.ipce import ipce_to_object, type_to_schema, schema_to_type
+from zuper_ipce.ipce import object_from_ipce, ipce_from_typelike, schema_to_type
 from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 from zuper_typing_tests.test_utils import relies_on_missing_features
 
@@ -42,7 +42,7 @@ def test_dict4():
     # T = Dict[str, Any]
     # <class 'zuper_json.my_dict.Dict[str,Any]'>
     ob = {}
-    ipce_to_object(ob, {}, expect_type=Any)
+    object_from_ipce(ob, {}, expect_type=Any)
 
 
 def test_type__any():
@@ -79,7 +79,7 @@ def test_defaults1():
         images_per_episode: int = 120
         num_episodes: int = 10
 
-    mj = type_to_schema(DummyImageSourceConfig, {})
+    mj = ipce_from_typelike(DummyImageSourceConfig, {})
     print(json.dumps(mj, indent=2))
 
     T2 = schema_to_type(mj, {}, {})

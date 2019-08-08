@@ -7,7 +7,7 @@ from zuper_commons.logs import setup_logging
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.annotations_tricks import is_Any
 from zuper_ipce.constants import SCHEMA_ATT, SCHEMA_ID
-from zuper_ipce.ipce import (make_dict, object_from_ipce, ipce_from_object, type_to_schema, schema_to_type,
+from zuper_ipce.ipce import (make_dict, object_from_ipce, ipce_from_object, ipce_from_typelike, schema_to_type,
                              CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field)
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -68,7 +68,7 @@ def test_ser1():
     # Address2 = schema_to_type(Address_schema, {}, {})
     # assert Address2.__doc__ == Address.__doc__
 
-    Person_schema = type_to_schema(Person, {})
+    Person_schema = ipce_from_typelike(Person, {})
 
     print(yaml.dump(Person_schema))
 
@@ -253,42 +253,42 @@ def test_the_tester_no_links2_in_snd_not2():
         ...
 
     T = NotDataClass
-    type_to_schema(T, get_symbols())
+    ipce_from_typelike(T, get_symbols())
 
 
 # @raises(AssertionError)
 def test_not_optional():
     T = Optional[int]
-    type_to_schema(T, get_symbols())
+    ipce_from_typelike(T, get_symbols())
 
 
 def test_not_union0():
     T = Union[int, str]
-    type_to_schema(T, {})
+    ipce_from_typelike(T, {})
 
 
 @raises(ValueError)
 def test_not_str1():
     # noinspection PyTypeChecker
-    type_to_schema('T', {})
+    ipce_from_typelike('T', {})
 
 
 @raises(ValueError)
 def test_not_fref2():
     # noinspection PyTypeChecker
-    type_to_schema(ForwardRef('one'), {})
+    ipce_from_typelike(ForwardRef('one'), {})
 
 
 def test_any():
     # noinspection PyTypeChecker
-    s = type_to_schema(Any, {})
+    s = ipce_from_typelike(Any, {})
     assert_equal(s, {SCHEMA_ATT: SCHEMA_ID})
 
 
 # @raises(NotImplementedError)
 def test_any_instantiate():
     # noinspection PyTypeChecker
-    schema = type_to_schema(Name, {})
+    schema = ipce_from_typelike(Name, {})
     object_from_ipce(schema, {})
 
 
@@ -297,7 +297,7 @@ def test_not_dict_naked():
     class A(dict):
         ...
 
-    type_to_schema(A, {})
+    ipce_from_typelike(A, {})
 
 
 def test_any1b():
@@ -324,17 +324,17 @@ def test_invalid_schema():
 # @raises(CannotFindSchemaReference)
 def test_dict_only():
     T = Dict[str, str]
-    _ = type_to_schema(T, {})
+    _ = ipce_from_typelike(T, {})
 
 
 @raises(ValueError)
 def test_str1():
-    type_to_schema('string-arg', {})
+    ipce_from_typelike('string-arg', {})
 
 
 @raises(ValueError)
 def test_forward_ref1():
-    type_to_schema(ForwardRef('AA'), {})
+    ipce_from_typelike(ForwardRef('AA'), {})
 
 
 @raises(TypeError)
@@ -344,7 +344,7 @@ def test_forward_ref2():
         # noinspection PyUnresolvedReferences
         f: ForwardRef('unknown')
 
-    type_to_schema(MyClass, {})
+    ipce_from_typelike(MyClass, {})
 
 
 @raises(TypeError)
@@ -355,7 +355,7 @@ def test_forward_ref3():
         f: Optional['unknown']
 
     # do not put MyClass
-    type_to_schema(MyClass, {})
+    ipce_from_typelike(MyClass, {})
 
 
 @raises(TypeError)
@@ -368,7 +368,7 @@ def test_forward_ref4():
         f: Optional['Other']
 
     # do not put MyClass
-    type_to_schema(MyClass, {'Other': Other})
+    ipce_from_typelike(MyClass, {'Other': Other})
 
 
 # @raises(NotImplementedError)
@@ -382,7 +382,7 @@ def test_error1():
             f: Optional['f()']
 
         # do not put MyClass
-        type_to_schema(MyClass, {'f': f})
+        ipce_from_typelike(MyClass, {'f': f})
     except (TypeError, NotImplementedError, NameError):
         pass
     else:
@@ -401,7 +401,7 @@ def test_2_ok():
         f: "Optional[M[int]]"
 
     # do not put M
-    type_to_schema(MyClass, {'M': M})  # <---- note
+    ipce_from_typelike(MyClass, {'M': M})  # <---- note
 
 
 @raises(TypeError)
@@ -417,7 +417,7 @@ def test_2_error():
         f: "Optional[M[int]]"
 
     # do not put M
-    type_to_schema(MyClass, {})  # <---- note
+    ipce_from_typelike(MyClass, {})  # <---- note
 
 
 # for completeness

@@ -4,7 +4,7 @@ import yaml
 from nose.tools import assert_equal
 
 from zuper_ipce.constants import USE_REMEMBERED_CLASSES
-from zuper_ipce.ipce import type_to_schema
+from zuper_ipce.ipce import ipce_from_typelike
 from zuper_typing import dataclass
 from zuper_typing_tests.test_utils import known_failure
 
@@ -134,7 +134,7 @@ def test_forward09():
     BA = B[A]
     assert_equal(BA.__doc__, None)
 
-    s = type_to_schema(BA, {})
+    s = ipce_from_typelike(BA, {})
     print(yaml.dump(s))
 
     @dataclass

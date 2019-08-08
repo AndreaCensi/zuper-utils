@@ -23,7 +23,7 @@ from zuper_typing.zeneric2 import RecLogger
 from zuper_ipce import logger
 from zuper_typing.annotations_tricks import is_Dict
 
-from zuper_ipce.ipce import ipce_from_object, object_from_ipce, type_to_schema, schema_to_type
+from zuper_ipce.ipce import ipce_from_object, object_from_ipce, ipce_from_typelike, schema_to_type
 from zuper_ipce.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from zuper_ipce.pretty import pretty_dict
 
@@ -32,10 +32,10 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # assert T is not None
     rl = RecLogger()
     # resolve_types(T)
-    schema0 = type_to_schema(T, use_globals)
+    schema0 = ipce_from_typelike(T, use_globals)
 
     # why 2?
-    schema = type_to_schema(T, use_globals)
+    schema = ipce_from_typelike(T, use_globals)
     save_object(T, ipce=schema)
 
     T2 = schema_to_type(schema, {}, {})
@@ -53,7 +53,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         # assert_same_types(T2, T)
         assert_equivalent_types(T, T2, assume_yes=set())
 
-    schema2 = type_to_schema(T2, use_globals)
+    schema2 = ipce_from_typelike(T2, use_globals)
     if schema != schema2:
         msg = 'Different schemas'
         msg = pretty_dict(msg, dict(T=T, schema=schema0, T2=T2, schema2=schema2))

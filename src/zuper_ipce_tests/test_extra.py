@@ -3,7 +3,7 @@ from typing import *
 import yaml
 from nose.tools import assert_equal
 
-from zuper_ipce.ipce import type_to_schema
+from zuper_ipce.ipce import ipce_from_typelike
 from zuper_ipce.pretty import pprint
 from zuper_typing.zeneric2 import dataclass
 
@@ -133,7 +133,7 @@ def test_type06():
     assert_equal(C.__name__, 'VersionChainWithAuthors[Values]')
 
     assert_equal(C.__annotations__['signed_proposal'].__name__, 'Signed[EntityUpdateProposal[Values]]')
-    print(yaml.dump(type_to_schema(C, {}, {})))
+    print(yaml.dump(ipce_from_typelike(C, {}, {})))
     #
     # assert_equal(E.__name__, 'Entity[A]')
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)

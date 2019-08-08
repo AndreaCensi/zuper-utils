@@ -1,0 +1,51 @@
+from typing import Dict, TypeVar
+
+from .types import IPCE
+
+D = TypeVar('D', bound=Dict)
+
+
+def sorted_dict_with_cbor_ordering(x: D) -> D:
+    def key(item):
+        k, v = item
+        return (len(k), k)
+
+    res = dict(sorted(x.items(), key=key))
+
+    assert_sorted_dict_with_cbor_ordering(res)
+    return res
+
+
+def sorted_list_with_cbor_ordering(x):
+    def key(k):
+        return (len(k), k)
+
+    return sorted(x, key=key)
+
+
+def assert_sorted_dict_with_cbor_ordering(x: dict):
+    keys = list(x.keys())
+    keys2 = sorted_list_with_cbor_ordering(keys)
+    if (keys != keys2):
+        msg = f'x not sorted:\n{keys}\n{keys2}\n{x}'
+        raise ValueError(msg)
+
+
+def assert_canonical_ipce(ob_ipce: IPCE):
+    if isinstance(ob_ipce, dict):
+        if '/' in ob_ipce:
+            raise ValueError(ob_ipce)
+        assert_sorted_dict_with_cbor_ordering(ob_ipce)
+
+        if '$links' in ob_ipce:
+            msg = f'Should have dropped the $links part.'
+            raise ValueError(msg)
+        if '$self' in ob_ipce:
+            msg = f'Re-processing the $links: {ob_ipce}.'
+            raise ValueError(msg)
+
+        # links = set(get_links_hash(x))
+        #
+        # if links:
+        #     msg = f'Should not contain links, found {links}'
+        #     raise ValueError(msg)

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from zuper_ipce.json_utils import encode_bytes_before_json_serialization
-from zuper_ipce.numpy_encoding import dict_from_numpy, numpy_from_dict
+from zuper_ipce.numpy_encoding import ipce_from_numpy_array, numpy_array_from_ipce
 from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 
 
@@ -50,8 +50,8 @@ def test_numpy_02():
 def test_numpy_04():
     x = np.random.rand(2, 3)
 
-    d = dict_from_numpy(x)
+    d = ipce_from_numpy_array(x)
     d1 = encode_bytes_before_json_serialization(d)
     print(json.dumps(d1, indent=3))
-    y = numpy_from_dict(d)
+    y = numpy_array_from_ipce(d)
     assert_allclose(x, y)

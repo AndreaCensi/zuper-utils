@@ -5,7 +5,7 @@ from nose.tools import raises
 
 from zuper_typing.annotations_tricks import make_Union, make_Tuple
 
-from zuper_ipce.ipce import ipce_to_object
+from zuper_ipce.ipce import object_from_ipce
 from zuper_typing.my_dict import make_set
 from zuper_typing.my_intersection import Intersection
 from zuper_typing_tests.test_utils import known_failure
@@ -101,7 +101,7 @@ def test_none1():
     class A:
         b: int
 
-    ipce_to_object(None, {}, {}, expect_type=A)
+    object_from_ipce(None, {}, {}, expect_type=A)
 
 
 def test_tuple_wiht_optional_inside():

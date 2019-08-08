@@ -3,7 +3,7 @@ from typing import Optional, Union, NewType, Any
 
 from nose.tools import raises, assert_equal
 
-from zuper_ipce.ipce import ipce_from_object, type_to_schema, object_from_ipce
+from zuper_ipce.ipce import ipce_from_object, ipce_from_typelike, object_from_ipce
 from zuper_typing.annotations_tricks import (make_Union, is_NewType, get_NewType_arg, get_NewType_name,
                                              get_NewType_repr,
                                              name_for_type_like, is_Any)
@@ -33,7 +33,7 @@ def test_corner_cases05():
 
 @raises(ValueError)
 def test_corner_cases09():
-    type_to_schema(None, {})
+    ipce_from_typelike(None, {})
 
 
 @raises(ValueError)

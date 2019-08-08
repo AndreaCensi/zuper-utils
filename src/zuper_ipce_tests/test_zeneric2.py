@@ -6,7 +6,7 @@ from typing import Generic
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.ipce import schema_to_type, type_to_schema
+from zuper_ipce.ipce import schema_to_type, ipce_from_typelike
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -87,7 +87,7 @@ def test_serialize_generic():
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = type_to_schema(MP1, {})
+    s = ipce_from_typelike(MP1, {})
     # print(json.dumps(s, indent=3))
 
     M2 = schema_to_type(s, {}, {})
@@ -130,7 +130,7 @@ def test_serialize_generic_optional():
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = type_to_schema(MR1, {})
+    s = ipce_from_typelike(MR1, {})
     print('M1 schema: \n' + yaml.dump(s, indent=3))
 
     M2 = schema_to_type(s, {}, {})
@@ -193,7 +193,7 @@ def test_more():
     print(Entity0.__annotations__['parent'].__repr__())
     assert not isinstance(Entity0.__annotations__['parent'], str)
     # raise Exception()
-    schema = type_to_schema(Entity0, {}, {})
+    schema = ipce_from_typelike(Entity0, {}, {})
     print(yaml.dump(schema))
     T = schema_to_type(schema, {}, {})
     print(T.__annotations__)
@@ -242,7 +242,7 @@ def test_more2():
 
         parent: "Optional[Entity11[X]]" = None
 
-    type_to_schema(Entity11, {})
+    ipce_from_typelike(Entity11, {})
 
     EI = Entity11[int]
 
@@ -253,7 +253,7 @@ def test_more2():
     class Entity42(Generic[Y]):
         parent: Optional[Entity11[Y]] = None
 
-    type_to_schema(Entity42, {})
+    ipce_from_typelike(Entity42, {})
 
     assert_type_roundtrip(Entity42, {})  # boom
 
@@ -364,7 +364,7 @@ def test_more3():
     assert_equal(C.__annotations__['YT'], ClassVar[Type[str]])
     assert_equal(C.YT, str)
 
-    schema = type_to_schema(C, {})
+    schema = ipce_from_typelike(C, {})
     # print(json.dumps(schema, indent=2))
     schema_to_type(schema, {}, {})
     # print(f'Annotations for C2: {C2.__annotations__}')
@@ -399,7 +399,7 @@ def test_entity():
     qn = Entity43.__qualname__
     assert 'Entity43[X]' in qn, qn
 
-    T = type_to_schema(Entity43, {}, {})
+    T = ipce_from_typelike(Entity43, {}, {})
     C = schema_to_type(T, {}, {})
     print(yaml.dump(T))
     print(C.__annotations__)
@@ -466,7 +466,7 @@ def test_classvar2():
         v: ClassVar[X] = 1
 
     C = CG[int]
-    schema = type_to_schema(C, {})
+    schema = ipce_from_typelike(C, {})
     C2: C = schema_to_type(schema, {}, {})
 
     assert_type_roundtrip(C, {})
@@ -610,7 +610,7 @@ def test_derived2_subst():
 
     pprint(**Y.__annotations__)
 
-    schema = type_to_schema(Y, {}, {})
+    schema = ipce_from_typelike(Y, {}, {})
     print(yaml.dump(schema))
     TY = schema_to_type(schema, {}, {})
 

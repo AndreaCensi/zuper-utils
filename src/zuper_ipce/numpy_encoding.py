@@ -1,16 +1,17 @@
 import numpy as np
 
 from zuper_commons.types import check_isinstance
+from .types import IPCE
 
 
-def dict_from_numpy(x: np.ndarray) -> dict:
+def ipce_from_numpy_array(x: np.ndarray) -> IPCE:
     res = {'shape': list(x.shape), 'dtype': x.dtype.name, 'data': x.tobytes()}
-    from zuper_ipce.ipce import sorted_dict_with_cbor_ordering
+    from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering
     res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
-def numpy_from_dict(d: dict) -> np.ndarray:
+def numpy_array_from_ipce(d: IPCE) -> np.ndarray:
     shape = tuple(d['shape'])
     dtype = d['dtype']
     data: bytes = d['data']

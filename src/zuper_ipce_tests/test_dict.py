@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Set
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import logger
-from zuper_ipce.ipce import ipce_from_object, make_dict, object_from_ipce, type_to_schema
+from zuper_ipce.ipce import ipce_from_object, make_dict, object_from_ipce, ipce_from_typelike
 from zuper_ipce.pretty import pprint
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import get_Set_arg, is_Any, is_List, is_Set
@@ -33,7 +33,7 @@ def test_dict_int_int0():
 
 def test_dict_int_int1():
     D = Dict[int, int]
-    pprint(schema=type_to_schema(D, {}))
+    pprint(schema=ipce_from_typelike(D, {}))
 
     assert_type_roundtrip(D, {})
     # @dataclass
