@@ -86,7 +86,7 @@ def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_s
         #     with open(fn, 'w') as f:
         #         f.write(json.dumps(res, indent=2))
         #     raise
-
+    assert_canonical_ipce(res)
     return res
 
 
@@ -207,6 +207,7 @@ def serialize_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: 
             raise ValueError(msg) from e
     if hints:
         res[HINTS_ATT] = hints
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -297,7 +298,7 @@ def dict_to_ipce(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], 
                 h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
             fv = FV(k, v)
             res[h] = ipce_from_object(fv, globals_, with_schema=with_schema)
-
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -322,6 +323,7 @@ def set_to_ipce(ob: set, globals_: GlobalsDict, suggest_type: Optional[type], wi
 
         res[h] = vj
 
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
@@ -851,6 +853,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                   JSC_TITLE: JSC_TITLE_TYPE
                   # JSC_DESCRIPTION: T.__doc__
                   })
+            res = sorted_dict_with_cbor_ordering(res)
             return res
 
         if T is type(None):
@@ -858,6 +861,7 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
                   SCHEMA_ATT: SCHEMA_ID,
                   JSC_TYPE:   JSC_NULL
                   })
+            res = sorted_dict_with_cbor_ordering(res)
             return res
 
         if isinstance(T, type):
@@ -1883,7 +1887,7 @@ def assert_sorted_dict_with_cbor_ordering(x: dict):
     keys = list(x.keys())
     keys2 = sorted_list_with_cbor_ordering(keys)
     if (keys != keys2):
-        msg = f'x not sorted:\n{keys}\n{keys2}'
+        msg = f'x not sorted:\n{keys}\n{keys2}\n{x}'
         raise ValueError(msg)
 
 

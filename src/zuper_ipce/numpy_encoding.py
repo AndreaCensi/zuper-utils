@@ -5,6 +5,8 @@ from zuper_commons.types import check_isinstance
 
 def dict_from_numpy(x: np.ndarray) -> dict:
     res = {'shape': list(x.shape), 'dtype': x.dtype.name, 'data': x.tobytes()}
+    from zuper_ipce.ipce import sorted_dict_with_cbor_ordering
+    res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
