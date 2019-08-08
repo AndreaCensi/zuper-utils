@@ -208,7 +208,7 @@ class MyABC(ABCMeta, StructuralTyping):
 
         return res.result
 
-    def __new__(mcls, name, bases, namespace, **kwargs):
+    def __new__(mcls, name_orig, bases, namespace, **kwargs):
         # logger.info(f'----\nCreating name: {name}')
         # logger.info('namespace: %s' % namespace)
         # logger.info('bases: %s' % str(bases))
@@ -230,14 +230,15 @@ class MyABC(ABCMeta, StructuralTyping):
             spec = {}
         # logger.info(f'Creating name: {name} spec {spec}')
         if spec:
-            name0 = get_name_without_brackets(name)
+            name0 = get_name_without_brackets(name_orig)
             name = f'{name0}[%s]' % (",".join(name_for_type_like(_) for _ in spec))
             # setattr(cls, '__name__', name)
         else:
-            pass
+            name = name_orig
 
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
-
+        qn = cls.__qualname__.replace(name_orig, name)
+        setattr(cls, '__qualname__', qn)
         setattr(cls, '__module__', mcls.__module__)
         setattr(cls, GENERIC_ATT2, spec)
         # logger.info('spec: %s' % spec)
@@ -563,7 +564,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # rl.p('  name2: %s' % name2)
     try:
         cls2 = type(name2, (cls,), {'need': lambda: None})
-        # logger.info(f'Created class {cls2}')
+        # logger.info(f'Created class {cls2} ({name2}) {cls2.__qualname__}')
     except TypeError as e:
         msg = f'Cannot create derived class "{name2}" from {cls!r}'
         raise TypeError(msg) from e
@@ -684,6 +685,10 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
 
     cls2.__module__ = cls.__module__
     setattr(cls2, '__name__', name2)
+    qn = cls.__qualname__
+    qn0, _, _ = qn.rpartition('.')
+
+    setattr(cls2, '__qualname__', qn0 + name2)
     setattr(cls2, BINDINGS_ATT, bindings)
 
     setattr(cls2, GENERIC_ATT2, generic_att2_new)

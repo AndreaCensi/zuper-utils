@@ -1,3 +1,4 @@
+import copy
 import datetime
 import hashlib
 import inspect
@@ -13,12 +14,13 @@ import cbor2
 import numpy as np
 import yaml
 from frozendict import frozendict
-from jsonschema.validators import validate, validator_for
+from jsonschema.validators import validate
 from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
+from zuper_ipce.ipce_attr import get_ipce_repr_attr, has_ipce_repr_attr, set_ipce_repr_attr
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_args, get_Dict_name_K_V,
                                              get_FixedTuple_args, get_ForwardRef_arg, get_List_arg, get_Optional_arg,
                                              get_Sequence_arg, get_Set_arg, get_Set_name_V, get_Tuple_name,
@@ -28,11 +30,8 @@ from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg
                                              make_Union)
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2, PYTHON_36
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, get_DictLike_args,
-                                  get_ListLike_arg, get_SetLike_arg,
-                                  get_ListLike_name, is_CustomDict,
-                                  is_CustomList, is_CustomSet, is_DictLike, is_ListLike,
-                                  is_SetLike, make_dict, make_list,
-                                  make_set)
+                                  get_ListLike_arg, get_ListLike_name, get_SetLike_arg, is_CustomDict, is_CustomList,
+                                  is_CustomSet, is_DictLike, is_ListLike, is_SetLike, make_dict, make_list, make_set)
 from zuper_typing.my_intersection import Intersection, get_Intersection_args, is_Intersection
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import RecLogger, get_name_without_brackets, loglevel, replace_typevars
@@ -58,8 +57,7 @@ __all__ = ['object_from_ipce', 'ipce_from_object']
 PASS_THROUGH = (KeyboardInterrupt, RecursionError)
 
 
-
-def ipce_from_object(ob, globals_: GlobalsDict=None, suggest_type=None, with_schema=True) -> IPCE:
+def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
     globals_ = globals_ or {}
     try:
@@ -834,11 +832,20 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
     # pprint('type_to_schema', T=T)
     globals_ = dict(globals0)
     processing = processing or {}
-    try:
-        if hasattr(T, '__name__') and T.__name__ in processing:
+
+    if hasattr(T, '__name__'):
+        if T.__name__ in processing:
             return processing[T.__name__]
-            # res =  cast(JSONSchema, {REF_ATT: refname})
-            # return res
+
+        if has_ipce_repr_attr(T):
+            schema = get_ipce_repr_attr(T)
+            # logger.info(f'T: {T.__name__} {schema["title"]}')
+            return schema
+
+    try:
+
+        # res =  cast(JSONSchema, {REF_ATT: refname})
+        # return res
         if T is type:
             res = cast(JSONSchema, {
                   REF_ATT:   SCHEMA_ID,
@@ -871,6 +878,8 @@ def type_to_schema(T: Any, globals0: dict, processing: ProcessingDict = None) ->
 
         schema = type_to_schema_(T, globals_, processing)
         check_isinstance(schema, dict)
+        set_ipce_repr_attr(T, schema)
+
     except NotImplementedError:  # pragma: no cover
         raise
     except (ValueError, AssertionError) as e:
@@ -1123,6 +1132,8 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
 
 
 def is_generic(T):
+    if not hasattr(T, GENERIC_ATT2):
+        return False
     a = getattr(T, GENERIC_ATT2)
     return any(isinstance(_, TypeVar) for _ in a)
 
@@ -1275,6 +1286,7 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
 
         bound = t2.__bound__ or Any
         schema = type_to_schema(bound, globals2, processing2)
+        schema = copy.copy(schema)
         schema[ID_ATT] = url
 
         definitions[t2.__name__] = schema
@@ -1283,9 +1295,12 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
 
     if definitions:
         res[JSC_DEFINITIONS] = definitions
-    res[JSC_PROPERTIES] = properties = {}
+    properties = {}
     required = []
 
+    # names = list(T.__annotations__)
+    # ordered = sorted(names)
+    original_order = []
     for name, t in T.__annotations__.items():
         t = replace_typevars(t, bindings={}, symbols=globals_, rl=None)
         if is_ClassVar(t):
@@ -1299,15 +1314,22 @@ def type_generic_to_schema(T: Type, globals_: GlobalsDict, processing_: Processi
             raise Exception(msg) from e
         assert isinstance(result, Result), result
         properties[name] = result.schema
+        original_order.append(name)
         if not result.optional:
             required.append(name)
     if required:
-        res[JSC_REQUIRED] = required
+        res[JSC_REQUIRED] = sorted(required)
 
+    sorted_vars = sorted(original_order)
+    res[JSC_PROPERTIES] = {k: properties[k] for k in sorted_vars}
+    res['order'] = original_order
     return res
 
 
 def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+    # from zuper_ipcl.debug_print_ import debug_print
+    # d = {'processing': processing, 'globals_': globals_}
+    # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
 
     p2 = dict(processing)
@@ -1338,7 +1360,11 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     # noinspection PyUnusedLocal
     afield: Field
 
-    for name, afield in fields_.items():
+    names = list(fields_)
+    ordered = sorted(names)
+
+    for name in ordered:
+        afield = fields_[name]
 
         t = afield.type
 
@@ -1369,6 +1395,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
                 if not result.optional:
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
+                        properties[name] = copy.copy(properties[name])
                         properties[name]['default'] = ipce_from_object(afield.default, globals_)
         except PASS_THROUGH:
             raise
@@ -1383,6 +1410,7 @@ def type_dataclass_to_schema(T: Type, globals_: GlobalsDict, processing: Process
     if classatts:
         res[X_CLASSATTS] = classatts
 
+    res['order'] = names
     return res
 
 
@@ -1577,7 +1605,18 @@ def schema_to_type_dataclass(res: JSONSchema, global_symbols: dict, encountered:
     required = res.get(JSC_REQUIRED, [])
 
     fields = []  # (name, type, Field)
-    for pname, v in res.get(JSC_PROPERTIES, {}).items():
+
+    properties = res.get(JSC_PROPERTIES, {})
+    # if 'order' in res:
+    names = res['order']
+    # assert_equal(set(names), set(properties), msg=yaml.dump(res))
+    # else:
+    #     names = list(properties)
+    #
+    for pname in names:
+        if pname not in properties:
+            continue
+        v = properties[pname]
         ptype = schema_to_type(v, global_symbols, encountered)
 
         if pname in required:

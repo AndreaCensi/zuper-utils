@@ -63,7 +63,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         with open('tmp2.json', 'w') as f:
             f.write(json.dumps(schema2, indent=2))
 
-        assert_equal(schema, schema2)
+        # assert_equal(schema, schema2)
         raise AssertionError(msg)
     return T2
 
@@ -167,7 +167,7 @@ def save_object(x: object, ipce: object):
 
     ipce_bytes = cbor.dumps(ipce)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
-    from zuper_ipcl import debug_print
+    from zuper_ipcl.debug_print_ import debug_print
     digest = get_cbor_dag_hash_bytes(ipce_bytes)
     dn = 'test_objects'
     # if not os.path.exists(dn):

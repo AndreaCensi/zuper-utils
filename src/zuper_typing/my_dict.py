@@ -70,7 +70,7 @@ def get_CustomList_arg(x):
 
 
 def get_CustomDict_args(x):
-    assert is_CustomDict(x)
+    assert is_CustomDict(x), x
     return x.__dict_type__
 
 

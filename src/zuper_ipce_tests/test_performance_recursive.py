@@ -1,14 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-import yaml
-from nose.tools import assert_equal, raises
-
+from zuper_commons.logs import setup_logging
+from zuper_ipce import IPCE
 from zuper_ipce.ipce import ipce_from_object
-from zuper_ipcl import CID, CID_from_object, IPCE, IPCL, LINKS
-from zuper_ipcl.constants import LINKS_SELF
-from zuper_ipcl.ipcl import ipcl_from_ipce, ipcl_from_object
-from zuper_ipcl_tests.test_utils import with_private_register
 
 
 @dataclass
@@ -64,6 +59,7 @@ def test_recursive_chain_ipce():
     t = create_chain(100, 0)
 
     ipce: IPCE = ipce_from_object(t, {})
+    print(ipce)
 
 
 def test_recursive_ipce():
@@ -71,6 +67,7 @@ def test_recursive_ipce():
     t = create_tree(n, 2, 0)
     # print(debug_print(t))
     ipce: IPCE = ipce_from_object(t, {})
+
 
 #
 # async def test_recursive_chain_2():
@@ -105,4 +102,5 @@ def test_recursive_ipce():
 
 
 if __name__ == '__main__':
+    setup_logging()
     test_recursive_chain_ipce()

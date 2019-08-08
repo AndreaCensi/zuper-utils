@@ -1,23 +1,20 @@
 import typing
-from dataclasses import fields, dataclass
+from dataclasses import fields
 from numbers import Number
 from typing import Generic
 
 import yaml
-from nose.tools import raises, assert_equal
+from nose.tools import assert_equal, raises
 
-from zuper_ipce.constants import USE_REMEMBERED_CLASSES
-from zuper_typing.annotations_tricks import is_ClassVar, get_ClassVar_arg, is_Type, get_Type_arg, is_ForwardRef
-from zuper_typing.subcheck import can_be_used_as2
-from zuper_typing.zeneric2 import resolve_types
+from zuper_ipce.ipce import schema_to_type, type_to_schema
 from zuper_ipce.logging import logger
-
-from zuper_typing.constants import enable_type_checking
-from zuper_ipce.ipce import type_to_schema, schema_to_type
-
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
-from .test_utils import known_failure
+from zuper_typing import dataclass
+from zuper_typing.annotations_tricks import get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type
+from zuper_typing.constants import enable_type_checking
+from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing.zeneric2 import resolve_types
 
 
 def test_basic():
@@ -253,20 +250,20 @@ def test_more2():
     assert_type_roundtrip(EI, {})
 
     @dataclass
-    class Entity2(Generic[Y]):
+    class Entity42(Generic[Y]):
         parent: Optional[Entity11[Y]] = None
 
-    type_to_schema(Entity2, {})
+    type_to_schema(Entity42, {})
 
-    assert_type_roundtrip(Entity2, {})  # boom
+    assert_type_roundtrip(Entity42, {})  # boom
 
     if True:  # pragma: no cover
-        E2I = Entity2[int]
+        E2I = Entity42[int]
         assert_type_roundtrip(E2I, {})
 
         x = E2I(parent=EI(data0=4))
         # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity2': Entity2},
+        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity42': Entity42},
                                 works_without_schema=False)
 
 
@@ -380,7 +377,8 @@ def test_more3():
 
 def test_entity():
     X = TypeVar('X')
-
+    from zuper_ipce.ipce_attr import SchemaCache
+    # SchemaCache.key2schema = {}
     @dataclass
     class SecurityModel2:
         # guid: Any
@@ -388,24 +386,42 @@ def test_entity():
         arbiter: str
 
     @dataclass
-    class Entity2(Generic[X]):
+    class Entity43(Generic[X]):
         data0: X
         guid: str
 
         security_model: SecurityModel2
-        parent: "Optional[Entity2[X]]" = None
-        forked: "Optional[Entity2[X]]" = None
+        parent: "Optional[Entity43[X]]" = None
+        forked: "Optional[Entity43[X]]" = None
 
-    T = type_to_schema(Entity2, {}, {})
+    assert_equal(Entity43.__name__, 'Entity43[X]')
+
+    qn = Entity43.__qualname__
+    assert 'Entity43[X]' in qn, qn
+
+    T = type_to_schema(Entity43, {}, {})
     C = schema_to_type(T, {}, {})
     print(yaml.dump(T))
     print(C.__annotations__)
 
+    # logger.info(f'SchemaCache: {pretty_dict("", SchemaCache.key2schema)}')
+
     # resolve_types(Entity2, locals())
     # assert_type_roundtrip(Entity2, locals())
-    assert_type_roundtrip(Entity2, {})
-    Entity2_int = Entity2[int]
-    assert_type_roundtrip(Entity2_int, {})
+    assert_type_roundtrip(Entity43, {})
+    Entity43_int = Entity43[int]
+
+    assert_equal(Entity43_int.__name__, 'Entity43[int]')
+
+    qn = Entity43_int.__qualname__
+    assert 'Entity43[int]' in qn, qn
+
+    logger.info('\n\nIgnore above\n\n')
+    try:
+        assert_type_roundtrip(Entity43_int, {})
+    except:
+        logger.info(f'SchemaCache: {list(SchemaCache.key2schema)}')
+        raise
 
     # assert_object_roundtrip(x, {})
 
