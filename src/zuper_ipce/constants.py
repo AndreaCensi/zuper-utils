@@ -1,8 +1,8 @@
-from typing import NewType, Dict, Any, cast
+from typing import NewType, Dict, Any, cast, Union
 
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
-ProcessingDict = Dict[str, Any]
+ProcessingDict = Dict[str, dict]
 EncounteredDict = Dict[str, Any]
 _SpecialForm = Any
 
@@ -66,3 +66,7 @@ SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
                                SCHEMA_ATT: SCHEMA_ID})
 
 USE_REMEMBERED_CLASSES = True
+PASS_THROUGH = (KeyboardInterrupt, RecursionError)
+schema_cache: Dict[Any, Union[type, _SpecialForm]] = {}
+use_schema_cache = True
+use_ipce_from_typelike_cache = True

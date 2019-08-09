@@ -194,7 +194,8 @@ class RegisteredClasses:
 
 def remember_created_class(res):
     # print(f'Registered class "{res.__name__}"')
-    k = (res.__module__, res.__name__)
+    # k = (res.__qual, res.__name__)
+    k = res.__qualname__
     RegisteredClasses.klasses[k] = res
 
 
@@ -235,6 +236,8 @@ def get_all_annotations(cls: type) -> Dict[str, type]:
 
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
+    # if not 'Fake' in _cls.__qualname__  and not _cls.__name__ in ['Patch'] and not '.' in _cls.__qualname__:
+    #     raise ValueError(_cls.__qualname__)
     original_doc = getattr(_cls, '__doc__', None)
     # logger.info(_cls.__dict__)
     unsafe_hash = True
@@ -268,6 +271,8 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
         _cls2 = type(_cls.__name__, (_cls, Base) + _cls.__bases__, attrs)
         _cls2.__module__ = _cls.__module__
         _cls2.__qualname__ = _cls.__qualname__
+        # from .logging import logger
+        # logger.info(f'now set qualname == {_cls2.__qualname__}')
         # from . import logger
         # logger.info(f'Replaced {_cls} with {_cls2} with annotations {_cls2.__annotations__}')
         _cls = _cls2

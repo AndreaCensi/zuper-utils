@@ -1,13 +1,15 @@
 from dataclasses import dataclass
-from typing import Optional, Union, NewType, Any
+from typing import Any, Generic, NewType, Optional, TypeVar, Union
 
-from nose.tools import raises, assert_equal
+import yaml
+from nose.tools import assert_equal, raises
 
-from zuper_ipce.ipce import ipce_from_object, ipce_from_typelike, object_from_ipce
-from zuper_typing.annotations_tricks import (make_Union, is_NewType, get_NewType_arg, get_NewType_name,
-                                             get_NewType_repr,
-                                             name_for_type_like, is_Any)
-from zuper_typing.my_dict import get_ListLike_arg, make_set, get_CustomSet_arg
+from zuper_ipce.ipce import ipce_from_object, ipce_from_typelike, object_from_ipce, typelike_from_ipce
+from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
+
+from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
+                                             name_for_type_like)
+from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
 
 
@@ -103,3 +105,74 @@ def test_list0():
 def test_set0():
     a = get_CustomSet_arg(make_set(int))
     assert a is int
+
+
+def test_default1():
+    @dataclass
+    class C:
+        a: bool = False
+
+    assert_type_roundtrip(C, {})
+
+    ipce1 = ipce_from_typelike(C, {})
+    C2 = typelike_from_ipce(ipce1, {}, {})
+    # print(debug_print(C))
+    # print(debug_print(C2))
+    ipce2 = ipce_from_typelike(C2, {})
+    assert ipce1 == ipce2
+
+
+def test_default2():
+    X = TypeVar('X')
+
+    @dataclass
+    class C(Generic[X]):
+        a: bool = False
+
+    assert_type_roundtrip(C, {})
+
+    ipce1 = ipce_from_typelike(C, {})
+    C2 = typelike_from_ipce(ipce1, {}, {})
+    # print(debug_print(C))
+    print(yaml.dump(ipce1))
+    assert ipce1['properties']['a']['default'] == False
+    # print(debug_print(C2))
+    ipce2 = ipce_from_typelike(C2, {})
+    assert ipce1 == ipce2
+
+
+def test_type1():
+    assert_type_roundtrip(type, {})
+    assert_object_roundtrip(type, {})
+
+
+def test_parsing():
+    schema_bool = """{$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}"""
+    ipce = yaml.load(schema_bool)
+    T0 = typelike_from_ipce(ipce, {}, {})
+    assert T0 is bool, T0
+    T0 = object_from_ipce(ipce, {})
+    assert T0 is bool, T0
+    a = """\
+$schema:
+  $id: http://invalid.json-schema.org/M#
+  $schema: http://json-schema.org/draft-07/schema#
+  __module__: zuper_ipce_tests.test_bool
+  description: 'M(a: bool)'
+  order: [a]
+  properties:
+    a: {$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}
+  required: [a]
+  title: M
+  type: object
+  __qualname__: misc
+a: true
+    """
+    ipce = yaml.load(a)
+
+    T = typelike_from_ipce(ipce['$schema'], {}, {})
+    print(T)
+    print(T.__annotations__)
+    assert T.__annotations__['a'] is bool, T.__annotations__
+
+    ob = object_from_ipce(ipce, {})

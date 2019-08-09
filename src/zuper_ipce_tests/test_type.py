@@ -1,7 +1,11 @@
 import dataclasses
 import json
 from dataclasses import dataclass
-from typing import *
+
+from zuper_typing.logging import logger
+logger.info('')
+
+from typing import Type, NewType, Dict, Any, Tuple
 
 from zuper_ipce.ipce import ipce_from_typelike, object_from_ipce, typelike_from_ipce
 from zuper_typing_tests.test_utils import relies_on_missing_features

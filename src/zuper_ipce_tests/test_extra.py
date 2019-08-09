@@ -1,4 +1,4 @@
-from typing import *
+from typing import Generic, Optional, TypeVar
 
 import yaml
 from nose.tools import assert_equal
@@ -107,9 +107,8 @@ def test_type06():
     class EntityUpdateProposal(Generic[M]):
         proposal: M
 
-
     A = EntityUpdateProposal[Z]
-    assert_equal(A.__name__ , 'EntityUpdateProposal[Z]')
+    assert_equal(A.__name__, 'EntityUpdateProposal[Z]')
     assert_equal(A.__annotations__['proposal'], Z)
 
     @dataclass
@@ -117,7 +116,7 @@ def test_type06():
         value: U
 
     B = Signed[EntityUpdateProposal[Z]]
-    assert_equal(B.__name__ , 'Signed[EntityUpdateProposal[Z]]')
+    assert_equal(B.__name__, 'Signed[EntityUpdateProposal[Z]]')
     assert_equal(B.__annotations__['value'].__name__, 'EntityUpdateProposal[Z]')
 
     @dataclass
@@ -125,7 +124,6 @@ def test_type06():
         # signed_proposals: List[Signed[EntityUpdateProposal[Z]]]
         signed_proposal: Signed[EntityUpdateProposal[Z]]
         # previous: 'Optional[VersionChainWithAuthors[Z]]' = None
-
 
     print('**********\n\n\n')
     C = VersionChainWithAuthors[Values]

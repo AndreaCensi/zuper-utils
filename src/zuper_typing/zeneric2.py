@@ -81,7 +81,7 @@ class ZenericFix:
         ...
 
     @classmethod
-    def __class_getitem__(cls, params):
+    def __class_getitem__(cls0, params):
         # logger.info(f'ZenericFix.__class_getitem__ params = {params}')
         types = as_tuple(params)
         types = tuple(map(map_none_to_nonetype, types))
@@ -119,14 +119,14 @@ class ZenericFix:
                 """"""
 
             @classmethod
-            def __class_getitem__(cls, params2):
+            def __class_getitem__(cls2, params2):
                 # logger.info(f'GenericProxy.__class_getitem__ params = {params2}')
                 types2 = as_tuple(params2)
 
                 bindings = {}
 
                 if types == types2:
-                    return cls
+                    return cls2
 
                 for T, U in zip(types, types2):
                     bindings[T] = U
@@ -140,7 +140,8 @@ class ZenericFix:
                                    f'subclass of "{T.__bound__.__name__}", found {U}.')
                             raise TypeError(msg)
 
-                res = make_type(cls, bindings)
+                # logger.info(f'cls0 qual: {cls0.__qualname__}')
+                res = make_type(cls2, bindings)
                 # A = lambda C: getattr(C, '__annotations__', 'no anns')
                 # print(f'results of particularization of {cls.__name__} with {
                 # params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
@@ -238,7 +239,11 @@ class MyABC(ABCMeta, StructuralTyping):
 
         cls = super().__new__(mcls, name, bases, namespace, **kwargs)
         qn = cls.__qualname__.replace(name_orig, name)
+
+        # if 'need' in namespace and bases:
+        #     qn = bases[0].__qualname__
         setattr(cls, '__qualname__', qn)
+        # logger.info(f'in MyABC choosing qualname {cls.__qualname__!r} from {cls.__qualname__} ({mcls.__qualname__}')
         setattr(cls, '__module__', mcls.__module__)
         setattr(cls, GENERIC_ATT2, spec)
         # logger.info('spec: %s' % spec)
@@ -275,7 +280,7 @@ class Fake:
 
 
 @loglevel
-def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]] = None):
+def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any]] = None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
     # rl = RecLogger()
@@ -288,9 +293,9 @@ def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]] = No
     others = getattr(T, DEPENDS_ATT, ())
 
     for t in (T,) + refs + others:
-
         n = name_for_type_like(t)
         symbols[n] = t
+        # logger.info(f't = {t} n {n}')
         name_without = get_name_without_brackets(n)
 
         if name_without in ['Union', 'Dict', ]:
@@ -305,6 +310,7 @@ def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]] = No
         if hasattr(x, '__name__'):
             symbols[x.__name__] = x
 
+    # logger.debug(f'symbols: {symbols}')
     annotations = getattr(T, '__annotations__', {})
 
     for k, v in annotations.items():
@@ -314,11 +320,12 @@ def resolve_types(T, locals_=None, refs=(), nrefs: Optional[Dict[str, Any]] = No
             r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
-        except NameError:
+        except NameError as e:
             msg = f'resolve_type({T.__name__}):' \
                   f' Cannot resolve names for attribute "{k}" = {v!r}.'
-            msg += f'\n symbols: {symbols}'
-            msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
+            # msg += f'\n symbols: {symbols}'
+            # msg += '\n\n' + indent(traceback.format_exc(), '', '> ')
+            # raise NameError(msg) from e
             logger.warning(msg)
             continue
         except TypeError as e:
@@ -528,7 +535,7 @@ else:
     B = Dict[TypeVar, Any]
 
 
-@loglevel
+# @loglevel
 def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     assert not is_NewType(cls)
     rl = rl or RecLogger()
@@ -564,7 +571,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # rl.p('  name2: %s' % name2)
     try:
         cls2 = type(name2, (cls,), {'need': lambda: None})
-        # logger.info(f'Created class {cls2} ({name2}) {cls2.__qualname__}')
+        # cls2.__qualname__ = cls.__qualname__
+        # logger.info(f'Created class {cls2} ({name2}) and set qualname {cls2.__qualname__}')
     except TypeError as e:
         msg = f'Cannot create derived class "{name2}" from {cls!r}'
         raise TypeError(msg) from e
@@ -688,7 +696,8 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     qn = cls.__qualname__
     qn0, _, _ = qn.rpartition('.')
 
-    setattr(cls2, '__qualname__', qn0 + name2)
+    setattr(cls2, '__qualname__', qn0 + '.' + name2)
+    # logger.info(f'choosing qualname {cls2.__qualname__!r} from {qn}')
     setattr(cls2, BINDINGS_ATT, bindings)
 
     setattr(cls2, GENERIC_ATT2, generic_att2_new)

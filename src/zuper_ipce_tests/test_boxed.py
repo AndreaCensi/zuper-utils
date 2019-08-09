@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import *
+from typing import ClassVar, Generic, TYPE_CHECKING, Type, TypeVar
 
 if TYPE_CHECKING:
     from dataclasses import dataclass

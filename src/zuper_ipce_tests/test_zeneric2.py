@@ -329,6 +329,8 @@ def test_more3_simpler():
     class MyClass(Generic[X]):
         XT: ClassVar[Type[X]]
 
+    ipce = ipce_from_typelike(MyClass, {})
+    print(yaml.dump(ipce))
     assert_type_roundtrip(MyClass, {})
     #
     # # type_to_schema(MyClass, {})
@@ -437,6 +439,7 @@ description:
 properties:
   parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#'}
 required: [data0, guid, security_model]
+__qualname__: QUAL
 title: Entity2[X]
 type: object    
     """, Loader=yaml.SafeLoader)

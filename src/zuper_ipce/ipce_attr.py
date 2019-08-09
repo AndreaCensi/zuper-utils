@@ -1,8 +1,6 @@
-from typing import Any, Set, List
+from typing import Any, List
 
-# IPCE_REPR_ATTR = '__ipce_repr__'
-from zuper_commons.text.text_sidebyside import side_by_side
-
+# IPCE_REPR_ATTR = '__ipce_
 __all__ = ['has_ipce_repr_attr', 'get_ipce_repr_attr', 'set_ipce_repr_attr']
 
 import yaml
@@ -59,10 +57,12 @@ def set_ipce_repr_attr(x: object, processing: List[str], a):
         prev = SchemaCache.key2schema[k]
         if prev != a:
             msg = f'INCONSISTENT setting of schema cache for {x}:\n'
-            msg += side_by_side([yaml.dump(prev)[:400], ' ', yaml.dump(a)[:400]])
+            # msg += side_by_side([yaml.dump(prev)[:400], ' ', yaml.dump(a)[:400]])
             raise ValueError(msg)
         else:
-            logger.debug(f'Double Setting schema cache for {x} processing = {processing}')
+            pass
+
+            # logger.debug(f'Double Setting schema cache for {x} processing = {processing}')
     else:
         # logger.debug(f'Setting schema cache for {x}  processing = {processing}\n{k}')
         SchemaCache.key2schema[k] = a

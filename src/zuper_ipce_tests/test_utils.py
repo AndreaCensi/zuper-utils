@@ -40,6 +40,11 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
 
     T2 = typelike_from_ipce(schema, {}, {})
 
+    # TODO: in 3.6 does not hold for Dict, Union, etc.
+    # if hasattr(T, '__qualname__'):
+    #     assert hasattr(T, '__qualname__')
+    #     assert T2.__qualname__ == T.__qualname__, (T2.__qualname__, T.__qualname__)
+
     if False:
         rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
         rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
@@ -56,7 +61,11 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     schema2 = ipce_from_typelike(T2, use_globals)
     if schema != schema2:
         msg = 'Different schemas'
-        msg = pretty_dict(msg, dict(T=T, schema=schema0, T2=T2, schema2=schema2))
+        d = {
+              'T':  T, 'T.qual': T.__qualname__, 'schema': schema0,
+              'T2': T2, 'T2.qual': T2.__qualname__, 'schema2': schema2
+              }
+        msg = pretty_dict(msg, d)
         # print(msg)
         with open('tmp1.json', 'w') as f:
             f.write(json.dumps(schema, indent=2))
@@ -99,7 +108,9 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
         if is_dataclass(T1):
             assert is_dataclass(T2)
 
+            # noinspection PyDataclass
             fields1 = fields(T1)
+            # noinspection PyDataclass
             fields2 = fields(T2)
 
             fields1 = {_.name: _ for _ in fields1}
@@ -284,7 +295,8 @@ def check_equality(x1, x1b, expect_equality):
         else:
             if eq1 and eq2:  # pragma: no cover
                 msg = 'You did not expect equality but they actually are'
-                raise Exception(msg)
+                logger.info(msg)
+                # raise Exception(msg)
 
 
 @known_failure
@@ -332,3 +344,47 @@ def test_testing2():
     except:
         print(traceback.format_exc())
         raise
+
+
+def assert_equal_ipce(msg, a, b):
+    patches = list(patch(a, b, ()))
+    if patches:
+        with open('ipce1.json', 'w') as f:
+            json.dump(a, f, indent=2)
+        with open('ipce2.json', 'w') as f:
+            json.dump(b, f, indent=2)
+        msg += '\nSee differences in ipce1.json, ipce2.json'
+        # msg += '\n' + side_by_side([yaml.dump(a), ' ', yaml.dump(b)])
+        # msg += '\n\n' + '\n'.join(str(_) for _ in patches)
+        msg += '\n\n' + '\n'.join("/".join(map(str, _.prefix)) for _ in patches)
+        raise AssertionError(msg)
+
+
+from typing import Any, Optional, Iterator, Tuple, Union
+
+
+@dataclass
+class Patch:
+    prefix: Tuple[Union[str, int], ...]
+    value1: Any
+    value2: Optional[Any]
+
+
+def patch(o1, o2, prefix: Tuple[Union[str, int], ...]) -> Iterator[Patch]:
+    if o1 == o2:
+        return
+    if isinstance(o1, dict) and isinstance(o2, dict):
+        for k, v in o1.items():
+            if not k in o2:
+                yield Patch(prefix + (k,), v, None)
+            else:
+                yield from patch(v, o2[k], prefix + (k,))
+    elif isinstance(o1, list) and isinstance(o2, list):
+        for i, v in enumerate(o1):
+            if i >= len(o2) - 1:
+                yield Patch(prefix + (i,), v, None)
+            else:
+                yield from patch(o1[i], o2[i], prefix + (i,))
+    else:
+        if o1 != o2:
+            yield Patch(prefix, o1, o2)

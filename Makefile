@@ -13,6 +13,14 @@ test-zuper-utils:
 
 
 
+test-zuper-utils-interrupt:
+	rm -f .coverage
+	rm -rf cover
+	nosetests -x --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_typing_tests,zuper_ipce,zuper_ipce_tests zuper_typing zuper_typing_tests zuper_ipce_tests -v
+	#nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_json zuper_typing 	   -v
+
+
+
 
 
 docker-36-build:

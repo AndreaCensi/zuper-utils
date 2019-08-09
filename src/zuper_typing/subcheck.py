@@ -1,9 +1,9 @@
 from dataclasses import dataclass, is_dataclass
-from typing import *
+from typing import Any, Dict, Tuple
 
 from zuper_commons.text import indent
-from .annotations_tricks import (get_Optional_arg, get_tuple_types, get_Union_args, is_Any,
-                                 is_List, is_Tuple, is_TypeVar, is_Optional, is_Union, is_Sequence, get_Sequence_arg)
+from .annotations_tricks import (get_Optional_arg, get_Sequence_arg, get_Union_args, get_tuple_types, is_Any, is_List,
+                                 is_Optional, is_Sequence, is_Tuple, is_TypeVar, is_Union)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (get_DictLike_args, get_ListLike_arg,
                       get_SetLike_arg, is_DictLike, is_ListLike,
@@ -225,7 +225,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, '', can.matches)
 
-
     if is_Sequence(T1):
         t1 = get_Sequence_arg(T1)
 
@@ -240,7 +239,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         msg = f'Needs a Sequence[{t1}], got {T2}'
         return CanBeUsed(False, msg, matches)
-
 
     if isinstance(T1, type) and isinstance(T2, type):
         # NOTE: issubclass(A, B) == type(T2).__subclasscheck__(T2, T1)

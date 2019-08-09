@@ -16,11 +16,11 @@ import numpy as np
 import yaml
 from frozendict import frozendict
 from jsonschema.validators import validate
-from mypy_extensions import NamedArg
 from nose.tools import assert_in
 
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
+from zuper_ipce.constants import PASS_THROUGH, schema_cache, use_schema_cache, use_ipce_from_typelike_cache
 from zuper_ipce.ipce_attr import get_ipce_repr_attr, has_ipce_repr_attr, set_ipce_repr_attr
 from zuper_ipce.ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_args, get_Dict_name_K_V,
@@ -36,7 +36,7 @@ from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_C
                                   is_CustomSet, is_DictLike, is_ListLike, is_SetLike, make_dict, make_list, make_set)
 from zuper_typing.my_intersection import Intersection, get_Intersection_args, is_Intersection
 from zuper_typing.subcheck import can_be_used_as2
-from zuper_typing.zeneric2 import RecLogger, get_name_without_brackets, loglevel, replace_typevars
+from zuper_typing.zeneric2 import RecLogger, get_name_without_brackets, loglevel
 from . import logger
 from .constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, HINTS_ATT, ID_ATT, JSC_ADDITIONAL_PROPERTIES,
                         JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT, JSC_DEFINITIONS, JSC_DESCRIPTION,
@@ -53,10 +53,9 @@ if typing.TYPE_CHECKING:  # pragma: no cover
     pass
 else:
 
-    from zuper_typing.monkey_patching_typing import my_dataclass, RegisteredClasses
+    from zuper_typing.monkey_patching_typing import my_dataclass, RegisteredClasses, MyNamedArg
 
 __all__ = ['object_from_ipce', 'ipce_from_object']
-PASS_THROUGH = (KeyboardInterrupt, RecursionError)
 
 
 def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
@@ -358,7 +357,7 @@ def object_from_ipce(mj: IPCE,
 
     except BaseException as e:
         msg = f'Cannot deserialize object  (expect: {expect_type})'
-        msg += '\n\n' + indent(yaml.dump(mj)[:400], ' ipce ')
+        # msg += '\n\n' + indent(yaml.dump(mj)[:400], ' ipce ')
         # msg += '\n\n' + indent(traceback.format_exc(), '| ')
         raise TypeError(msg) from e
 
@@ -444,6 +443,9 @@ def object_from_ipce_(mj: IPCE,
     assert isinstance(mj, dict), type(mj)
 
     if mj.get(SCHEMA_ATT, '') == SCHEMA_ID:
+        schema = cast(JSONSchema, mj)
+        return typelike_from_ipce(schema, global_symbols, encountered)
+    if mj.get(JSC_TITLE, None) == JSC_TITLE_TYPE:
         schema = cast(JSONSchema, mj)
         return typelike_from_ipce(schema, global_symbols, encountered)
 
@@ -579,21 +581,24 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
             except PASS_THROUGH:
                 raise
             except BaseException as e:
-                msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
-                # msg += '\n\n' + indent(yaml.dump(v), '  ')
+                msg = f'Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})'
+                msg += f'\n K = {K.__annotations__}'
+                msg += f'\n anns[k] = {anns[k]}'
+                msg += '\n\n' + indent(yaml.dump(v), '  ')
                 # msg += '\n\n' + indent(traceback.format_exc(), '| ')
                 raise TypeError(msg) from e
 
-    for k, T in anns.items():
-        T = resolve_all(T, global_symbols)
+    for k, T0 in anns.items():
+        T = resolve_all(T0, global_symbols)
         if is_ClassVar(T):
             continue
         if not k in mj:
-            msg = f'Cannot find field {k!r} in data. Know {sorted(mj)}'
+
             if is_Optional(T):
                 attrs[k] = None
                 pass
             else:
+                msg = f'Cannot find field {k!r} in data. (T0 = {T0}) Know {sorted(mj)}'
                 raise ValueError(msg)
 
     try:
@@ -678,9 +683,6 @@ class CannotResolveTypeVar(Exception):
     pass
 
 
-schema_cache: Dict[Any, Union[type, _SpecialForm]] = {}
-
-
 def schema_hash(k):
     ob_cbor = cbor2.dumps(k)
     ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
@@ -690,18 +692,20 @@ def schema_hash(k):
 def typelike_from_ipce(schema0: JSONSchema,
                        global_symbols: Dict,
                        encountered: Dict) -> Union[type, _SpecialForm]:
-    h = schema_hash([schema0, list(global_symbols), list(encountered)])
-    if h in schema_cache:
-        # logger.info(f'cache hit for {schema0}')
-        return schema_cache[h]
+
+    if use_schema_cache:
+        h = schema_hash([schema0, list(global_symbols), list(encountered)])
+        if h in schema_cache:
+            # logger.info(f'cache hit for {schema0}')
+            return schema_cache[h]
 
     try:
         res = typelike_from_ipce_(schema0, global_symbols, encountered)
     except (TypeError, ValueError) as e:
         msg = 'Cannot interpret schema as a type.'
-        msg += '\n\n' + indent(yaml.dump(schema0), ' > ')
-        msg += '\n\n' + pretty_dict('globals', global_symbols)
-        msg += '\n\n' + pretty_dict('encountered', encountered)
+        # msg += '\n\n' + indent(yaml.dump(schema0)[:400], ' > ')
+        # msg += '\n\n' + pretty_dict('globals', global_symbols)
+        # msg += '\n\n' + pretty_dict('encountered', encountered)
         raise TypeError(msg) from e
 
     if ID_ATT in schema0:
@@ -709,7 +713,8 @@ def typelike_from_ipce(schema0: JSONSchema,
         encountered[schema_id] = res
         # print(f'Found {schema_id} -> {res}')
 
-    schema_cache[h] = res
+    if use_schema_cache:
+        schema_cache[h] = res
     return res
 
 
@@ -800,15 +805,15 @@ def typelike_from_ipce_(schema0: JSONSchema, global_symbols: Dict, encountered: 
             return typelike_from_ipce_SetType(schema, global_symbols, encountered)
         elif jsc_title == JSC_TITLE_SLICE:
             return slice
-        elif JSC_DEFINITIONS in schema:
-            return typelike_from_ipce_generic(schema, global_symbols, encountered)
-        elif ATT_PYTHON_NAME in schema:
-            tn = schema[ATT_PYTHON_NAME]
-            if tn in global_symbols:
-                return global_symbols[tn]
-            else:
-                # logger.debug(f'did not find {tn} in {global_symbols}')
-                return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
+        # elif JSC_DEFINITIONS in schema:
+        #     return typelike_from_ipce_dataclass(schema, global_symbols, encountered)
+        # elif ATT_PYTHON_NAME in schema:
+        #     tn = schema[ATT_PYTHON_NAME]
+        #     if tn in global_symbols:
+        #         return global_symbols[tn]
+        #     else:
+        #         # logger.debug(f'did not find {tn} in {global_symbols}')
+        #         return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         else:
             return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         assert False, schema  # pragma: no cover
@@ -826,7 +831,7 @@ def typelike_from_ipce_array(schema, global_symbols, encountered):
 
         return make_Tuple(*args)
     else:
-        if 'Tuple' in schema[JSC_TITLE]:
+        if schema[JSC_TITLE].startswith('Tuple['):
 
             V = typelike_from_ipce(items, global_symbols, encountered)
             args = (V, ...)
@@ -888,19 +893,18 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
         if T.__name__ in processing:
             return processing[T.__name__]
 
-        if has_ipce_repr_attr(T, set()):
-            schema = get_ipce_repr_attr(T, set())
-            # logger.info(f'T: {T.__name__} {schema["title"]}')
-            return schema
-        if has_ipce_repr_attr(T, processing_refs):
-            schema = get_ipce_repr_attr(T, processing_refs)
-            # logger.info(f'T: {T.__name__} {schema["title"]}')
-            return schema
+        if use_ipce_from_typelike_cache:
+            if has_ipce_repr_attr(T, []):
+                schema = get_ipce_repr_attr(T, [])
+                # logger.info(f'T: {T.__name__} {schema["title"]}')
+                return schema
+            if has_ipce_repr_attr(T, processing_refs):
+                schema = get_ipce_repr_attr(T, processing_refs)
+                # logger.info(f'T: {T.__name__} {schema["title"]}')
+                return schema
 
     try:
 
-        # res =  cast(JSONSchema, {REF_ATT: refname})
-        # return res
         if T is type:
             res = cast(JSONSchema, {
                   REF_ATT:   SCHEMA_ID,
@@ -1108,11 +1112,14 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
     for k in schema['ordering']:
         d = typelike_from_ipce(definitions[k], global_symbols, encountered)
         if not k.startswith('__'):
-            d = NamedArg(d, k)
+            d = MyNamedArg(d, k)
         others.append(d)
 
+
     # noinspection PyTypeHints
-    return Callable[others, ret]
+    res =  Callable[others, ret]
+    # logger.info(f'typelike_from_ipce_Callable: {schema} \n others =  {others}\n res = {res}')
+    return res
 
 
 # noinspection PyTypeChecker
@@ -1221,8 +1228,8 @@ def ipce_from_typelike_(T: Type, globals_: GlobalsDict, processing: ProcessingDi
 
     assert isinstance(T, type), T
 
-    if hasattr(T, GENERIC_ATT2) and is_generic(T):
-        return ipce_from_typelike_generic(T, globals_, processing)
+    # if hasattr(T, GENERIC_ATT2) and is_generic(T):
+    #     return ipce_from_typelike_generic(T, globals_, processing)
 
     if is_dataclass(T):
         return ipce_from_typelike_dataclass(T, globals_, processing)
@@ -1279,160 +1286,163 @@ def ipce_from_typelike_Intersection(T, globals_, processing):
     return res
 
 
-@loglevel
-def typelike_from_ipce_generic(res: JSONSchema, global_symbols: dict, encountered: dict, rl: RecLogger = None) -> Type:
-    rl = rl or RecLogger()
-    # rl.pp('schema_to_type_generic', schema=res, global_symbols=global_symbols, encountered=encountered)
-    assert res[JSC_TYPE] == JSC_OBJECT
-    assert JSC_DEFINITIONS in res
-    cls_name = res[JSC_TITLE]
-    if X_PYTHON_MODULE_ATT in res:
-        module_name = res[X_PYTHON_MODULE_ATT]
-        k = module_name, cls_name
-        if USE_REMEMBERED_CLASSES:
-            if k in RegisteredClasses.klasses:
-                return RegisteredClasses.klasses[k]
-            else:
-                pass
-                # logger.info(f'cannot find generic {k}')
-    else:
-        module_name = None
+#
+# @loglevel
+# def typelike_from_ipce_generic(res: JSONSchema, global_symbols: dict, encountered: dict, rl: RecLogger = None) ->
+# Type:
+#     rl = rl or RecLogger()
+#     # rl.pp('schema_to_type_generic', schema=res, global_symbols=global_symbols, encountered=encountered)
+#     assert res[JSC_TYPE] == JSC_OBJECT
+#     assert JSC_DEFINITIONS in res
+#     cls_name = res[JSC_TITLE]
+#     if X_PYTHON_MODULE_ATT in res:
+#         module_name = res[X_PYTHON_MODULE_ATT]
+#         k = module_name, cls_name
+#         if USE_REMEMBERED_CLASSES:
+#             if k in RegisteredClasses.klasses:
+#                 return RegisteredClasses.klasses[k]
+#             else:
+#                 pass
+#                 # logger.info(f'cannot find generic {k}')
+#     else:
+#         module_name = None
+#
+#     encountered = dict(encountered)
+#
+#     required = res.get(JSC_REQUIRED, [])
+#
+#     typevars: List[TypeVar] = []
+#     for tname, t in res[JSC_DEFINITIONS].items():
+#         bound = typelike_from_ipce(t, global_symbols, encountered)
+#         # noinspection PyTypeHints
+#         if is_Any(bound):
+#             bound = None
+#         # noinspection PyTypeHints
+#         tv = TypeVar(tname, bound=bound)
+#         typevars.append(tv)
+#         if ID_ATT in t:
+#             encountered[t[ID_ATT]] = tv
+#
+#     typevars: Tuple[TypeVar, ...] = tuple(typevars)
+#     # TODO: typevars
+#     if PYTHON_36:  # pragma: no cover
+#         # noinspection PyUnresolvedReferences
+#         base = Generic.__getitem__(typevars)
+#     else:
+#         # noinspection PyUnresolvedReferences
+#         base = Generic.__class_getitem__(typevars)
+#
+#     fields_required = []  # (name, type, Field)
+#     fields_not_required = []
+#     for pname, v in res.get(JSC_PROPERTIES, {}).items():
+#         ptype = typelike_from_ipce(v, global_symbols, encountered)
+#
+#         if pname in required:
+#             _Field = field()
+#             fields_required.append((pname, ptype, _Field))
+#         else:
+#             _Field = field(default=None)
+#             ptype = Optional[ptype]
+#             fields_not_required.append((pname, ptype, _Field))
+#
+#     fields = fields_required + fields_not_required
+#     T = make_dataclass(cls_name, fields, bases=(base,), namespace=None, init=True,
+#                        repr=True, eq=True, order=False,
+#                        unsafe_hash=False, frozen=False)
+#
+#     class Placeholder:
+#         pass
+#
+#     # XXX: not sure
+#     fix_annotations_with_self_reference(T, cls_name, Placeholder)
+#
+#     if JSC_DESCRIPTION in res:
+#         setattr(T, '__doc__', res[JSC_DESCRIPTION])
+#     # if ATT_PYTHON_NAME in res:
+#     #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
+#     if X_PYTHON_MODULE_ATT in res:
+#         setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
+#     return T
 
-    encountered = dict(encountered)
-
-    required = res.get(JSC_REQUIRED, [])
-
-    typevars: List[TypeVar] = []
-    for tname, t in res[JSC_DEFINITIONS].items():
-        bound = typelike_from_ipce(t, global_symbols, encountered)
-        # noinspection PyTypeHints
-        if is_Any(bound):
-            bound = None
-        # noinspection PyTypeHints
-        tv = TypeVar(tname, bound=bound)
-        typevars.append(tv)
-        if ID_ATT in t:
-            encountered[t[ID_ATT]] = tv
-
-    typevars: Tuple[TypeVar, ...] = tuple(typevars)
-    # TODO: typevars
-    if PYTHON_36:  # pragma: no cover
-        # noinspection PyUnresolvedReferences
-        base = Generic.__getitem__(typevars)
-    else:
-        # noinspection PyUnresolvedReferences
-        base = Generic.__class_getitem__(typevars)
-
-    fields_required = []  # (name, type, Field)
-    fields_not_required = []
-    for pname, v in res.get(JSC_PROPERTIES, {}).items():
-        ptype = typelike_from_ipce(v, global_symbols, encountered)
-
-        if pname in required:
-            _Field = field()
-            fields_required.append((pname, ptype, _Field))
-        else:
-            _Field = field(default=None)
-            ptype = Optional[ptype]
-            fields_not_required.append((pname, ptype, _Field))
-
-    fields = fields_required + fields_not_required
-    T = make_dataclass(cls_name, fields, bases=(base,), namespace=None, init=True,
-                       repr=True, eq=True, order=False,
-                       unsafe_hash=False, frozen=False)
-
-    class Placeholder:
-        pass
-
-    fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered)
-
-    if JSC_DESCRIPTION in res:
-        setattr(T, '__doc__', res[JSC_DESCRIPTION])
-    # if ATT_PYTHON_NAME in res:
-    #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
-    if X_PYTHON_MODULE_ATT in res:
-        setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
-    return T
-
-
-def ipce_from_typelike_generic(T: Type, globals_: GlobalsDict, processing_: ProcessingDict) -> JSONSchema:
-    assert hasattr(T, GENERIC_ATT2)
-
-    types2 = getattr(T, GENERIC_ATT2)
-    processing2 = dict(processing_)
-    globals2 = dict(globals_)
-
-    res = cast(JSONSchema, {})
-    res[SCHEMA_ATT] = SCHEMA_ID
-
-    res[JSC_TITLE] = T.__name__
-    # res[ATT_PYTHON_NAME] = T.__qualname__
-    res[X_PYTHON_MODULE_ATT] = T.__module__
-
-    res[ID_ATT] = make_url(T.__name__)
-
-    res[JSC_TYPE] = JSC_OBJECT
-
-    processing2[f'{T.__name__}'] = make_ref(res[ID_ATT])
-
-    # print(f'T: {T.__name__} ')
-    definitions = {}
-
-    if hasattr(T, '__doc__') and T.__doc__:
-        res[JSC_DESCRIPTION] = T.__doc__
-    globals_ = dict(globals_)
-    for t2 in types2:
-        if not isinstance(t2, TypeVar):
-            continue
-
-        url = make_url(f'{T.__name__}/{t2.__name__}')
-
-        # processing2[f'~{name}'] = {'$ref': url}
-        processing2[f'{t2.__name__}'] = make_ref(url)
-        # noinspection PyTypeHints
-        globals2[t2.__name__] = t2
-
-        bound = t2.__bound__ or Any
-        schema = ipce_from_typelike(bound, globals2, processing2)
-        schema = copy.copy(schema)
-        schema[ID_ATT] = url
-
-        definitions[t2.__name__] = schema
-
-        globals_[t2.__name__] = t2
-
-    if definitions:
-        res[JSC_DEFINITIONS] = definitions
-    properties = {}
-    required = []
-
-    # names = list(T.__annotations__)
-    # ordered = sorted(names)
-    original_order = []
-    for name, t in T.__annotations__.items():
-        t = replace_typevars(t, bindings={}, symbols=globals_, rl=None)
-        if is_ClassVar(t):
-            continue
-        try:
-            result = eval_field(t, globals2, processing2)
-        except PASS_THROUGH:
-            raise
-        except BaseException as e:
-            msg = f'Cannot evaluate field "{name}" of class {T} annotated as {t}'
-            raise Exception(msg) from e
-        assert isinstance(result, Result), result
-        properties[name] = result.schema
-        original_order.append(name)
-        if not result.optional:
-            required.append(name)
-    if required:
-        res[JSC_REQUIRED] = sorted(required)
-
-    sorted_vars = sorted(original_order)
-    res[JSC_PROPERTIES] = {k: properties[k] for k in sorted_vars}
-    res['order'] = original_order
-    res = sorted_dict_with_cbor_ordering(res)
-    return res
+#
+# def ipce_from_typelike_generic(T: Type, globals_: GlobalsDict, processing_: ProcessingDict) -> JSONSchema:
+#     assert hasattr(T, GENERIC_ATT2)
+#
+#     types2 = getattr(T, GENERIC_ATT2)
+#     processing2 = dict(processing_)
+#     globals2 = dict(globals_)
+#
+#     res = cast(JSONSchema, {})
+#     res[SCHEMA_ATT] = SCHEMA_ID
+#
+#     res[JSC_TITLE] = T.__name__
+#     # res[ATT_PYTHON_NAME] = T.__qualname__
+#     res[X_PYTHON_MODULE_ATT] = T.__module__
+#
+#     res[ID_ATT] = make_url(T.__name__)
+#
+#     res[JSC_TYPE] = JSC_OBJECT
+#
+#     processing2[f'{T.__name__}'] = make_ref(res[ID_ATT])
+#
+#     # print(f'T: {T.__name__} ')
+#     definitions = {}
+#
+#     if hasattr(T, '__doc__') and T.__doc__:
+#         res[JSC_DESCRIPTION] = T.__doc__
+#     globals_ = dict(globals_)
+#     for t2 in types2:
+#         if not isinstance(t2, TypeVar):
+#             continue
+#
+#         url = make_url(f'{T.__name__}/{t2.__name__}')
+#
+#         # processing2[f'~{name}'] = {'$ref': url}
+#         processing2[f'{t2.__name__}'] = make_ref(url)
+#         # noinspection PyTypeHints
+#         globals2[t2.__name__] = t2
+#
+#         bound = t2.__bound__ or Any
+#         schema = ipce_from_typelike(bound, globals2, processing2)
+#         schema = copy.copy(schema)
+#         schema[ID_ATT] = url
+#
+#         definitions[t2.__name__] = schema
+#
+#         globals_[t2.__name__] = t2
+#
+#     if definitions:
+#         res[JSC_DEFINITIONS] = definitions
+#     properties = {}
+#     required = []
+#
+#     # names = list(T.__annotations__)
+#     # ordered = sorted(names)
+#     original_order = []
+#     for name, t in T.__annotations__.items():
+#         t = replace_typevars(t, bindings={}, symbols=globals_, rl=None)
+#         if is_ClassVar(t):
+#             continue
+#         try:
+#             result = eval_field(t, globals2, processing2)
+#         except PASS_THROUGH:
+#             raise
+#         except BaseException as e:
+#             msg = f'Cannot evaluate field "{name}" of class {T} annotated as {t}'
+#             raise Exception(msg) from e
+#         assert isinstance(result, Result), result
+#         properties[name] = result.schema
+#         original_order.append(name)
+#         if not result.optional:
+#             required.append(name)
+#     if required:
+#         res[JSC_REQUIRED] = sorted(required)
+#
+#     sorted_vars = sorted(original_order)
+#     res[JSC_PROPERTIES] = {k: properties[k] for k in sorted_vars}
+#     res['order'] = original_order
+#     res = sorted_dict_with_cbor_ordering(res)
+#     return res
 
 
 def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
@@ -1440,7 +1450,7 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
     # d = {'processing': processing, 'globals_': globals_}
     # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
-
+    globals2 = dict(globals_)
     p2 = dict(processing)
     res = cast(JSONSchema, {})
 
@@ -1450,8 +1460,11 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
         p2[T.__name__] = make_ref(res[ID_ATT])
 
-    # res[ATT_PYTHON_NAME] = T.__qualname__
+    if not hasattr(T, '__qualname__'):
+        raise Exception(T)
+    res[ATT_PYTHON_NAME] = T.__qualname__
     res[X_PYTHON_MODULE_ATT] = T.__module__
+    # res[X_PYTHON_MODULE_ATT] = T.__qualname__
 
     res[SCHEMA_ATT] = SCHEMA_ID
 
@@ -1459,6 +1472,32 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
     if hasattr(T, '__doc__') and T.__doc__:
         res[JSC_DESCRIPTION] = T.__doc__
+
+    if hasattr(T, GENERIC_ATT2):
+        definitions = {}
+        types2 = getattr(T, GENERIC_ATT2)
+        for t2 in types2:
+            if not isinstance(t2, TypeVar):
+                continue
+
+            url = make_url(f'{T.__name__}/{t2.__name__}')
+
+            # processing2[f'~{name}'] = {'$ref': url}
+            p2[f'{t2.__name__}'] = make_ref(url)
+            # noinspection PyTypeHints
+            globals2[t2.__name__] = t2
+
+            bound = t2.__bound__ or Any
+            schema = ipce_from_typelike(bound, globals2, p2)
+            schema = copy.copy(schema)
+            schema[ID_ATT] = url
+
+            definitions[t2.__name__] = schema
+
+            globals_[t2.__name__] = t2
+
+        if definitions:
+            res[JSC_DEFINITIONS] = sorted_dict_with_cbor_ordering(definitions)
 
     properties = {}
     classvars = {}
@@ -1484,19 +1523,22 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
             if is_ClassVar(t):
                 tt = get_ClassVar_arg(t)
 
-                result = eval_field(tt, globals_, p2)
+                result = eval_field(tt, globals2, p2)
                 classvars[name] = result.schema
-                the_att = getattr(T, name)
 
-                if isinstance(the_att, type):
-                    classatts[name] = ipce_from_typelike(the_att, globals_, processing)
+                if hasattr(T, name):
+                    # special case
+                    the_att = getattr(T, name)
 
-                else:
-                    classatts[name] = ipce_from_object(the_att, globals_)
+                    if isinstance(the_att, type):
+                        classatts[name] = ipce_from_typelike(the_att, globals2, processing)
+
+                    else:
+                        classatts[name] = ipce_from_object(the_att, globals2)
 
             else:
 
-                result = eval_field(t, globals_, p2)
+                result = eval_field(t, globals2, p2)
                 if not result.optional:
                     required.append(name)
                 # result.schema['qui'] = 1
@@ -1506,7 +1548,7 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
                         properties[name] = copy.copy(properties[name])
-                        properties[name]['default'] = ipce_from_object(afield.default, globals_)
+                        properties[name]['default'] = ipce_from_object(afield.default, globals2)
         except PASS_THROUGH:
             raise
         except BaseException as e:
@@ -1692,6 +1734,7 @@ def eval_just_string(t: str, globals_):
 @loglevel
 def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encountered: EncounteredDict,
                                  schema_id=None, rl: RecLogger = None) -> Type:
+    # raise Exception(res)
     # rl = rl or RecLogger()
     # rl.pp('schema_to_type_dataclass', res=res) #, global_symbols=global_symbols, encountered=encountered)
     assert res[JSC_TYPE] == JSC_OBJECT
@@ -1699,14 +1742,16 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     if X_PYTHON_MODULE_ATT in res:
         module_name = res[X_PYTHON_MODULE_ATT]
 
-        k = module_name, cls_name
-        if USE_REMEMBERED_CLASSES:
-            if k in RegisteredClasses.klasses:
-                # logger.error(f'We can use the class {k}')
-                # logger.info(f'using the cached dataclass {k}')
-                return RegisteredClasses.klasses[k]
-            else:
-                pass
+        # k = module_name, cls_name
+        if ATT_PYTHON_NAME in res:
+            k = res[ATT_PYTHON_NAME]
+            if USE_REMEMBERED_CLASSES:
+                if k in RegisteredClasses.klasses:
+                    # logger.error(f'We can use the class {k}')
+                    # logger.info(f'using the cached dataclass {k}')
+                    return RegisteredClasses.klasses[k]
+                else:
+                    pass
                 # logger.info(f'cannot find dataclass {k}')
 
     else:
@@ -1716,6 +1761,33 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     # if ID_ATT in res:
     #     # encountered[res[ID_ATT]] = ForwardRef(cls_name)
     #     encountered[res[ID_ATT]] = cls_name
+
+    definitions = res.get(JSC_DEFINITIONS, {})
+    typevars: List[TypeVar] = []
+    for tname, t in definitions.items():
+        bound = typelike_from_ipce(t, global_symbols, encountered)
+        # noinspection PyTypeHints
+        if is_Any(bound):
+            bound = None
+        # noinspection PyTypeHints
+        tv = TypeVar(tname, bound=bound)
+        typevars.append(tv)
+        if ID_ATT in t:
+            encountered[t[ID_ATT]] = tv
+
+    if typevars:
+        typevars2: Tuple[TypeVar, ...] = tuple(typevars)
+
+        # TODO: typevars
+        if PYTHON_36:  # pragma: no cover
+            # noinspection PyUnresolvedReferences
+            base = Generic.__getitem__(typevars2)
+        else:
+            # noinspection PyUnresolvedReferences
+            base = Generic.__class_getitem__(typevars2)
+        bases = (base,)
+    else:
+        bases = ()
 
     Placeholder = type(f'PlaceholderFor{cls_name}', (), {})
 
@@ -1731,12 +1803,14 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     # else:
     #     names = list(properties)
     #
+
+    # logger.info(f'reading {cls_name} names {names}')
     for pname in names:
         if pname not in properties:
             continue
         v = properties[pname]
         ptype = typelike_from_ipce(v, global_symbols, encountered)
-
+        # logger.info(f'got for pname {pname} {v} -> ptype {ptype}')
         if pname in required:
             _Field = field()
         else:
@@ -1765,7 +1839,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     #     logger.info(f'{f.name} {has_default((0,0,f))}')
     unsafe_hash = True
     try:
-        T = make_dataclass(cls_name, fields, bases=(), namespace=None,
+        T = make_dataclass(cls_name, fields, bases=bases, namespace=None,
                            init=True, repr=True, eq=True, order=False,
                            unsafe_hash=unsafe_hash, frozen=False)
     except TypeError:  # pragma: no cover
@@ -1776,7 +1850,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         logger.error(msg)
         raise
 
-    fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered)
+    fix_annotations_with_self_reference(T, cls_name, Placeholder)
 
     for pname, v in res.get(X_CLASSATTS, {}).items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
@@ -1793,13 +1867,18 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     if module_name is not None:
         setattr(T, '__module__', module_name)
-    # if ATT_PYTHON_NAME in res:
-    #     setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
+    if ATT_PYTHON_NAME in res:
+        setattr(T, '__qualname__', res[ATT_PYTHON_NAME])
+    else:
+        raise Exception(f'could not find ATT_PYTHON_NAME in {res}')
+
+    # logger.info(f'created T with qual {T.__qualname__}')
     return T
 
 
 def recursive_type_subst(T, f, ignore=()):
     if T in ignore:
+        # logger.info(f'ignoring {T} in {ignore}')
         return T
     r = lambda X: recursive_type_subst(X, f, ignore + (T,))
     if is_Optional(T):
@@ -1807,6 +1886,7 @@ def recursive_type_subst(T, f, ignore=()):
         a2 = r(a)
         if a == a2:
             return T
+        # logger.info(f'Optional unchanged under {f.__name__}: {a} == {a2}')
         return Optional[a2]
     elif is_ForwardRef(T):
         return f(T)
@@ -1814,6 +1894,7 @@ def recursive_type_subst(T, f, ignore=()):
         ts0 = get_Union_args(T)
         ts = tuple(r(_) for _ in ts0)
         if ts0 == ts:
+            # logger.info(f'Union unchanged under {f.__name__}: {ts0} == {ts}')
             return T
         return make_Union(*ts)
     elif is_TupleLike(T):
@@ -1876,13 +1957,17 @@ def recursive_type_subst(T, f, ignore=()):
             nothing_changed &= (v0 == v2)
             annotations2[k] = v2
         if nothing_changed:
+            # logger.info(f'Union unchanged under {f.__name__}: {ts0} == {ts}')
             return T
-
         T2 = my_dataclass(type(T.__name__, (), {
-              '__annotations__': annotations,
+              '__annotations__': annotations2,
               '__module__':      T.__module__,
-              '__doc__':         getattr(T, '__doc__', None)
+              '__doc__':         getattr(T, '__doc__', None),
+              '__qualname__': getattr(T, '__qualname__')
               }))
+
+        # from zuper_ipcl.debug_print_ import debug_print
+        # logger.info(f'changed {T.__name__} into {debug_print(T2.__annotations__)}')
 
         return T2
 
@@ -1890,7 +1975,7 @@ def recursive_type_subst(T, f, ignore=()):
         return f(T)
 
 
-def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols, encountered):
+def fix_annotations_with_self_reference(T, cls_name, Placeholder):
     # print('fix_annotations_with_self_reference')
     # logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
     # logger.info(f'encountered: {encountered}')
@@ -1900,7 +1985,7 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
         # print((M, Placeholder, M is Placeholder, M == Placeholder, id(M), id(Placeholder)))
         if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
             return T
-        if M == Placeholder:
+        elif M == Placeholder:
             return T
         elif is_ForwardRef(M):
             arg = get_ForwardRef_arg(M)
@@ -1911,24 +1996,33 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
         else:
             return M
 
-    def f2(M):
-        # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} ')
-        r = f(M)
-        # if is_dataclass(M):
+    f.__name__ = f'replacer_for_{cls_name}'
+    # def f2(M):
+    #     # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} ')
+    #     r = f(M)
+    #     # if is_dataclass(M):
+    #
+    #     if is_dataclass(M):
+    #         d0 = getattr(M, '__doc__', 'NO DOC')
+    #         d1 = getattr(r, '__doc__', 'NO DOC')
+    #     else:
+    #         d0 = d1 = None
+    #     # logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
+    #     # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
+    #     return r
 
-        if is_dataclass(M):
-            d0 = getattr(M, '__doc__', 'NO DOC')
-            d1 = getattr(r, '__doc__', 'NO DOC')
-        else:
-            d0 = d1 = None
-        # logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
-        # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
-        return r
+    # from zuper_ipcl.debug_print_ import  debug_print
 
+    anns2 = {}
     for k, v0 in T.__annotations__.items():
-        v = recursive_type_subst(v0, f2)
-        # logger.info(f'annotation {k} {v0} -> {v}')
-        T.__annotations__[k] = v
+        v = recursive_type_subst(v0, f)
+        # d = debug_print(dict(v0=v0, v=v))
+        # logger.info(f'annotation for {cls_name} ({Placeholder.__name__}) argument {k}\n{d}')
+        anns2[k] = v
+    T.__annotations__ = anns2
+        # s = debug_print(v)
+        # if Placeholder.__name__ in s:
+        #     raise ValueError(s)
         # d0 = getattr(v0, '__doc__', 'NO DOC')
         # d1 = getattr(v, '__doc__', 'NO DOC')
         # assert_equal(d0, d1)
@@ -1936,6 +2030,6 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
 
-    # logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
+    # logger.info(pretty_dict(f'annotations resolved for {T} ({Placeholder})', T.__annotations__))
 
 #

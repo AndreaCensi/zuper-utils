@@ -52,7 +52,7 @@ def test_tuple2():
 
 
 def test_tuple_inside_class():
-    """ Cannot distinguish from List ... """
+    """ tuple inside needs a schema hint"""
     @dataclass
     class MyClass:
         f: Any
@@ -62,7 +62,7 @@ def test_tuple_inside_class():
 
 @raises(AssertionError)
 def test_tuple_inside_class_withoutschema():
-    """ Cannot distinguish from List ... """
+    """ tuple inside needs a schema hint"""
     @dataclass
     class MyClass:
         f: Any

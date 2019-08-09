@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import *
+from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast, List, Tuple, Set
 
 from nose.tools import raises
 

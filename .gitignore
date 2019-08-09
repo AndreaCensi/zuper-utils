@@ -8,3 +8,5 @@ __pycache__
 out-comptests
 dist
 .mypy_cache
+test_objects
+test_objects

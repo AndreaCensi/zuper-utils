@@ -1,4 +1,4 @@
-from typing import *
+from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast, List, Tuple, Set
 
 from zuper_typing import dataclass
 from zuper_typing.zeneric2 import StructuralTyping
