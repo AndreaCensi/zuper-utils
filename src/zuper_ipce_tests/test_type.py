@@ -85,6 +85,7 @@ def test_defaults1():
     T2 = schema_to_type(mj, {}, {})
     print(dataclasses.fields(T2))
 
+    assert_type_roundtrip(DummyImageSourceConfig, {})
 
 def test_type_slice():
     assert_object_roundtrip(slice, {})

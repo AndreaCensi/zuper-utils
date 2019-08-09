@@ -233,11 +233,11 @@ def test_lists():
 
 
 def test_nulls():
-    ipce_from_object(None, {})
+    assert_object_roundtrip(None, {})
 
 
 def test_lists_2():
-    ipce_from_object([1], {})
+    assert_object_roundtrip([1], {})
 
 
 # @raises(ValueError)

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from zuper_commons.logs import setup_logging
 from zuper_ipce import IPCE
 from zuper_ipce.ipce import ipce_from_object
+from zuper_ipce_tests.test_utils import assert_object_roundtrip
 
 
 @dataclass
@@ -66,8 +67,8 @@ def test_recursive_ipce():
     n = 6
     t = create_tree(n, 2, 0)
     # print(debug_print(t))
-    ipce: IPCE = ipce_from_object(t, {})
-
+    # ipce: IPCE = ipce_from_object(t, {})
+    assert_object_roundtrip(t,{})
 
 #
 # async def test_recursive_chain_2():
