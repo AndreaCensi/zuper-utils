@@ -12,7 +12,21 @@ class SchemaCache:
 
 
 def make_key(x):
-    return (id(type(x)), getattr(x, '__qualname__', 'no qual'), getattr(x, '__name__', 'no name'), id(x))
+    k0 = id(type(x))
+    k1 = getattr(x, '__qualname__', None)
+    k2 = getattr(x, '__name__', None)
+    k3 = id(x)
+    if hasattr(x, '__dict__'):
+        k4 = id(x.__dict__)
+    else:
+        k4 = None
+    try:
+        k5 = x.__hash__()
+    except:
+        k5 = None
+    k5 = None
+    k = (k0, k1, k2, k3, k4, k5)
+    return k
 
 
 def has_ipce_repr_attr(x: Any):

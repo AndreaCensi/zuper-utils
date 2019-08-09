@@ -7,12 +7,10 @@ from .constants import NAME_ARG, PYTHON_36
 # noinspection PyProtectedMember
 def is_Optional(x):
     if PYTHON_36:  # pragma: no cover
-        return isinstance(x, typing._Union) and len(x.__args__) >= 2 and x.__args__[
-            -1] is type(None)
+        return isinstance(x, typing._Union) and len(x.__args__) >= 2 and x.__args__[-1] is type(None)
     else:
         return isinstance(x, typing._GenericAlias) and (x.__origin__ is Union) and len(
-              x.__args__) >= 2 and x.__args__[
-                   -1] is type(None)
+              x.__args__) >= 2 and x.__args__[-1] is type(None)
 
 
 def get_Optional_arg(x):
@@ -66,8 +64,15 @@ def make_Union(*a):
 
 TUPLE_EMPTY_ATTR = '__empty__'
 
+
 class Caches:
     tuple_caches = {}
+
+
+def make_VarTuple(a: type):
+    args = (a, ...)
+    return make_Tuple(*args)
+
 
 def make_Tuple(*a):
     if a in Caches.tuple_caches:
@@ -646,4 +651,3 @@ def get_Callable_info(x) -> CallableInfo:
                         parameters_by_position=tuple(parameters_by_position),
                         ordering=tuple(ordering),
                         returns=returns)
-
