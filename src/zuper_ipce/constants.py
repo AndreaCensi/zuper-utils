@@ -3,7 +3,7 @@ from typing import NewType, Dict, Any, cast
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
 ProcessingDict = Dict[str, Any]
-EncounteredDict = Dict[str, str]
+EncounteredDict = Dict[str, Any]
 _SpecialForm = Any
 
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
