@@ -277,7 +277,7 @@ def get_best_type_for_serializing_dict(ob: dict, suggest_type: Optional[type]) -
 
 
 def ipce_from_object_dict(ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool):
-    logger.info(f'dict_to_ipce suggest_type: {suggest_type}')
+    # logger.info(f'dict_to_ipce suggest_type: {suggest_type}')
     # assert suggest_type is not None
     res = {}
     suggest_type, K, V = get_best_type_for_serializing_dict(ob, suggest_type)
@@ -288,6 +288,9 @@ def ipce_from_object_dict(ob: dict, globals_: GlobalsDict, suggest_type: Optiona
     if isinstance(K, type) and issubclass(K, str):
         for k, v in ob.items():
             res[k] = ipce_from_object(v, globals_, suggest_type=V, with_schema=with_schema)
+    elif isinstance(K, type) and issubclass(K, int):
+        for k, v in ob.items():
+            res[str(k)] = ipce_from_object(v, globals_, suggest_type=V, with_schema=with_schema)
     else:
         FV = FakeValues[K, V]
 
@@ -353,7 +356,7 @@ def object_from_ipce(mj: IPCE,
 
     except BaseException as e:
         msg = f'Cannot deserialize object  (expect: {expect_type})'
-        msg += '\n\n' + indent(yaml.dump(mj), ' ipce ')
+        msg += '\n\n' + indent(yaml.dump(mj)[:400], ' ipce ')
         # msg += '\n\n' + indent(traceback.format_exc(), '| ')
         raise TypeError(msg) from e
 
@@ -541,7 +544,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 raise
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k} (expect: {expect_type})'
-                msg += '\n\n' + indent(yaml.dump(v), '  ')
+                # msg += '\n\n' + indent(yaml.dump(v), '  ')
                 # msg += '\n\n' + indent(traceback.format_exc(), '| ')
                 raise TypeError(msg) from e
 
@@ -580,7 +583,7 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
     attrs = {}
 
     FV = FakeValues[K, V]
-    if isinstance(K, type) and issubclass(K, str):
+    if isinstance(K, type) and (issubclass(K, str) or issubclass(K, int)):
         expect_type_V = V
     else:
         expect_type_V = FV
@@ -602,6 +605,10 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
             msg += f'\n\n v = {yaml.dump(v)}'
             raise TypeError(msg) from e
     if isinstance(K, type) and issubclass(K, str):
+        ob.update(attrs)
+        return ob
+    elif isinstance(K, type) and issubclass(K, int):
+        attrs = {int(k): v for k, v in attrs.items()}
         ob.update(attrs)
         return ob
     else:
@@ -813,6 +820,16 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
     #     setattr(D, '__doc__', schema[JSC_DESCRIPTION])
     return D
 
+def get_all_refs(schema):
+    if isinstance(schema, dict):
+        if '$ref' in schema:
+            yield schema['$ref']
+        for _, v in schema.items():
+            yield from get_all_refs(v)
+    if isinstance(schema, list):
+        for v in schema:
+            yield from get_all_refs(v)
+
 
 def schema_dict_to_SetType(schema, global_symbols, encountered):
     if not JSC_ADDITIONAL_PROPERTIES in schema:
@@ -826,13 +843,19 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
     # pprint('type_to_schema', T=T)
     globals_ = dict(globals0)
     processing = processing or {}
+    processing_refs = list(get_all_refs(processing))
+
 
     if hasattr(T, '__name__'):
         if T.__name__ in processing:
             return processing[T.__name__]
 
-        if has_ipce_repr_attr(T):
-            schema = get_ipce_repr_attr(T)
+        if has_ipce_repr_attr(T, set()):
+            schema = get_ipce_repr_attr(T, set())
+            # logger.info(f'T: {T.__name__} {schema["title"]}')
+            return schema
+        if has_ipce_repr_attr(T, processing_refs):
+            schema = get_ipce_repr_attr(T, processing_refs)
             # logger.info(f'T: {T.__name__} {schema["title"]}')
             return schema
 
@@ -874,8 +897,31 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
 
         schema = type_to_schema_(T, globals_, processing)
         check_isinstance(schema, dict)
-        if not is_Union(T):  # XXX
-            set_ipce_repr_attr(T, schema)
+        # if '$ref' in schema:
+        #     pass
+        # else:
+        #
+        #     in_proc = set(get_all_refs(processing))
+        #     # for k, v in processing.items():
+        #     #     if isinstance(v, dict) and '$ref' in v:
+        #     #
+        #     refs_in_proc = in_proc & refs
+        #     if refs_in_proc:
+        #         logger.info(f'For {T} obtained refs_in_proc = {refs_in_proc}; not setting cache.')
+        #     else:
+        # # logger.info(f'processing = {processing}')
+        # # if not processing:
+        #     # if not is_Union(T):  # XXX
+        #
+        refs_in_schema = set(get_all_refs(schema))
+
+        refs_in_proc = [x for x in processing_refs if x in refs_in_schema]
+        if not refs_in_proc:
+            set_ipce_repr_attr(T, [], schema)
+        else:
+            set_ipce_repr_attr(T, processing_refs, schema)
+        # else:
+        #     logger.info(f'ignorning setting cache for {T} because {processing}')
 
     except NotImplementedError:  # pragma: no cover
         raise
