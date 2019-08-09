@@ -39,3 +39,12 @@ def test_multiple_optional2():
     U = get_Optional_arg(a)
     assert is_Union(U)
     assert int, str == get_Union_args(U)
+
+
+def test_multiple_optional3():
+    ts = (int, type(None), str)
+    a = make_Union(*ts)
+    assert is_Optional(a)
+    U = get_Optional_arg(a)
+    assert is_Union(U)
+    assert int, str == get_Union_args(U)

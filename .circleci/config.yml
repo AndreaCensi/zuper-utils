@@ -34,9 +34,17 @@ jobs:
           command: |
             python setup.py develop --prefix ~/.local --no-deps
 
+
+
+      - run:
+          name: Check out the test objects
+          command: |
+            git clone git@github.com:AndreaCensi/zuper-test-objs.git test_objects
+
       - run:
           name: Run tests
           command: |
+
             make
             
 

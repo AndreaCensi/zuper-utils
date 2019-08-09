@@ -7,3 +7,4 @@ sq.db
 __pycache__
 out-comptests
 dist
+.mypy_cache

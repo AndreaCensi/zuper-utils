@@ -7,7 +7,7 @@ from zuper_commons.logs import setup_logging
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.annotations_tricks import is_Any
 from zuper_ipce.constants import SCHEMA_ATT, SCHEMA_ID
-from zuper_ipce.ipce import (make_dict, object_from_ipce, ipce_from_object, ipce_from_typelike, schema_to_type,
+from zuper_ipce.ipce import (make_dict, object_from_ipce, ipce_from_object, ipce_from_typelike, typelike_from_ipce,
                              CannotFindSchemaReference, JSONSchema, CannotResolveTypeVar, eval_field)
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -72,11 +72,11 @@ def test_ser1():
 
     print(yaml.dump(Person_schema))
 
-    Address2 = schema_to_type(Person_schema['properties']['address'], {}, {})
+    Address2 = typelike_from_ipce(Person_schema['properties']['address'], {}, {})
     assert_equal(Address2.__doc__, Address.__doc__)
 
     assert Person_schema['description'] == Person.__doc__
-    Person2 = schema_to_type(Person_schema, {}, {})
+    Person2 = typelike_from_ipce(Person_schema, {}, {})
     assert Person2.__doc__ == Person.__doc__
 
     assert_equal(Person2.__annotations__['address'].__doc__, Address.__doc__)
@@ -302,7 +302,7 @@ def test_not_dict_naked():
 
 def test_any1b():
     res = cast(JSONSchema, {})
-    t = schema_to_type(res, {}, encountered={})
+    t = typelike_from_ipce(res, {}, encountered={})
     assert is_Any(t), t
 
 
@@ -318,7 +318,7 @@ def test_any2():
 @raises(CannotFindSchemaReference)
 def test_invalid_schema():
     schema = cast(JSONSchema, {"$ref": "not-existing"})
-    schema_to_type(schema, {}, {})
+    typelike_from_ipce(schema, {}, {})
 
 
 # @raises(CannotFindSchemaReference)

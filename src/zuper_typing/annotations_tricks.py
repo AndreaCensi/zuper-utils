@@ -38,12 +38,14 @@ def get_Union_args(x):
 
 
 def make_Union(*a):
-    if a and a[-1] is type(None):
-        before = a[:-1]
-        if len(before) == 1:
-            return typing.Optional[before[0]]
-        else:
-            return typing.Optional[make_Union(*before)]
+    if a: # and a[-1] is type(None):
+        T0 = type(None)
+        if T0 in a:
+            others = tuple(_ for _ in a if _ is not T0)
+            if len(others) == 1:
+                return typing.Optional[others[0]]
+            else:
+                return typing.Optional[make_Union(*others)]
 
     if len(a) == 0:
         raise ValueError('empty')

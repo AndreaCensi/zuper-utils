@@ -23,7 +23,7 @@ from zuper_typing.zeneric2 import RecLogger
 from zuper_ipce import logger
 from zuper_typing.annotations_tricks import is_Dict
 
-from zuper_ipce.ipce import ipce_from_object, object_from_ipce, ipce_from_typelike, schema_to_type
+from zuper_ipce.ipce import ipce_from_object, object_from_ipce, ipce_from_typelike, typelike_from_ipce
 from zuper_ipce.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from zuper_ipce.pretty import pretty_dict
 
@@ -38,7 +38,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     schema = ipce_from_typelike(T, use_globals)
     save_object(T, ipce=schema)
 
-    T2 = schema_to_type(schema, {}, {})
+    T2 = typelike_from_ipce(schema, {}, {})
 
     if False:
         rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))

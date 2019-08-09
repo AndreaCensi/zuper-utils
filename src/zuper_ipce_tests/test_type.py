@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass
 from typing import *
 
-from zuper_ipce.ipce import ipce_from_typelike, object_from_ipce, schema_to_type
+from zuper_ipce.ipce import ipce_from_typelike, object_from_ipce, typelike_from_ipce
 from zuper_typing_tests.test_utils import relies_on_missing_features
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
@@ -82,7 +82,7 @@ def test_defaults1():
     mj = ipce_from_typelike(DummyImageSourceConfig, {})
     print(json.dumps(mj, indent=2))
 
-    T2 = schema_to_type(mj, {}, {})
+    T2 = typelike_from_ipce(mj, {}, {})
     print(dataclasses.fields(T2))
 
     assert_type_roundtrip(DummyImageSourceConfig, {})

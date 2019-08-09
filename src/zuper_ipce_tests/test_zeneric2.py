@@ -6,7 +6,7 @@ from typing import Generic
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.ipce import schema_to_type, ipce_from_typelike
+from zuper_ipce.ipce import typelike_from_ipce, ipce_from_typelike
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -90,7 +90,7 @@ def test_serialize_generic():
     s = ipce_from_typelike(MP1, {})
     # print(json.dumps(s, indent=3))
 
-    M2 = schema_to_type(s, {}, {})
+    M2 = typelike_from_ipce(s, {}, {})
     # noinspection PyUnresolvedReferences
     M2int = M2[int]
     assert_equal(MP1.__module__, M2.__module__)
@@ -133,7 +133,7 @@ def test_serialize_generic_optional():
     s = ipce_from_typelike(MR1, {})
     print('M1 schema: \n' + yaml.dump(s, indent=3))
 
-    M2 = schema_to_type(s, {}, {})
+    M2 = typelike_from_ipce(s, {}, {})
     assert 'xo' in MR1.__annotations__, MR1.__annotations__
     assert 'xo' in M2.__annotations__, M2.__annotations__
 
@@ -195,7 +195,7 @@ def test_more():
     # raise Exception()
     schema = ipce_from_typelike(Entity0, {}, {})
     print(yaml.dump(schema))
-    T = schema_to_type(schema, {}, {})
+    T = typelike_from_ipce(schema, {}, {})
     print(T.__annotations__)
 
     assert_type_roundtrip(Entity0, {})
@@ -228,7 +228,7 @@ title: Entity0[X]
 type: object    
 
     """, Loader=yaml.SafeLoader)
-    T = schema_to_type(schema, {}, {})
+    T = typelike_from_ipce(schema, {}, {})
     print(T.__annotations__)
 
 
@@ -366,7 +366,7 @@ def test_more3():
 
     schema = ipce_from_typelike(C, {})
     # print(json.dumps(schema, indent=2))
-    schema_to_type(schema, {}, {})
+    typelike_from_ipce(schema, {}, {})
     # print(f'Annotations for C2: {C2.__annotations__}')
     e = C(2)
     r = e.method(1)
@@ -400,7 +400,7 @@ def test_entity():
     assert 'Entity43[X]' in qn, qn
 
     T = ipce_from_typelike(Entity43, {}, {})
-    C = schema_to_type(T, {}, {})
+    C = typelike_from_ipce(T, {}, {})
     print(yaml.dump(T))
     print(C.__annotations__)
 
@@ -440,7 +440,7 @@ required: [data0, guid, security_model]
 title: Entity2[X]
 type: object    
     """, Loader=yaml.SafeLoader)
-    C = schema_to_type(schema, {}, {})
+    C = typelike_from_ipce(schema, {}, {})
     print(C.__annotations__)
 
     assert not is_ForwardRef(C.__annotations__['parent'].__args__[0])
@@ -467,7 +467,7 @@ def test_classvar2():
 
     C = CG[int]
     schema = ipce_from_typelike(C, {})
-    C2: C = schema_to_type(schema, {}, {})
+    C2: C = typelike_from_ipce(schema, {}, {})
 
     assert_type_roundtrip(C, {})
     assert_type_roundtrip(CG, {})
@@ -612,7 +612,7 @@ def test_derived2_subst():
 
     schema = ipce_from_typelike(Y, {}, {})
     print(yaml.dump(schema))
-    TY = schema_to_type(schema, {}, {})
+    TY = typelike_from_ipce(schema, {}, {})
 
     pprint('annotations', **TY.__annotations__)
     P = TY.__annotations__['parent']

@@ -395,6 +395,29 @@ def object_from_ipce_(mj: IPCE,
                 suggest = get_ListLike_arg(expect_type)
                 seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
                 return seq
+            elif is_Optional(expect_type):
+                K = get_Optional_arg(expect_type)
+
+                return object_from_ipce(mj,
+                                        global_symbols,
+                                        encountered,
+                                        expect_type=K)
+            elif is_Union(expect_type):
+                errors = []
+                ts = get_Union_args(expect_type)
+                for T in ts:
+                    try:
+                        return object_from_ipce(mj,
+                                                global_symbols,
+                                                encountered,
+                                                expect_type=T)
+                    except PASS_THROUGH:
+                        raise
+                    except BaseException as e:
+                        errors.append(e)
+                msg = f'Cannot deserialize with any of {ts}'
+                msg += '\n'.join(str(e) for e in errors)
+                raise Exception(msg)
             else:
                 assert False, expect_type
         else:
@@ -422,11 +445,11 @@ def object_from_ipce_(mj: IPCE,
 
     if mj.get(SCHEMA_ATT, '') == SCHEMA_ID:
         schema = cast(JSONSchema, mj)
-        return schema_to_type(schema, global_symbols, encountered)
+        return typelike_from_ipce(schema, global_symbols, encountered)
 
     if SCHEMA_ATT in mj:
         sa = mj[SCHEMA_ATT]
-        K = schema_to_type(sa, global_symbols, encountered)
+        K = typelike_from_ipce(sa, global_symbols, encountered)
         # logger.debug(f' loaded K = {K} from {mj}')
     else:
         if expect_type is not None:
@@ -452,7 +475,7 @@ def object_from_ipce_(mj: IPCE,
         return object_from_ipce_dict(K, mj, global_symbols, encountered)
 
     if is_SetLike(K):
-        return deserialize_Set(K, mj, global_symbols, encountered)
+        return object_from_ipce_SetLike(K, mj, global_symbols, encountered)
 
     if is_dataclass(K):
         return object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered)
@@ -546,7 +569,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 raise TypeError(msg)
 
             if k in hints:
-                expect_type = schema_to_type(hints[k], global_symbols, encountered)
+                expect_type = typelike_from_ipce(hints[k], global_symbols, encountered)
                 # logger.info(f'hint for member {k} is {expect_type} of {K.__name__}')
             # else:
             # logger.info(f'no hint for member {k} of {K.__name__}')
@@ -631,7 +654,7 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
         return ob
 
 
-def deserialize_Set(D, mj, global_symbols, encountered):
+def object_from_ipce_SetLike(D, mj, global_symbols, encountered):
     V = get_SetLike_arg(D)
 
     res = set()
@@ -664,16 +687,16 @@ def schema_hash(k):
     return ob_cbor_hash
 
 
-def schema_to_type(schema0: JSONSchema,
-                   global_symbols: Dict,
-                   encountered: Dict) -> Union[type, _SpecialForm]:
+def typelike_from_ipce(schema0: JSONSchema,
+                       global_symbols: Dict,
+                       encountered: Dict) -> Union[type, _SpecialForm]:
     h = schema_hash([schema0, list(global_symbols), list(encountered)])
     if h in schema_cache:
         # logger.info(f'cache hit for {schema0}')
         return schema_cache[h]
 
     try:
-        res = schema_to_type_(schema0, global_symbols, encountered)
+        res = typelike_from_ipce_(schema0, global_symbols, encountered)
     except (TypeError, ValueError) as e:
         msg = 'Cannot interpret schema as a type.'
         msg += '\n\n' + indent(yaml.dump(schema0), ' > ')
@@ -690,7 +713,7 @@ def schema_to_type(schema0: JSONSchema,
     return res
 
 
-def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> Union[type, _SpecialForm]:
+def typelike_from_ipce_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> Union[type, _SpecialForm]:
     # pprint('schema_to_type_', schema0=schema0)
     encountered = encountered or {}
     info = dict(global_symbols=global_symbols, encountered=encountered)
@@ -726,7 +749,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
 
     if JSC_ANYOF in schema:
         options = schema[JSC_ANYOF]
-        args = [schema_to_type(_, global_symbols, encountered) for _ in options]
+        args = [typelike_from_ipce(_, global_symbols, encountered) for _ in options]
         if args and args[-1] is type(None):
             V = args[0]
             return Optional[V]
@@ -735,7 +758,7 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
 
     if JSC_ALLOF in schema:
         options = schema[JSC_ALLOF]
-        args = [schema_to_type(_, global_symbols, encountered) for _ in options]
+        args = [typelike_from_ipce(_, global_symbols, encountered) for _ in options]
         res = Intersection[tuple(args)]  # XXX
         return res
 
@@ -772,9 +795,9 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
         if jsc_title == JSC_TITLE_CALLABLE:
             return typelike_from_ipce_Callable(schema, global_symbols, encountered)
         elif jsc_title.startswith('Dict['):
-            return schema_dict_to_DictType(schema, global_symbols, encountered)
+            return typelike_from_ipce_DictType(schema, global_symbols, encountered)
         elif jsc_title.startswith('Set['):
-            return schema_dict_to_SetType(schema, global_symbols, encountered)
+            return typelike_from_ipce_SetType(schema, global_symbols, encountered)
         elif jsc_title == JSC_TITLE_SLICE:
             return slice
         elif JSC_DEFINITIONS in schema:
@@ -790,33 +813,33 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         assert False, schema  # pragma: no cover
     elif jsc_type == JSC_ARRAY:
-        return schema_array_to_type(schema, global_symbols, encountered)
+        return typelike_from_ipce_array(schema, global_symbols, encountered)
 
     assert False, schema  # pragma: no cover
 
 
-def schema_array_to_type(schema, global_symbols, encountered):
+def typelike_from_ipce_array(schema, global_symbols, encountered):
     items = schema['items']
     if isinstance(items, list):
         # assert len(items) > 0
-        args = tuple([schema_to_type(_, global_symbols, encountered) for _ in items])
+        args = tuple([typelike_from_ipce(_, global_symbols, encountered) for _ in items])
 
         return make_Tuple(*args)
     else:
         if 'Tuple' in schema[JSC_TITLE]:
 
-            V = schema_to_type(items, global_symbols, encountered)
+            V = typelike_from_ipce(items, global_symbols, encountered)
             args = (V, ...)
             return make_Tuple(*args)
         else:
 
-            V = schema_to_type(items, global_symbols, encountered)
+            V = typelike_from_ipce(items, global_symbols, encountered)
             return List[V]
 
 
-def schema_dict_to_DictType(schema, global_symbols, encountered):
+def typelike_from_ipce_DictType(schema, global_symbols, encountered):
     K = str
-    V = schema_to_type(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
+    V = typelike_from_ipce(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
     # pprint(f'here:', d=dict(V.__dict__))
     # if issubclass(V, FakeValues):
     if isinstance(V, type) and V.__name__.startswith('FakeValues'):
@@ -847,11 +870,11 @@ def get_all_refs(schema):
             yield from get_all_refs(v)
 
 
-def schema_dict_to_SetType(schema, global_symbols, encountered):
+def typelike_from_ipce_SetType(schema, global_symbols, encountered):
     if not JSC_ADDITIONAL_PROPERTIES in schema:
         msg = f'Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}'
         raise ValueError(msg)
-    V = schema_to_type(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
+    V = typelike_from_ipce(schema[JSC_ADDITIONAL_PROPERTIES], global_symbols, encountered)
     return make_set(V)
 
 
@@ -910,7 +933,7 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
                         globals_[v.__name__] = v
                     globals_[k.__name__] = v
 
-        schema = type_to_schema_(T, globals_, processing)
+        schema = ipce_from_typelike_(T, globals_, processing)
         check_isinstance(schema, dict)
         # if '$ref' in schema:
         #     pass
@@ -1080,10 +1103,10 @@ def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: Proc
 def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict, encountered: ProcessingDict):
     schema = dict(schema)
     definitions = dict(schema[JSC_DEFINITIONS])
-    ret = schema_to_type(definitions.pop('return'), global_symbols, encountered)
+    ret = typelike_from_ipce(definitions.pop('return'), global_symbols, encountered)
     others = []
     for k in schema['ordering']:
-        d = schema_to_type(definitions[k], global_symbols, encountered)
+        d = typelike_from_ipce(definitions[k], global_symbols, encountered)
         if not k.startswith('__'):
             d = NamedArg(d, k)
         others.append(d)
@@ -1093,7 +1116,7 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
 
 
 # noinspection PyTypeChecker
-def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
     if T is None:
         raise ValueError('None is not a type!')
 
@@ -1164,10 +1187,10 @@ def type_to_schema_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) 
         return res
 
     if is_Union(T):
-        return schema_Union(T, globals_, processing)
+        return ipce_from_typelike_Union(T, globals_, processing)
 
     if is_Optional(T):
-        return schema_Optional(T, globals_, processing)
+        return ipce_from_typelike_Optional(T, globals_, processing)
 
     if is_DictLike(T):
         return ipce_from_typelike_dict(T, globals_, processing)
@@ -1281,7 +1304,7 @@ def typelike_from_ipce_generic(res: JSONSchema, global_symbols: dict, encountere
 
     typevars: List[TypeVar] = []
     for tname, t in res[JSC_DEFINITIONS].items():
-        bound = schema_to_type(t, global_symbols, encountered)
+        bound = typelike_from_ipce(t, global_symbols, encountered)
         # noinspection PyTypeHints
         if is_Any(bound):
             bound = None
@@ -1303,7 +1326,7 @@ def typelike_from_ipce_generic(res: JSONSchema, global_symbols: dict, encountere
     fields_required = []  # (name, type, Field)
     fields_not_required = []
     for pname, v in res.get(JSC_PROPERTIES, {}).items():
-        ptype = schema_to_type(v, global_symbols, encountered)
+        ptype = typelike_from_ipce(v, global_symbols, encountered)
 
         if pname in required:
             _Field = field()
@@ -1568,7 +1591,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         return Result(result.schema, optional=True)
 
     if is_Union(t):
-        return Result(schema_Union(t, globals_, processing))
+        return Result(ipce_from_typelike_Union(t, globals_, processing))
 
     if is_Any(t):
         res = cast(JSONSchema, {'$schema': 'http://json-schema.org/draft-07/schema#'})
@@ -1601,7 +1624,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     raise NotImplementedError(msg)
 
 
-def schema_Union(t, globals_, processing):
+def ipce_from_typelike_Union(t, globals_, processing):
     types = get_Union_args(t)
     options = [ipce_from_typelike(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
@@ -1609,7 +1632,7 @@ def schema_Union(t, globals_, processing):
     return res
 
 
-def schema_Optional(t, globals_, processing):
+def ipce_from_typelike_Optional(t, globals_, processing):
     types = [get_Optional_arg(t), type(None)]
     options = [ipce_from_typelike(t, globals_, processing) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
@@ -1712,7 +1735,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         if pname not in properties:
             continue
         v = properties[pname]
-        ptype = schema_to_type(v, global_symbols, encountered)
+        ptype = typelike_from_ipce(v, global_symbols, encountered)
 
         if pname in required:
             _Field = field()
@@ -1728,7 +1751,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     # pprint('making dataclass with fields', fields=fields, res=res)
     for pname, v in res.get(X_CLASSVARS, {}).items():
-        ptype = schema_to_type(v, global_symbols, encountered)
+        ptype = typelike_from_ipce(v, global_symbols, encountered)
         fields.append((pname, ClassVar[ptype], field()))
 
     # _MISSING_TYPE should be first (default fields last)
@@ -1757,7 +1780,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     for pname, v in res.get(X_CLASSATTS, {}).items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
-            interpreted = schema_to_type(cast(JSONSchema, v), global_symbols, encountered)
+            interpreted = typelike_from_ipce(cast(JSONSchema, v), global_symbols, encountered)
         else:
             interpreted = object_from_ipce(v, global_symbols)
         setattr(T, pname, interpreted)
