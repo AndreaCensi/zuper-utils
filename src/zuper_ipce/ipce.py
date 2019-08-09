@@ -22,7 +22,7 @@ from nose.tools import assert_in
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
 from zuper_ipce.ipce_attr import get_ipce_repr_attr, has_ipce_repr_attr, set_ipce_repr_attr
-from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering, assert_canonical_ipce
+from zuper_ipce.ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_args, get_Dict_name_K_V,
                                              get_FixedTuple_args, get_ForwardRef_arg, get_List_arg, get_Optional_arg,
                                              get_Sequence_arg, get_Set_arg, get_Set_name_V, get_Tuple_name,
@@ -164,7 +164,7 @@ def ipce_from_object_(ob,
     raise NotImplementedError(msg)
 
 
-def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: Optional[type])->IPCE:
+def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest_type: Optional[type]) -> IPCE:
     globals_ = dict(globals_)
     res = {}
     T = type(ob)
@@ -362,7 +362,6 @@ def object_from_ipce(mj: IPCE,
         raise TypeError(msg) from e
 
 
-
 def object_from_ipce_(mj: IPCE,
                       global_symbols,
                       encountered: Optional[dict] = None,
@@ -408,6 +407,8 @@ def object_from_ipce_(mj: IPCE,
         elif expect_type is type(None):
             return None
         elif is_Optional(expect_type):
+            return None
+        elif is_Any(expect_type):
             return None
         else:
             msg = f'The value is None but the expected type is {expect_type}.'
@@ -763,6 +764,8 @@ def schema_to_type_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict
             return schema_dict_to_DictType(schema, global_symbols, encountered)
         elif jsc_title.startswith('Set['):
             return schema_dict_to_SetType(schema, global_symbols, encountered)
+        elif jsc_title == JSC_TITLE_SLICE:
+            return slice
         elif JSC_DEFINITIONS in schema:
             return typelike_from_ipce_generic(schema, global_symbols, encountered)
         elif ATT_PYTHON_NAME in schema:
@@ -821,6 +824,7 @@ def schema_dict_to_DictType(schema, global_symbols, encountered):
     #     setattr(D, '__doc__', schema[JSC_DESCRIPTION])
     return D
 
+
 def get_all_refs(schema):
     if isinstance(schema, dict):
         if '$ref' in schema:
@@ -845,7 +849,6 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
     globals_ = dict(globals0)
     processing = processing or {}
     processing_refs = list(get_all_refs(processing))
-
 
     if hasattr(T, '__name__'):
         if T.__name__ in processing:
@@ -1224,11 +1227,12 @@ def ipce_from_typelike_slice() -> JSONSchema:
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_SLICE
     T = ipce_from_typelike(Optional[int], {}, {})
-    res[JSC_PROPERTIES] = {
+    properties = {
           'start': T,  # TODO
           'stop':  T,  # TODO
           'step':  T,
           }
+    res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
     res = sorted_dict_with_cbor_ordering(res)
     return res
 
@@ -1688,7 +1692,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     properties = res.get(JSC_PROPERTIES, {})
     # if 'order' in res:
-    names = res['order']
+    names = res.get('order', list(properties))
     # assert_equal(set(names), set(properties), msg=yaml.dump(res))
     # else:
     #     names = list(properties)
@@ -1899,6 +1903,5 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder, global_symbols
         f.type = T.__annotations__[f.name]
 
     # logger.info(pretty_dict(f'annotations resolved for {T}', T.__annotations__))
-
 
 #
