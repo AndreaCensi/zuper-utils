@@ -3,9 +3,9 @@ import json
 from dataclasses import dataclass
 from typing import *
 
-from zuper_ipce.ipce import object_from_ipce, ipce_from_typelike, schema_to_type
-from .test_utils import assert_type_roundtrip, assert_object_roundtrip
+from zuper_ipce.ipce import ipce_from_typelike, object_from_ipce, schema_to_type
 from zuper_typing_tests.test_utils import relies_on_missing_features
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 symbols = {}
 
@@ -84,3 +84,12 @@ def test_defaults1():
 
     T2 = schema_to_type(mj, {}, {})
     print(dataclasses.fields(T2))
+
+
+def test_type_slice():
+    assert_object_roundtrip(slice, {})
+
+
+def test_type_slice2():
+    s = slice(1, 2, 3)
+    assert_object_roundtrip(s, {})

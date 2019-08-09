@@ -134,6 +134,7 @@ def ipce_from_object_(ob,
               }
         if with_schema:
             res[SCHEMA_ATT] = ipce_from_typelike_slice()
+        res = sorted_dict_with_cbor_ordering(res)
         return res
 
     if isinstance(ob, set):
@@ -456,6 +457,9 @@ def object_from_ipce_(mj: IPCE,
     if is_dataclass(K):
         return object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered)
 
+    if K is slice:
+        return object_from_ipce_slice(mj)
+
     if is_Union(K):
         errors = []
         ts = get_Union_args(K)
@@ -482,6 +486,13 @@ def object_from_ipce_(mj: IPCE,
         msg += '\n\n' + indent(yaml.dump(mj), ' > ')
         raise NotImplementedError(msg)
     assert False, (type(K), K, mj, expect_type)  # pragma: no cover
+
+
+def object_from_ipce_slice(mj) -> slice:
+    start = mj['start']
+    stop = mj['stop']
+    step = mj['step']
+    return slice(start, stop, step)
 
 
 def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 from zuper_ipce.constants import USE_REMEMBERED_CLASSES
-from zuper_ipce_tests.test_utils import assert_type_roundtrip, assert_object_roundtrip
+from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing_tests.test_utils import known_failure
 
 if not USE_REMEMBERED_CLASSES:
@@ -23,24 +23,21 @@ def test_object():
     assert_type_roundtrip(T, {})
 
 
-@known_failure
 def test_slice():
     T = slice
     assert_type_roundtrip(T, {})
 
 
-@known_failure
-def test_slice():
+def test_slice1():
     T = slice(1, None, None)
     assert_object_roundtrip(T, {})
 
-@known_failure
+
 def test_slice2():
     T = slice(1, 2, None)
     assert_object_roundtrip(T, {})
 
-@known_failure
+
 def test_slice3():
     T = slice(1, 2, 3)
     assert_object_roundtrip(T, {})
-
