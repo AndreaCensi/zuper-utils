@@ -113,8 +113,8 @@ def ipce_from_object_(ob,
                 return ob
 
     if isinstance(ob, list):
-        if is_List(suggest_type):
-            suggest_type_l = get_List_arg(suggest_type)
+        if is_ListLike(suggest_type):
+            suggest_type_l = get_ListLike_arg(suggest_type)
         else:
             # XXX should we warn?
             suggest_type_l = None  # XXX
@@ -156,6 +156,7 @@ def ipce_from_object_(ob,
             res[SCHEMA_ATT] = ipce_from_typelike_ndarray(type(ob), globals_, {})
         return res
 
+    assert not isinstance(ob, type), ob
     if is_dataclass(ob):
         return ipce_from_object_dataclass_instance(ob, globals_, with_schema=with_schema, suggest_type=suggest_type)
 
@@ -390,8 +391,8 @@ def object_from_ipce_(mj: IPCE,
             elif is_TupleLike(expect_type):
                 # noinspection PyTypeChecker
                 return object_from_ipce_tuple(expect_type, mj, global_symbols, encountered)
-            elif is_List(expect_type):
-                suggest = get_List_arg(expect_type)
+            elif is_ListLike(expect_type):
+                suggest = get_ListLike_arg(expect_type)
                 seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
                 return seq
             else:
