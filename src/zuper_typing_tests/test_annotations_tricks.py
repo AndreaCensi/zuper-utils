@@ -81,7 +81,7 @@ def test_Tuple2():
 
 
 def test_Typevar():
-    a = TypeVar('X')
+    a = TypeVar('a')
     assert isinstance(a, TypeVar)
 
 

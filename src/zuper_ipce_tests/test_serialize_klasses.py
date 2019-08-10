@@ -1,14 +1,10 @@
 
 from dataclasses import dataclass
-from typing import Dict
 
-from nose.tools import assert_equal
-
-from zuper_ipce.constants import USE_REMEMBERED_CLASSES
-from zuper_ipce.ipce import ipce_from_object, object_from_ipce
+from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.pretty import pprint
 from zuper_typing.my_dict import make_dict
-from .test_utils import assert_type_roundtrip, assert_object_roundtrip
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
 def test_serialize_klasses0():

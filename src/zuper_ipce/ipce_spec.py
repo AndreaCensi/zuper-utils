@@ -1,8 +1,8 @@
-from typing import Dict, TypeVar
+from typing import TypeVar
 
 from .types import IPCE
 
-D = TypeVar('D', bound=Dict)
+D = TypeVar('D')
 
 
 def sorted_dict_with_cbor_ordering(x: D) -> D:

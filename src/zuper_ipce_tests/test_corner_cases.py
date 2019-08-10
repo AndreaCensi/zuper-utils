@@ -4,7 +4,10 @@ from typing import Any, Generic, NewType, Optional, TypeVar, Union
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.ipce import ipce_from_object, ipce_from_typelike, object_from_ipce, typelike_from_ipce
+from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,

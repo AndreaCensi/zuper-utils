@@ -23,7 +23,10 @@ from zuper_typing.zeneric2 import RecLogger
 from zuper_ipce import logger
 from zuper_typing.annotations_tricks import is_Dict
 
-from zuper_ipce.ipce import ipce_from_object, object_from_ipce, ipce_from_typelike, typelike_from_ipce
+from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
 from zuper_ipce.pretty import pretty_dict
 
@@ -171,6 +174,7 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
 
 
 def save_object(x: object, ipce: object):
+    # noinspection PyBroadException
     try:
         import zuper_ipcl
     except:
@@ -355,7 +359,7 @@ def assert_equal_ipce(msg, a, b):
             json.dump(b, f, indent=2)
         msg += '\nSee differences in ipce1.json, ipce2.json'
         # msg += '\n' + side_by_side([yaml.dump(a), ' ', yaml.dump(b)])
-        msg += '\n\n' + '\n'.join(str(_) for _ in patches)
+        # msg += '\n\n' + '\n'.join(str(_) for _ in patches)
         msg += '\n\n' + '\n'.join("/".join(map(str, _.prefix)) for _ in patches)
         raise AssertionError(msg)
 

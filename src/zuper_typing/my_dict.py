@@ -161,11 +161,11 @@ def make_set(V) -> type:
 
     class MyType(type):
         def __eq__(self, other):
-            V = getattr(self, '__set_type__')
+            V2 = getattr(self, '__set_type__')
             if is_Set(other):
-                return V == get_Set_arg(other)
-            res = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == V
-            return res
+                return V2 == get_Set_arg(other)
+            res2 = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == V2
+            return res2
 
         def __hash__(cls):
             return 1  # XXX
@@ -188,11 +188,11 @@ def make_list(V) -> type:
 
     class MyType(type):
         def __eq__(self, other):
-            V = getattr(self, '__list_type__')
+            V2 = getattr(self, '__list_type__')
             if is_List(other):
-                return V == get_List_arg(other)
-            res = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == V
-            return res
+                return V2 == get_List_arg(other)
+            res2 = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == V2
+            return res2
 
         def __hash__(cls):
             return 1  # XXX
@@ -226,12 +226,12 @@ def make_dict(K, V) -> type:
 
     class MyType(type):
         def __eq__(self, other):
-            K, V = getattr(self, '__dict_type__')
+            K2, V2 = getattr(self, '__dict_type__')
             if is_Dict(other):
                 K1, V1 = get_Dict_args(other)
-                return K == K1 and V == V1
-            res = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == (K, V)
-            return res
+                return K2 == K1 and V2 == V1
+            res2 = isinstance(other, type) and issubclass(other, CustomDict) and other.__dict_type__ == (K2, V2)
+            return res2
 
         def __hash__(cls):
             return 1  # XXX

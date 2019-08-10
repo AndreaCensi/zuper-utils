@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, TypeVar
+from typing import Any, Dict, Optional
 
 from zuper_commons.text import indent
 

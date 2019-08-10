@@ -235,7 +235,7 @@ def is_FixedTuple(x) -> bool:
     ts = get_tuple_types(x)
     # if len(ts) == 0:
     #     return False
-    if len(ts) == 2 and ts[-1] == ...:
+    if len(ts) == 2 and ts[-1] is ...:
         return False
     else:
         return True
@@ -247,7 +247,7 @@ def is_VarTuple(x) -> bool:
     if not is_Tuple(x):
         return False
     ts = get_tuple_types(x)
-    if len(ts) == 2 and ts[-1] == ...:
+    if len(ts) == 2 and ts[-1] is ...:
         return True
     else:
         return False

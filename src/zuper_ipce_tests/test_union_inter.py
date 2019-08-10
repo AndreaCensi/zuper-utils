@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast, List, Tuple, Set
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from nose.tools import raises
 
-from zuper_typing.annotations_tricks import make_Union, make_Tuple
-
-from zuper_ipce.ipce import object_from_ipce
+from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_typing.annotations_tricks import make_Tuple
 from zuper_typing.my_dict import make_set
 from zuper_typing.my_intersection import Intersection
 from zuper_typing_tests.test_utils import known_failure

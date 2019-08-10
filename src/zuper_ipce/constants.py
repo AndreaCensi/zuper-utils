@@ -2,7 +2,7 @@ from typing import NewType, Dict, Any, cast, Union
 
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
-ProcessingDict = Dict[str, dict]
+ProcessingDict = Dict[str, Any]
 EncounteredDict = Dict[str, Any]
 _SpecialForm = Any
 

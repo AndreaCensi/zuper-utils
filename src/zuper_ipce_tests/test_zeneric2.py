@@ -6,7 +6,8 @@ from typing import Generic
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.ipce import typelike_from_ipce, ipce_from_typelike
+from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -61,10 +62,13 @@ def test_serialize_generic_typevar():
 
     M2 = assert_type_roundtrip(MN1, {})
 
+    # noinspection PyDataclass
     f1 = fields(MN1)
     assert f1[0].type == X
     # there was a bug with modifying this
     _ = MN1[int]
+
+    # noinspection PyDataclass
     f1b = fields(MN1)
     assert f1b[0].type == X
     assert f1 == f1b

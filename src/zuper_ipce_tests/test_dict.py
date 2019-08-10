@@ -1,14 +1,14 @@
-from typing import Any, Dict, List, Set
+from typing import Any, Dict
 
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import logger
-from zuper_ipce.ipce import ipce_from_object, make_dict, object_from_ipce, ipce_from_typelike
+from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
+from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.pretty import pprint
 from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import get_Set_arg, is_Any, is_List, is_Set
-from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_ListLike,
-                                  make_set, is_SetLike)
+from zuper_typing.my_dict import (get_DictLike_args, make_dict)
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
@@ -56,24 +56,6 @@ def test_dict_int_int():
 @raises(ValueError)
 def test_dict_err():
     make_dict(int, 'str')
-
-
-def test_dict_hash():
-    s = set()
-    s2 = set()
-    D = make_dict(str, str)
-    d = D()
-    s.add(d)
-    s2.add(d)
-
-
-def test_set_hash():
-    s = set()
-    s2 = set()
-    D = make_set(str)
-    d = D()
-    s.add(d)
-    s2.add(d)
 
 
 def test_dict_int_str():
@@ -146,78 +128,3 @@ def test_dict_kv02():
 def test_dict_kv03():
     x = get_DictLike_args(Dict[int, str])
     assert_equal(x, (int, str))
-
-
-def test_set_misc01():
-    assert is_SetLike(Set)
-
-
-def test_set_misc02():
-    assert is_SetLike(Set[int])
-
-
-def test_set_misc03():
-    assert is_SetLike(set)
-
-
-def test_set_misc04():
-    assert is_SetLike(make_set(int))
-
-
-def test_set_getvalue01():
-    assert is_Set(Set[int])
-    assert get_SetLike_arg(Set[int]) is int
-
-
-def test_set_getvalue02():
-    assert is_Set(Set)
-    x = get_Set_arg(Set)
-    assert is_Any(x), x
-    x = get_SetLike_arg(Set)
-    assert is_Any(x), x
-
-
-def test_set_getvalue03():
-    assert get_SetLike_arg(make_set(int)) is int
-
-
-def test_set_getvalue04():
-    assert is_Any(get_SetLike_arg(set))
-
-
-def test_list_is01():
-    assert is_List(List)
-
-
-def test_list_is02():
-    assert is_List(List[int])
-
-
-def test_list_is03():
-    assert not is_List(list)
-
-
-def test_list_arg01():
-    x = get_ListLike_arg(List)
-    assert is_Any(x), x
-
-
-def test_list_arg02():
-    x = get_ListLike_arg(list)
-    assert is_Any(x), x
-
-
-def test_list_arg03():
-    assert get_ListLike_arg(List[int]) is int
-
-
-def test_islist_01():
-    assert is_ListLike(list)
-
-
-def test_islist_02():
-    assert is_ListLike(List)
-
-
-def test_islist_03():
-    assert is_ListLike(List[int])

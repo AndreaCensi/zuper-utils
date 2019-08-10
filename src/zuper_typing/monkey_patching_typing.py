@@ -199,6 +199,7 @@ def remember_created_class(res):
     RegisteredClasses.klasses[k] = res
 
 
+# noinspection PyShadowingBuiltins
 def my_dataclass(_cls=None, *, init=True, repr=True, eq=True, order=False,
                  unsafe_hash=False, frozen=False):
     def wrap(cls):
@@ -234,6 +235,7 @@ def get_all_annotations(cls: type) -> Dict[str, type]:
     return res
 
 
+# noinspection PyShadowingBuiltins
 def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
                   unsafe_hash=False, frozen=False):
     # if not 'Fake' in _cls.__qualname__  and not _cls.__name__ in ['Patch'] and not '.' in _cls.__qualname__:

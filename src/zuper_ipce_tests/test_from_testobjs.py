@@ -6,7 +6,9 @@ from unittest import SkipTest
 import cbor2
 
 from zuper_commons.fs import locate_files, os, read_bytes_from_file
-from zuper_ipce import IPCE, ipce_from_object, object_from_ipce
+from zuper_ipce import IPCE
+from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce_tests.test_utils import assert_equal_ipce
 
 
@@ -66,7 +68,7 @@ def check_case(fn: str):
         logger.error(traceback.format_exc())
         raise
 
-import yaml
+
 def main():
     print("""
 from .test_from_testobjs import check_case

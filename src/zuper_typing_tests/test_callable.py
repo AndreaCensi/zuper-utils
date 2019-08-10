@@ -5,7 +5,7 @@ from mypy_extensions import NamedArg
 from nose.tools import assert_equal
 
 from zuper_typing.annotations_tricks import is_Callable, get_Callable_info
-from .test_utils import assert_type_roundtrip
+from zuper_ipce_tests.test_utils import assert_type_roundtrip
 
 
 def test_detection_1():

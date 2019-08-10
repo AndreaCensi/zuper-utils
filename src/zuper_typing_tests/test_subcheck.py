@@ -216,7 +216,7 @@ def test_match_List3():
 
 def test_match_TypeVar0():
     L1 = Tuple[str]
-    L2 = TypeVar('X')
+    L2 = TypeVar('L2')
     res = can_be_used_as2(L1, L2, {})
     print(res)
 
@@ -225,10 +225,10 @@ def test_match_TypeVar0():
 
 def test_match_TypeVar0b():
     L1 = str
-    L2 = TypeVar('X')
+    L2 = TypeVar('L2')
     res = can_be_used_as2(L1, L2, {})
     print(res)
-    assert res.matches['X'] is L1, res
+    assert res.matches['L2'] is L1, res
 
     assert res, res
 
@@ -267,7 +267,8 @@ def test_replace_typevars():
     X = TypeVar('X')
     Y = TypeVar('Y')
 
-    X2 = TypeVar('X')
+    # noinspection PyTypeHints
+    X2 = TypeVar('X') # note: needs this to make the test work
     S = {X2: str, Y: int}
     tries = (
         (X, {X2: str}, str),

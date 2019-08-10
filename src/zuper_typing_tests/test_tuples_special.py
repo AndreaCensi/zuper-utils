@@ -61,5 +61,5 @@ def test_tuple_special_6():
     assert not is_Tuple(T)
     assert is_TupleLike(T)
     assert is_VarTuple(T)
-    X = get_VarTuple_arg(T)
-    assert is_Any(X)
+    X2 = get_VarTuple_arg(T)
+    assert is_Any(X2)

@@ -8,5 +8,5 @@ logger.info(f'zj {__version__}')
 from typing import Generic
 
 from .json2cbor import *
-from .ipce import *
+from .utils_text import *
 from .types import *

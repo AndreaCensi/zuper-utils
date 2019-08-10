@@ -3,7 +3,7 @@ from typing import Generic, Optional, TypeVar
 import yaml
 from nose.tools import assert_equal
 
-from zuper_ipce.ipce import ipce_from_typelike
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.pretty import pprint
 from zuper_typing.zeneric2 import dataclass
 

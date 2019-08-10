@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast, List, Tuple, Set
+from typing import Set
 
 from zuper_typing.annotations_tricks import is_Set
 from zuper_typing.my_dict import make_set
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
+
 
 def test_not_implemented_set():
     @dataclass

@@ -3,8 +3,6 @@ from typing import Any, List
 # IPCE_REPR_ATTR = '__ipce_
 __all__ = ['has_ipce_repr_attr', 'get_ipce_repr_attr', 'set_ipce_repr_attr']
 
-import yaml
-
 
 class SchemaCache:
     key2schema = {}
@@ -39,9 +37,6 @@ def has_ipce_repr_attr(x: Any, processing: List[str]):
     k = make_key_ipce(x, processing)
     # logger.debug(k)
     return k in SchemaCache.key2schema
-
-
-from . import logger
 
 
 def get_ipce_repr_attr(x: Any, processing: List[str]):

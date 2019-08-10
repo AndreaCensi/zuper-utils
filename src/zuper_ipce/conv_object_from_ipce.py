@@ -1,0 +1,355 @@
+import datetime
+import inspect
+from decimal import Decimal
+from dataclasses import is_dataclass
+from typing import Dict, Optional, cast, Any
+
+import numpy as np
+import yaml
+
+from zuper_commons.text import indent
+from zuper_ipce import IPCE
+from zuper_ipce.constants import PASS_THROUGH, SCHEMA_ATT, SCHEMA_ID, JSONSchema, JSC_TITLE, JSC_TITLE_TYPE, HINTS_ATT
+
+from zuper_ipce.assorted_recursive_type_subst import resolve_all
+from zuper_ipce.structures import FakeValues
+from zuper_ipce.numpy_encoding import numpy_array_from_ipce
+from zuper_typing.annotations_tricks import (is_Any, is_TupleLike, is_Optional, get_Optional_arg, is_Union,
+                                             get_Union_args, is_FixedTuple, get_FixedTuple_args, is_VarTuple,
+                                             get_VarTuple_arg, is_ClassVar)
+from zuper_typing.my_dict import (is_ListLike, get_ListLike_arg, is_DictLike, is_SetLike, get_DictLike_args, make_dict,
+                                  get_SetLike_arg, make_set)
+from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing.zeneric2 import loglevel
+
+
+@loglevel
+def object_from_ipce(mj: IPCE,
+                     global_symbols: Dict,
+                     encountered: Optional[dict] = None,
+                     expect_type: Optional[type] = None) -> object:
+    try:
+        res = object_from_ipce_(mj, global_symbols, encountered=encountered, expect_type=expect_type)
+        return res
+
+    except PASS_THROUGH:
+        raise
+
+    except BaseException as e:
+        msg = f'Cannot deserialize object  (expect: {expect_type})'
+        # msg += '\n\n' + indent(yaml.dump(mj)[:400], ' ipce ')
+        # msg += '\n\n' + indent(traceback.format_exc(), '| ')
+        raise TypeError(msg) from e
+
+
+def object_from_ipce_(mj: IPCE,
+                      global_symbols,
+                      encountered: Optional[dict] = None,
+                      expect_type: Optional[type] = None) -> object:
+    encountered = encountered or {}
+
+    # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
+    trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
+
+    if isinstance(mj, trivial):
+        T = type(mj)
+        if expect_type is not None:
+            ok = can_be_used_as2(T, expect_type, {})
+            if not ok.result:
+                msg = f'Found a {T}, wanted {expect_type}'
+                raise ValueError(msg)
+        return mj
+
+    if isinstance(mj, list):
+        if expect_type is not None:
+            # logger.info(f'expect_type for list is {expect_type}')
+            if is_Any(expect_type):
+                suggest = None
+                seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+                return seq
+            elif is_TupleLike(expect_type):
+                # noinspection PyTypeChecker
+                return object_from_ipce_tuple(expect_type, mj, global_symbols, encountered)
+            elif is_ListLike(expect_type):
+                suggest = get_ListLike_arg(expect_type)
+                seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+                return seq
+            elif is_Optional(expect_type):
+                K = get_Optional_arg(expect_type)
+
+                return object_from_ipce(mj,
+                                        global_symbols,
+                                        encountered,
+                                        expect_type=K)
+            elif is_Union(expect_type):
+                errors = []
+                ts = get_Union_args(expect_type)
+                for T in ts:
+                    try:
+                        return object_from_ipce(mj,
+                                                global_symbols,
+                                                encountered,
+                                                expect_type=T)
+                    except PASS_THROUGH:
+                        raise
+                    except BaseException as e:
+                        errors.append(e)
+                msg = f'Cannot deserialize with any of {ts}'
+                msg += '\n'.join(str(e) for e in errors)
+                raise Exception(msg)
+            else:
+                assert False, expect_type
+        else:
+            suggest = None
+            seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
+            return seq
+
+    if mj is None:
+        if expect_type is None:
+            return None
+        elif expect_type is type(None):
+            return None
+        elif is_Optional(expect_type):
+            return None
+        elif is_Any(expect_type):
+            return None
+        else:
+            msg = f'The value is None but the expected type is {expect_type}.'
+            raise TypeError(msg)  # XXX
+
+    if expect_type is np.ndarray:
+        return numpy_array_from_ipce(mj)
+
+    assert isinstance(mj, dict), type(mj)
+    from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+    if mj.get(SCHEMA_ATT, '') == SCHEMA_ID:
+        schema = cast(JSONSchema, mj)
+        return typelike_from_ipce(schema, global_symbols, encountered)
+    if mj.get(JSC_TITLE, None) == JSC_TITLE_TYPE:
+        schema = cast(JSONSchema, mj)
+        return typelike_from_ipce(schema, global_symbols, encountered)
+
+    if SCHEMA_ATT in mj:
+        sa = mj[SCHEMA_ATT]
+        K = typelike_from_ipce(sa, global_symbols, encountered)
+        # logger.debug(f' loaded K = {K} from {mj}')
+    else:
+        if expect_type is not None:
+            # logger.debug('expect_type = %s' % expect_type)
+            # check_isinstance(expect_type, type)
+            K = expect_type
+        else:
+            msg = f'Cannot find a schema and expect_type=None.\n{mj}'
+            raise ValueError(msg)
+
+    # assert isinstance(K, type), K
+
+    if is_Optional(K):
+        assert mj is not None  # excluded before
+        K = get_Optional_arg(K)
+
+        return object_from_ipce(mj,
+                                global_symbols,
+                                encountered,
+                                expect_type=K)
+
+    if is_DictLike(K):
+        return object_from_ipce_dict(K, mj, global_symbols, encountered)
+
+    if is_SetLike(K):
+        return object_from_ipce_SetLike(K, mj, global_symbols, encountered)
+
+    if is_dataclass(K):
+        return object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered)
+
+    if K is slice:
+        return object_from_ipce_slice(mj)
+
+    if is_Union(K):
+        errors = []
+        ts = get_Union_args(K)
+        for T in ts:
+            try:
+                return object_from_ipce(mj,
+                                        global_symbols,
+                                        encountered,
+                                        expect_type=T)
+            except PASS_THROUGH:
+                raise
+            except BaseException as e:
+                errors.append(e)
+        msg = f'Cannot deserialize with any of {ts}'
+        msg += '\n'.join(str(e) for e in errors)
+        raise Exception(msg)
+
+    if is_Any(K):
+        K = Dict[str, Any]
+        # TODO: check that it is strings
+        if isinstance(mj, dict):
+            return object_from_ipce_dict(K, mj, global_symbols, encountered)
+        msg = f'Not implemented - K = Any'
+        msg += '\n\n' + indent(yaml.dump(mj), ' > ')
+        raise NotImplementedError(msg)
+    assert False, (type(K), K, mj, expect_type)  # pragma: no cover
+
+
+def object_from_ipce_slice(mj) -> slice:
+    start = mj['start']
+    stop = mj['stop']
+    step = mj['step']
+    return slice(start, stop, step)
+
+
+def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
+    if is_FixedTuple(expect_type):
+        seq = []
+        ts = get_FixedTuple_args(expect_type)
+        for expect_type_i, ob in zip(ts, mj):
+            seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=expect_type_i))
+
+        return tuple(seq)
+    elif is_VarTuple(expect_type):
+        T = get_VarTuple_arg(expect_type)
+        seq = []
+        for i, ob in enumerate(mj):
+            seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=T))
+
+        return tuple(seq)
+    else:
+        assert False
+
+
+def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
+    # assert  isinstance(K, type), K
+    global_symbols = dict(global_symbols)
+    global_symbols[K.__name__] = K
+    # logger.debug(global_symbols)
+    from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+    # logger.debug(f'Deserializing object of type {K}')
+    # logger.debug(f'mj: \n' + json.dumps(mj, indent=2))
+    # some data classes might have no annotations ("Empty")
+    anns = getattr(K, '__annotations__', {})
+    if not anns:
+        pass
+        # logger.warning(f'No annotations for class {K}')
+    # pprint(f'annotations: {anns}')
+    attrs = {}
+    hints = mj.get(HINTS_ATT, {})
+    # logger.info(f'hints for {K.__name__} = {hints}')
+
+    for k, v in mj.items():
+        if k in anns:
+            expect_type = resolve_all(anns[k], global_symbols)
+            if is_Optional(expect_type):
+                expect_type = get_Optional_arg(expect_type)
+
+            if inspect.isabstract(expect_type):
+                msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
+                msg += f'\n annotation = {anns[k]}'
+                msg += f'\n expect_type = {expect_type}'
+                msg += f'\n\n%s' % indent(yaml.dump(mj), ' > ')
+                raise TypeError(msg)
+
+            if k in hints:
+                expect_type = typelike_from_ipce(hints[k], global_symbols, encountered)
+                # logger.info(f'hint for member {k} is {expect_type} of {K.__name__}')
+            # else:
+            # logger.info(f'no hint for member {k} of {K.__name__}')
+            try:
+                attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
+
+            except PASS_THROUGH:
+                raise
+            except BaseException as e:
+                msg = f'Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})'
+                msg += f'\n K = {K.__annotations__}'
+                msg += f'\n anns[k] = {anns[k]}'
+                msg += '\n\n' + indent(yaml.dump(v), '  ')
+                # msg += '\n\n' + indent(traceback.format_exc(), '| ')
+                raise TypeError(msg) from e
+
+    for k, T0 in anns.items():
+        T = resolve_all(T0, global_symbols)
+        if is_ClassVar(T):
+            continue
+        if not k in mj:
+
+            if is_Optional(T):
+                attrs[k] = None
+                pass
+            else:
+                msg = f'Cannot find field {k!r} in data. (T0 = {T0}) Know {sorted(mj)}'
+                raise ValueError(msg)
+
+    try:
+        return K(**attrs)
+    except TypeError as e:  # pragma: no cover
+        msg = f'Cannot instantiate type with attrs {attrs}:\n{K}'
+        msg += f'\n\n Bases: {K.__bases__}'
+        anns = getattr(K, '__annotations__', 'none')
+        msg += f"\n{anns}"
+        df = getattr(K, '__dataclass_fields__', 'none')
+        # noinspection PyUnresolvedReferences
+        msg += f'\n{df}'
+
+        msg += f'because:\n{e}'  # XXX
+        raise TypeError(msg) from e
+
+
+def object_from_ipce_dict(D, mj, global_symbols, encountered):
+    K, V = get_DictLike_args(D)
+    D = make_dict(K, V)
+    ob = D()
+
+    attrs = {}
+
+    FV = FakeValues[K, V]
+    if isinstance(K, type) and (issubclass(K, str) or issubclass(K, int)):
+        expect_type_V = V
+    else:
+        expect_type_V = FV
+
+    for k, v in mj.items():
+        if k == SCHEMA_ATT:
+            continue
+
+        try:
+            attrs[k] = object_from_ipce(v, global_symbols, encountered,
+                                        expect_type=expect_type_V)
+
+        except (TypeError, NotImplementedError) as e:
+            msg = f'Cannot deserialize element at index "{k}".'
+            msg += f'\n\n D = {D}'
+            msg += '\n\n' + indent(yaml.dump(mj), '> ')
+            msg += f'\n\n Expected V = {expect_type_V}'
+
+            msg += f'\n\n v = {yaml.dump(v)}'
+            raise TypeError(msg) from e
+    if isinstance(K, type) and issubclass(K, str):
+        ob.update(attrs)
+        return ob
+    elif isinstance(K, type) and issubclass(K, int):
+        attrs = {int(k): v for k, v in attrs.items()}
+        ob.update(attrs)
+        return ob
+    else:
+        for k, v in attrs.items():
+            # noinspection PyUnresolvedReferences
+            ob[v.real_key] = v.value
+        return ob
+
+
+def object_from_ipce_SetLike(D, mj, global_symbols, encountered):
+    V = get_SetLike_arg(D)
+
+    res = set()
+
+    for k, v in mj.items():
+        if k == SCHEMA_ATT:
+            continue
+
+        vob = object_from_ipce(v, global_symbols, encountered, expect_type=V)
+        res.add(vob)
+
+    T = make_set(V)
+    return T(res)

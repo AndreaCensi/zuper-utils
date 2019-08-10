@@ -1,5 +1,4 @@
 import sys
-import traceback
 import typing
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -12,9 +11,9 @@ from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_Set
                                   is_SetLike, make_dict, make_list, make_set)
 from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
                                  get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
-                                 get_Type_arg, get_tuple_types, get_Union_args, is_Callable, is_ClassVar,
-                                 is_ForwardRef, is_Iterator, is_List, is_NewType, is_Optional, is_Sequence, is_Set,
-                                 is_Tuple, is_Type, is_TypeVar, is_Union, name_for_type_like)
+                                 get_Type_arg, get_Union_args, get_tuple_types, is_Callable, is_ClassVar, is_ForwardRef,
+                                 is_Iterator, is_List, is_NewType, is_Optional, is_Sequence, is_Set, is_Tuple, is_Type,
+                                 is_TypeVar, is_Union, name_for_type_like)
 from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, PYTHON_36
 from .logging import logger
 from .subcheck import can_be_used_as2
@@ -495,8 +494,8 @@ def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
 
-        def f(x):
-            return replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
+        def f(_):
+            return replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
                                     rl=rl.child())
 
         cinfo2 = cinfo.replace(f)
