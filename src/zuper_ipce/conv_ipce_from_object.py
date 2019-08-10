@@ -1,6 +1,6 @@
 import datetime
-from decimal import Decimal
 from dataclasses import fields, is_dataclass
+from decimal import Decimal
 from typing import Any, Dict, Optional, Tuple, Type
 
 import cbor2
@@ -98,7 +98,7 @@ def ipce_from_object_(ob,
               'stop':  ob.stop
               }
         if with_schema:
-            res[SCHEMA_ATT] = ipce_from_typelike_slice()
+            res[SCHEMA_ATT] = ipce_from_typelike_slice().schema
         res = sorted_dict_with_cbor_ordering(res)
         return res
 
@@ -119,7 +119,7 @@ def ipce_from_object_(ob,
     if isinstance(ob, np.ndarray):
         res = ipce_from_numpy_array(ob)
         if with_schema:
-            res[SCHEMA_ATT] = ipce_from_typelike_ndarray(type(ob), globals_, {})
+            res[SCHEMA_ATT] = ipce_from_typelike_ndarray(type(ob), globals_, {}).schema
         return res
 
     assert not isinstance(ob, type), ob
@@ -217,9 +217,10 @@ def ipce_from_object_set(ob: set, globals_: GlobalsDict, suggest_type: Optional[
         V = None
 
     res = {}
+
     from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
     if with_schema:
-        if suggest_type is not None:
+        if suggest_type is not None and is_SetLike(suggest_type):
             res[SCHEMA_ATT] = ipce_from_typelike(suggest_type, globals_)
         else:
             res[SCHEMA_ATT] = ipce_from_typelike(type(ob), globals_)
@@ -227,7 +228,7 @@ def ipce_from_object_set(ob: set, globals_: GlobalsDict, suggest_type: Optional[
     for v in ob:
         vj = ipce_from_object(v, globals_, with_schema=with_schema,
                               suggest_type=V)
-        h = get_sha256_base58(cbor2.dumps(vj)).decode('ascii')
+        h = 'set:' + get_sha256_base58(cbor2.dumps(vj)).decode('ascii')
 
         res[h] = vj
 

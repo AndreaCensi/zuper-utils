@@ -123,14 +123,14 @@ def MyNamedArg(T, name):
     if key in Reg.already:
         return Reg.already[key]
 
-    class C:
+    class CNamedArg:
         pass
 
-    setattr(C, NAME_ARG, name)
-    setattr(C, 'original', T)
+    setattr(CNamedArg, NAME_ARG, name)
+    setattr(CNamedArg, 'original', T)
 
-    Reg.already[key] = C
-    return C
+    Reg.already[key] = CNamedArg
+    return CNamedArg
 
 
 def MyNamedArg_old(x: type, name: str):
@@ -185,17 +185,24 @@ import mypy_extensions
 setattr(mypy_extensions, 'NamedArg', MyNamedArg)
 
 from dataclasses import dataclass as original_dataclass
+from typing import Tuple
 
 
 class RegisteredClasses:
     # klasses: Dict[str, type] = {}
-    klasses = {}
+    klasses: Dict[Tuple[str, str], type] = {}
 
 
-def remember_created_class(res):
+def get_remembered_class(module_name: str, qual_name: str) -> type:
+    k = (module_name, qual_name)
+    return RegisteredClasses.klasses[k]
+
+
+def remember_created_class(res: type):
     # print(f'Registered class "{res.__name__}"')
     # k = (res.__qual, res.__name__)
-    k = res.__qualname__
+    # k = res.__qualname__
+    k = (res.__module__, res.__qualname__)
     RegisteredClasses.klasses[k] = res
 
 

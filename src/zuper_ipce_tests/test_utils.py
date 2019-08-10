@@ -5,6 +5,8 @@ import typing
 from contextlib import contextmanager
 from dataclasses import dataclass, fields, is_dataclass
 
+import cbor2
+
 from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
 from zuper_typing_tests.test_utils import known_failure
 
@@ -180,7 +182,7 @@ def save_object(x: object, ipce: object):
     except:
         return
 
-    ipce_bytes = cbor.dumps(ipce)
+    ipce_bytes = cbor2.dumps(ipce, canonical=True, value_sharing=True)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
     from zuper_ipcl.debug_print_ import debug_print
     digest = get_cbor_dag_hash_bytes(ipce_bytes)
@@ -196,7 +198,8 @@ def save_object(x: object, ipce: object):
         # fn = os.path.join(dn, digest + '.ipce.yaml')
         # write_ustring_to_utf8_file(yaml.dump(y1), fn)
         fn = os.path.join(dn, digest + '.object.ansi')
-        s = debug_print(x) + '\n\n as ipce: \n\n' + debug_print(ipce) + '\n\n as YAML: \n\n' + yaml.dump(ipce)
+        s = debug_print(x) #'\n\n as ipce: \n\n' + debug_print(ipce) \
+        s+= '\n\n as YAML: \n\n' + yaml.dump(ipce)
         write_ustring_to_utf8_file(s, fn)
 
 
@@ -355,6 +358,7 @@ def assert_equal_ipce(msg, a, b):
     if patches:
         with open('ipce1.json', 'w') as f:
             json.dump(a, f, indent=2)
+
         with open('ipce2.json', 'w') as f:
             json.dump(b, f, indent=2)
         msg += '\nSee differences in ipce1.json, ipce2.json'

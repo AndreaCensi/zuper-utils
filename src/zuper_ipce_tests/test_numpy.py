@@ -34,7 +34,7 @@ def test_numpy_02():
         #         return NotImplemented
         #     return array_eq(self.data, other.data)
 
-    x = np.random.rand(1)
+    x = np.array(0.23)
     c = C(x)
     assert_object_roundtrip(c, {})
 

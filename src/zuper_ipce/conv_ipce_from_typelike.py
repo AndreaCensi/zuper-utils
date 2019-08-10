@@ -3,60 +3,61 @@ import dataclasses
 import datetime
 import typing
 import warnings
+from dataclasses import Field, _FIELDS, is_dataclass
 from decimal import Decimal
-from dataclasses import is_dataclass, _FIELDS, Field
 from numbers import Number
-from typing import Any, cast, Type, List, Optional, TypeVar, Dict, Union
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 import numpy as np
-from nose.tools import assert_in
 
 from zuper_commons.types import check_isinstance
-
-from zuper_ipce.constants import (ProcessingDict, JSONSchema, use_ipce_from_typelike_cache, REF_ATT, SCHEMA_ID,
-                                  JSC_TITLE, JSC_TITLE_TYPE, SCHEMA_ATT, JSC_TYPE, JSC_NULL, PASS_THROUGH, JSC_OBJECT,
-                                  JSC_PROPERTIES, JSC_ADDITIONAL_PROPERTIES, JSC_PROPERTY_NAMES, SCHEMA_CID,
-                                  GlobalsDict, JSC_ARRAY, JSC_ITEMS, JSC_TITLE_CALLABLE, JSC_DEFINITIONS, JSC_STRING,
-                                  JSC_BOOL, JSC_NUMBER, JSC_TITLE_FLOAT, JSC_INTEGER, JSC_TITLE_DECIMAL,
-                                  JSC_TITLE_DATETIME, SCHEMA_BYTES, JSC_TITLE_NUMPY, JSC_TITLE_SLICE, ID_ATT,
-                                  ATT_PYTHON_NAME, X_PYTHON_MODULE_ATT, JSC_DESCRIPTION, JSC_REQUIRED, X_CLASSVARS,
-                                  X_CLASSATTS)
-from zuper_ipce.schema_utils import get_all_refs, make_url, make_ref
-from zuper_ipce.structures import FakeValues, Result, CannotResolveTypeVar
-from zuper_ipce.ipce_attr import has_ipce_repr_attr, get_ipce_repr_attr, set_ipce_repr_attr
-from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering, assert_canonical_ipce
+from zuper_ipce.constants import (ATT_PYTHON_NAME, GlobalsDict, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_ARRAY, JSC_BOOL,
+                                  JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_ITEMS, JSC_NULL, JSC_NUMBER,
+                                  JSC_OBJECT, JSC_PROPERTIES, JSC_PROPERTY_NAMES, JSC_REQUIRED, JSC_STRING, JSC_TITLE,
+                                  JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT,
+                                  JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema, PASS_THROUGH,
+                                  ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
+                                  X_CLASSVARS, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
+from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering
 from zuper_ipce.pretty import pretty_dict
-from zuper_typing.annotations_tricks import (get_Dict_name_K_V, get_Set_name_V, is_TupleLike, is_VarTuple,
-                                             get_VarTuple_arg, get_Tuple_name, is_FixedTuple, get_FixedTuple_args,
-                                             is_Callable, get_Callable_info, is_ForwardRef, get_ForwardRef_arg, is_Any,
-                                             is_Union, is_Optional, is_Sequence, get_Sequence_arg, is_ClassVar,
-                                             get_ClassVar_arg, get_Union_args, get_Optional_arg, is_Type)
+from zuper_ipce.schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
+from zuper_ipce.schema_utils import make_ref, make_url
+from zuper_ipce.structures import CannotResolveTypeVar, FakeValues
+from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_name_K_V,
+                                             get_FixedTuple_args, get_ForwardRef_arg, get_Optional_arg,
+                                             get_Sequence_arg, get_Set_name_V, get_Tuple_name, get_Union_args,
+                                             get_VarTuple_arg, is_Any, is_Callable, is_ClassVar, is_FixedTuple,
+                                             is_ForwardRef, is_Optional, is_Sequence, is_TupleLike, is_Type, is_Union,
+                                             is_VarTuple)
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2, PYTHON_36
-from zuper_typing.my_dict import (is_DictLike, get_DictLike_args, is_SetLike, get_SetLike_arg, is_ListLike,
-                                  get_ListLike_arg, get_ListLike_name)
-from zuper_typing.my_intersection import is_Intersection, get_Intersection_args
+from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_ListLike_name, get_SetLike_arg, is_DictLike,
+                                  is_ListLike, is_SetLike)
+from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from zuper_typing.zeneric2 import get_name_without_brackets
 
 
 def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None) -> JSONSchema:
+    tr = ipce_from_typelike_tr(T, globals0, processing)
+    return tr.schema
+
+
+def ipce_from_typelike_tr(T: Any, globals0: dict, processing: ProcessingDict = None) -> TRE:
     # pprint('type_to_schema', T=T)
     globals_ = dict(globals0)
     processing = processing or {}
-    processing_refs = list(get_all_refs(processing))
+    # processing_refs = list(get_all_refs(processing))
 
     if hasattr(T, '__name__'):
         if T.__name__ in processing:
-            return processing[T.__name__]
+            ref = processing[T.__name__]
+            res = make_ref(ref)
+            return TRE(res, {T.__name__: ref})
 
         if use_ipce_from_typelike_cache:
-            if has_ipce_repr_attr(T, []):
-                schema = get_ipce_repr_attr(T, [])
-                # logger.info(f'T: {T.__name__} {schema["title"]}')
-                return schema
-            if has_ipce_repr_attr(T, processing_refs):
-                schema = get_ipce_repr_attr(T, processing_refs)
-                # logger.info(f'T: {T.__name__} {schema["title"]}')
-                return schema
+            try:
+                return get_ipce_from_typelike_cache(T, processing)
+            except KeyError:
+                pass
 
     try:
 
@@ -67,7 +68,7 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
                   # JSC_DESCRIPTION: T.__doc__
                   })
             res = sorted_dict_with_cbor_ordering(res)
-            return res
+            return TRE(res)
 
         if T is type(None):
             res = cast(JSONSchema, {
@@ -75,7 +76,7 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
                   JSC_TYPE:   JSC_NULL
                   })
             res = sorted_dict_with_cbor_ordering(res)
-            return res
+            return TRE(res)
 
         if isinstance(T, type):
             for klass in T.mro():
@@ -92,33 +93,11 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
                         globals_[v.__name__] = v
                     globals_[k.__name__] = v
 
-        schema = ipce_from_typelike_(T, globals_, processing)
-        check_isinstance(schema, dict)
-        # if '$ref' in schema:
-        #     pass
-        # else:
-        #
-        #     in_proc = set(get_all_refs(processing))
-        #     # for k, v in processing.items():
-        #     #     if isinstance(v, dict) and '$ref' in v:
-        #     #
-        #     refs_in_proc = in_proc & refs
-        #     if refs_in_proc:
-        #         logger.info(f'For {T} obtained refs_in_proc = {refs_in_proc}; not setting cache.')
-        #     else:
-        # # logger.info(f'processing = {processing}')
-        # # if not processing:
-        #     # if not is_Union(T):  # XXX
-        #
-        refs_in_schema = set(get_all_refs(schema))
+        tr: TRE = ipce_from_typelike_tr_(T, globals_, processing)
 
-        refs_in_proc = [x for x in processing_refs if x in refs_in_schema]
-        if not refs_in_proc:
-            set_ipce_repr_attr(T, [], schema)
-        else:
-            set_ipce_repr_attr(T, processing_refs, schema)
-        # else:
-        #     logger.info(f'ignorning setting cache for {T} because {processing}')
+        set_ipce_from_typelike_cache(T, tr.used, tr.schema)
+
+        return tr
 
     except NotImplementedError:  # pragma: no cover
         raise
@@ -143,50 +122,51 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
               processing=processing))
         raise TypeError(msg) from e
 
-    assert_in(SCHEMA_ATT, schema)
-    assert schema[SCHEMA_ATT] in [SCHEMA_ID]
-    try:
-        assert_canonical_ipce(schema)
-    except ValueError as e:
-        msg = f'Invalid schema for {T}'
-        raise ValueError(msg) from e
-    return schema
 
-
-def ipce_from_typelike_dict(T, globals_, processing) -> JSONSchema:
+def ipce_from_typelike_dict(T, globals_, processing) -> TRE:
     assert is_DictLike(T), T
     K, V = get_DictLike_args(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if isinstance(K, type) and issubclass(K, str):
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
-        res[JSC_ADDITIONAL_PROPERTIES] = ipce_from_typelike(V, globals_, processing)
+        tr = ipce_from_typelike_tr(V, globals_, processing)
+        res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res, tr.used)
     else:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
-        res[JSC_ADDITIONAL_PROPERTIES] = ipce_from_typelike(props, globals_, processing)
+        tr = ipce_from_typelike_tr(props, globals_, processing)
+        res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res, tr.used)
 
 
-def ipce_from_typelike_SetLike(T, globals_, processing) -> JSONSchema:
+def ipce_from_typelike_SetLike(T, globals_, processing) -> TRE:
     assert is_SetLike(T), T
     V = get_SetLike_arg(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Set_name_V(V)
     res[JSC_PROPERTY_NAMES] = SCHEMA_CID
-    res[JSC_ADDITIONAL_PROPERTIES] = ipce_from_typelike(V, globals_, processing)
+    tr = ipce_from_typelike_tr(V, globals_, processing)
+    res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
     res[SCHEMA_ATT] = SCHEMA_ID
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, tr.used)
 
 
-def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
     assert is_TupleLike(T), T
+
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
 
     if is_VarTuple(T):
         items = get_VarTuple_arg(T)
@@ -195,10 +175,10 @@ def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: Processin
         res = cast(JSONSchema, {})
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
-        res[JSC_ITEMS] = ipce_from_typelike(items, globals_, processing)
+        res[JSC_ITEMS] = f(items)
         res[JSC_TITLE] = get_Tuple_name(T)
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res, used)
     elif is_FixedTuple(T):
         args = get_FixedTuple_args(T)
         res = cast(JSONSchema, {})
@@ -208,28 +188,41 @@ def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: Processin
         res[JSC_ITEMS] = []
         res[JSC_TITLE] = get_Tuple_name(T)
         for a in args:
-            res[JSC_ITEMS].append(ipce_from_typelike(a, globals_, processing))
+            res[JSC_ITEMS].append(f(a))
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res, used)
     else:
         assert False
 
 
-def ipce_from_typelike_ListLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_ListLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
     assert is_ListLike(T), T
     items = get_ListLike_arg(T)
     res = cast(JSONSchema, {})
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
+
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
-    res[JSC_ITEMS] = ipce_from_typelike(items, globals_, processing)
+    res[JSC_ITEMS] = f(items)
     res[JSC_TITLE] = get_ListLike_name(T)
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, used)
 
 
-def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
     assert is_Callable(T), T
     cinfo = get_Callable_info(T)
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
 
     res = cast(JSONSchema, {
           JSC_TYPE:  JSC_OBJECT, SCHEMA_ATT: SCHEMA_ID,
@@ -238,16 +231,17 @@ def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: Proc
           })
 
     p = res[JSC_DEFINITIONS] = {}
+
     for k, v in cinfo.parameters_by_name.items():
-        p[k] = ipce_from_typelike(v, globals_, processing)
-    p['return'] = ipce_from_typelike(cinfo.returns, globals_, processing)
+        p[k] = f(v)
+    p['return'] = f(cinfo.returns)
     res['ordering'] = list(cinfo.ordering)
     # print(res)
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, used)
 
 
-def ipce_from_typelike_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_tr_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
     if T is None:
         raise ValueError('None is not a type!')
 
@@ -269,53 +263,51 @@ def ipce_from_typelike_(T: Type, globals_: GlobalsDict, processing: ProcessingDi
     if T is str:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is bool:
         res = cast(JSONSchema, {JSC_TYPE: JSC_BOOL, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is Number:
         res = cast(JSONSchema, {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is float:
         res = cast(JSONSchema, {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: JSC_TITLE_FLOAT})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is int:
         res = cast(JSONSchema, {JSC_TYPE: JSC_INTEGER, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is slice:
-        res = ipce_from_typelike_slice()
-        res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return ipce_from_typelike_slice()
 
     if T is Decimal:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DECIMAL, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is datetime.datetime:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DATETIME, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if T is bytes:
         res = SCHEMA_BYTES
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     # we cannot use isinstance on typing.Any
     if is_Any(T):  # XXX not possible...
         res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return TRE(res)
 
     if is_Union(T):
         return ipce_from_typelike_Union(T, globals_, processing)
@@ -367,7 +359,7 @@ def ipce_from_typelike_(T: Type, globals_: GlobalsDict, processing: ProcessingDi
     raise ValueError(msg)
 
 
-def ipce_from_typelike_ndarray(T, globals_, processing) -> JSONSchema:
+def ipce_from_typelike_ndarray(T, globals_, processing) -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_NUMPY
@@ -377,46 +369,60 @@ def ipce_from_typelike_ndarray(T, globals_, processing) -> JSONSchema:
           'data':  SCHEMA_BYTES
           }
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res)
 
 
-def ipce_from_typelike_slice() -> JSONSchema:
+def ipce_from_typelike_slice() -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_SLICE
-    T = ipce_from_typelike(Optional[int], {}, {})
+    tr = ipce_from_typelike_tr(Optional[int], {}, {})
     properties = {
-          'start': T,  # TODO
-          'stop':  T,  # TODO
-          'step':  T,
+          'start': tr.schema,  # TODO
+          'stop':  tr.schema,  # TODO
+          'step':  tr.schema,
           }
     res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, tr.used)
 
 
 def ipce_from_typelike_Intersection(T, globals_, processing):
     args = get_Intersection_args(T)
-    options = [ipce_from_typelike(t, globals_, processing) for t in args]
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
+
+    options = [f(t) for t in args]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "allOf": options})
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, used)
 
 
-def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> JSONSchema:
+def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
     # from zuper_ipcl.debug_print_ import debug_print
     # d = {'processing': processing, 'globals_': globals_}
     # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
     globals2 = dict(globals_)
     p2 = dict(processing)
+
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals2, p2)
+        used.update(tr.used)
+        return tr.schema
+
     res = cast(JSONSchema, {})
 
-    res[ID_ATT] = make_url(T.__name__)
-    if hasattr(T, '__name__') and T.__name__:
-        res[JSC_TITLE] = T.__name__
-
-        p2[T.__name__] = make_ref(res[ID_ATT])
+    my_ref = make_url(T.__name__)
+    res[ID_ATT] = my_ref
+    res[JSC_TITLE] = T.__name__
+    p2[T.__name__] = my_ref
 
     if not hasattr(T, '__qualname__'):
         raise Exception(T)
@@ -440,13 +446,12 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
             url = make_url(f'{T.__name__}/{t2.__name__}')
 
-            # processing2[f'~{name}'] = {'$ref': url}
-            p2[f'{t2.__name__}'] = make_ref(url)
+            p2[f'{t2.__name__}'] = url
             # noinspection PyTypeHints
             globals2[t2.__name__] = t2
 
             bound = t2.__bound__ or Any
-            schema = ipce_from_typelike(bound, globals2, p2)
+            schema = f(bound)
             schema = copy.copy(schema)
             schema[ID_ATT] = url
 
@@ -483,14 +488,15 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
                 tt = get_ClassVar_arg(t)
 
                 result = eval_field(tt, globals2, p2)
-                classvars[name] = result.schema
+                used.update(result.tre.used)
+                classvars[name] = result.tre.schema
 
                 if hasattr(T, name):
                     # special case
                     the_att = getattr(T, name)
 
                     if isinstance(the_att, type):
-                        classatts[name] = ipce_from_typelike(the_att, globals2, processing)
+                        classatts[name] = f(the_att)
 
                     else:
                         classatts[name] = ipce_from_object(the_att, globals2)
@@ -501,7 +507,8 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
                 if not result.optional:
                     required.append(name)
                 # result.schema['qui'] = 1
-                properties[name] = result.schema
+                properties[name] = result.tre.schema
+                used.update(result.tre.used)
 
                 if not result.optional:
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
@@ -528,23 +535,40 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
     res = sorted_dict_with_cbor_ordering(res)
     # res['sroted'] = 1
-    return res
+
+    if my_ref in used:
+        used.pop(my_ref)
+    return TRE(res, used)
 
 
-def ipce_from_typelike_Union(t, globals_, processing):
+def ipce_from_typelike_Union(t, globals_, processing) -> TRE:
     types = get_Union_args(t)
-    options = [ipce_from_typelike(t, globals_, processing) for t in types]
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
+
+    options = [f(t) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, used)
 
 
-def ipce_from_typelike_Optional(t, globals_, processing):
+def ipce_from_typelike_Optional(t, globals_, processing) -> TRE:
     types = [get_Optional_arg(t), type(None)]
-    options = [ipce_from_typelike(t, globals_, processing) for t in types]
+    used = {}
+
+    def f(x):
+        tr = ipce_from_typelike_tr(x, globals_, processing)
+        used.update(tr.used)
+        return tr.schema
+
+    options = [f(t) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
     res = sorted_dict_with_cbor_ordering(res)
-    return res
+    return TRE(res, used)
 
 
 #
@@ -626,6 +650,20 @@ def ipce_from_typelike_Optional(t, globals_, processing):
 #     res['order'] = original_order
 #     res = sorted_dict_with_cbor_ordering(res)
 #     return res
+
+@dataclasses.dataclass
+class Result:
+    tre: TRE
+    optional: Optional[bool] = False
+
+    def __post_init__(self):
+        assert isinstance(self.tre, TRE), self
+    #
+    # def __init__(self, tr: TRE, optional: bool = None):
+    #     self.schema = schema
+    #     self.optional = optional
+
+
 def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     debug_info2 = lambda: dict(globals_=globals_, processing=processing)
 
@@ -635,23 +673,23 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
 
     if is_Type(t):
         res = cast(JSONSchema, make_ref(SCHEMA_ID))
-        return Result(res)
+        return Result(TRE(res))
 
     if is_TupleLike(t):
-        res = ipce_from_typelike_TupleLike(t, globals_, processing)
-        return Result(res)
+        tr = ipce_from_typelike_TupleLike(t, globals_, processing)
+        return Result(tr)
 
     if is_ListLike(t):
-        res = ipce_from_typelike_ListLike(t, globals_, processing)
-        return Result(res)
+        tr = ipce_from_typelike_ListLike(t, globals_, processing)
+        return Result(tr)
 
     if is_DictLike(t):
-        schema = ipce_from_typelike_dict(t, globals_, processing)
-        return Result(schema)
+        tr = ipce_from_typelike_dict(t, globals_, processing)
+        return Result(tr)
 
     if is_SetLike(t):
-        schema = ipce_from_typelike_SetLike(t, globals_, processing)
-        return Result(schema)
+        tr = ipce_from_typelike_SetLike(t, globals_, processing)
+        return Result(tr)
 
     if is_ForwardRef(t):
         tn = get_ForwardRef_arg(t)
@@ -660,23 +698,26 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     if is_Optional(t):
         tt = get_Optional_arg(t)
         result = eval_field(tt, globals_, processing)
-        return Result(result.schema, optional=True)
+        return Result(result.tre, optional=True)
 
     if is_Union(t):
         return Result(ipce_from_typelike_Union(t, globals_, processing))
 
     if is_Any(t):
         res = cast(JSONSchema, {'$schema': 'http://json-schema.org/draft-07/schema#'})
-        return Result(res)
+        return Result(TRE(res))
 
     if isinstance(t, TypeVar):
         l = t.__name__
         if l in processing:
-            return Result(processing[l])
+            ref = processing[l]
+            schema = make_ref(ref)
+            return Result(TRE(schema, {l: ref}))
         # I am not sure why this is different in Python 3.6
         if PYTHON_36 and (l in globals_):  # pragma: no cover
             T = globals_[l]
-            return Result(ipce_from_typelike(T, globals_, processing))
+            tr = ipce_from_typelike_tr(T, globals_, processing)
+            return Result(tr)
 
         m = f'Could not resolve the TypeVar {t}'
         msg = pretty_dict(m, debug_info2())
@@ -687,8 +728,8 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         if t.__name__ in processing:
             return eval_field(t.__name__, globals_, processing)
         else:
-            schema = ipce_from_typelike(t, globals_, processing)
-            return Result(schema)
+            tr = ipce_from_typelike_tr(t, globals_, processing)
+            return Result(tr)
 
     msg = f'Could not deal with {t}'
     msg += f'\nglobals: {globals_}'
@@ -702,8 +743,9 @@ def eval_type_string(t: str, globals_: GlobalsDict, processing: ProcessingDict) 
     debug_info = lambda: dict(t=t, globals2=pretty_dict("", globals2), processing=pretty_dict("", processing))
 
     if t in processing:
-        schema: JSONSchema = make_ref(make_url(t))
-        return Result(schema)
+        url = make_url(t)
+        schema: JSONSchema = make_ref(url)
+        return Result(TRE(schema, {t: url}))  # XXX not sure
 
     elif t in globals2:
         return eval_field(globals2[t], globals2, processing)

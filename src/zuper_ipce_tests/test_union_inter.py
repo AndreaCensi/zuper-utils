@@ -5,7 +5,7 @@ from nose.tools import raises
 
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_typing.annotations_tricks import make_Tuple
-from zuper_typing.my_dict import make_set
+from zuper_typing.my_dict import make_set, make_list, make_dict
 from zuper_typing.my_intersection import Intersection
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -109,12 +109,13 @@ def test_tuple_wiht_optional_inside():
 
 
 def test_dict_with_optional():
-    T = Dict[str, Optional[int]]
+    # T = Dict[str, Optional[int]]
+    T = make_dict(str, Optional[int])
     assert_type_roundtrip(T, {})
 
 
 def test_list_with_optional():
-    T = List[Optional[int]]
+    T = make_list(Optional[int])
     assert_type_roundtrip(T, {})
 
 

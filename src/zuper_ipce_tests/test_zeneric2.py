@@ -444,6 +444,7 @@ properties:
   parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#'}
 required: [data0, guid, security_model]
 __qualname__: QUAL
+__module__: module
 title: Entity2[X]
 type: object    
     """, Loader=yaml.SafeLoader)

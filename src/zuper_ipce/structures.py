@@ -22,10 +22,3 @@ class FakeValues(Generic[KK, VV]):
     value: VV
 
 
-class Result:
-    schema: JSONSchema
-    optional: Optional[bool] = False
-
-    def __init__(self, schema: JSONSchema, optional: bool = None):
-        self.schema = schema
-        self.optional = optional

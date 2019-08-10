@@ -4,6 +4,7 @@ from typing import Any, Generic, NewType, Optional, TypeVar, Union
 import yaml
 from nose.tools import assert_equal, raises
 
+from zuper_ipce.constants import check_types
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
@@ -64,23 +65,24 @@ def test_not_know():
 
     ipce_from_object(C(), {}, {})
 
+if check_types:
+    @raises(TypeError)
+    def test_corner_cases07():
+        can0 = can_be_used_as2(int, bool, {})
+        assert not can0, can0
 
-@raises(TypeError)
-def test_corner_cases07():
-    can0 = can_be_used_as2(int, bool, {})
-    assert not can0, can0
-
-    T = Union[bool, str]
-    can = can_be_used_as2(int, T, {})
-    assert not can, can
-    object_from_ipce(12, {}, expect_type=T)
+        T = Union[bool, str]
+        can = can_be_used_as2(int, T, {})
+        assert not can, can
+        object_from_ipce(12, {}, expect_type=T)
 
 
-@raises(TypeError)
-def test_corner_cases08():
-    T = Optional[bool]
-    assert not can_be_used_as2(int, T, {}).result
-    object_from_ipce(12, {}, expect_type=Optional[bool])
+if check_types:
+    @raises(TypeError)
+    def test_corner_cases08():
+        T = Optional[bool]
+        assert not can_be_used_as2(int, T, {}).result
+        object_from_ipce(12, {}, expect_type=Optional[bool])
 
 
 def test_newtype1():

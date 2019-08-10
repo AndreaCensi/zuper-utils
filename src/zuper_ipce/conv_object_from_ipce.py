@@ -9,7 +9,8 @@ import yaml
 
 from zuper_commons.text import indent
 from zuper_ipce import IPCE
-from zuper_ipce.constants import PASS_THROUGH, SCHEMA_ATT, SCHEMA_ID, JSONSchema, JSC_TITLE, JSC_TITLE_TYPE, HINTS_ATT
+from zuper_ipce.constants import (PASS_THROUGH, SCHEMA_ATT, SCHEMA_ID, JSONSchema, JSC_TITLE, JSC_TITLE_TYPE, HINTS_ATT,
+                                  check_types)
 
 from zuper_ipce.assorted_recursive_type_subst import resolve_all
 from zuper_ipce.structures import FakeValues
@@ -37,7 +38,7 @@ def object_from_ipce(mj: IPCE,
 
     except BaseException as e:
         msg = f'Cannot deserialize object  (expect: {expect_type})'
-        # msg += '\n\n' + indent(yaml.dump(mj)[:400], ' ipce ')
+        msg += '\n\n' + indent(yaml.dump(mj)[:1000], ' ipce ')
         # msg += '\n\n' + indent(traceback.format_exc(), '| ')
         raise TypeError(msg) from e
 
@@ -52,12 +53,14 @@ def object_from_ipce_(mj: IPCE,
     trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
 
     if isinstance(mj, trivial):
-        T = type(mj)
-        if expect_type is not None:
-            ok = can_be_used_as2(T, expect_type, {})
-            if not ok.result:
-                msg = f'Found a {T}, wanted {expect_type}'
-                raise ValueError(msg)
+
+        if check_types:
+            T = type(mj)
+            if expect_type is not None:
+                ok = can_be_used_as2(T, expect_type, {})
+                if not ok.result:
+                    msg = f'Found a {T}, wanted {expect_type}'
+                    raise ValueError(msg)
         return mj
 
     if isinstance(mj, list):
@@ -98,7 +101,8 @@ def object_from_ipce_(mj: IPCE,
                 msg += '\n'.join(str(e) for e in errors)
                 raise Exception(msg)
             else:
-                assert False, expect_type
+                msg = f'The object is a list, but expected {expect_type}.\nOb: {mj}'
+                raise TypeError(msg)
         else:
             suggest = None
             seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
@@ -157,7 +161,10 @@ def object_from_ipce_(mj: IPCE,
         return object_from_ipce_dict(K, mj, global_symbols, encountered)
 
     if is_SetLike(K):
-        return object_from_ipce_SetLike(K, mj, global_symbols, encountered)
+        # logger.info(f'loading as a set for {id(mj)} = {mj}')
+        res =  object_from_ipce_SetLike(K, mj, global_symbols, encountered)
+        # logger.info(f'result for {id(mj)} is {res}')
+        return res
 
     if is_dataclass(K):
         return object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered)
@@ -183,6 +190,13 @@ def object_from_ipce_(mj: IPCE,
         raise Exception(msg)
 
     if is_Any(K):
+
+        if looks_like_set(mj):
+            res = object_from_ipce_SetLike(None, mj, global_symbols, encountered)
+            return res
+
+        # logger.error(f'fall back on unknown (K={K}) for {id(mj)} = {mj}')
+        # raise Exception()
         K = Dict[str, Any]
         # TODO: check that it is strings
         if isinstance(mj, dict):
@@ -192,6 +206,8 @@ def object_from_ipce_(mj: IPCE,
         raise NotImplementedError(msg)
     assert False, (type(K), K, mj, expect_type)  # pragma: no cover
 
+def looks_like_set(d: dict):
+    return len(d)>0 and all(k.startswith('set:') for k in d)
 
 def object_from_ipce_slice(mj) -> slice:
     start = mj['start']
@@ -262,9 +278,9 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 raise
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})'
-                msg += f'\n K = {K.__annotations__}'
+                msg += f'\n annotations of class {K.__name__} = {K.__annotations__}'
                 msg += f'\n anns[k] = {anns[k]}'
-                msg += '\n\n' + indent(yaml.dump(v), '  ')
+                msg += '\n\n' + indent(yaml.dump(v)[:400], '  ')
                 # msg += '\n\n' + indent(traceback.format_exc(), '| ')
                 raise TypeError(msg) from e
 
@@ -278,7 +294,8 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 attrs[k] = None
                 pass
             else:
-                msg = f'Cannot find field {k!r} in data. (T0 = {T0}) Know {sorted(mj)}'
+                msg = f'Cannot find field {k!r} in data for class {K}. (T0 = {T0}) Know {sorted(mj)}'
+                msg += f'\n annotations: {anns}'
                 raise ValueError(msg)
 
     try:
@@ -340,15 +357,21 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
 
 
 def object_from_ipce_SetLike(D, mj, global_symbols, encountered):
-    V = get_SetLike_arg(D)
+    if D is None:
+        V = Any
+    else:
+        V = get_SetLike_arg(D)
 
     res = set()
 
+    # logger.info(f'loading SetLike wiht V = {V}')
     for k, v in mj.items():
         if k == SCHEMA_ATT:
             continue
 
         vob = object_from_ipce(v, global_symbols, encountered, expect_type=V)
+
+        # logger.info(f'loaded k = {k} vob = {vob}')
         res.add(vob)
 
     T = make_set(V)

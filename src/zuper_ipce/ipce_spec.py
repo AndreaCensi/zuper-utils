@@ -1,3 +1,4 @@
+from dataclasses import is_dataclass
 from typing import TypeVar
 
 from .types import IPCE
@@ -43,6 +44,9 @@ def assert_canonical_ipce(ob_ipce: IPCE):
         if '$self' in ob_ipce:
             msg = f'Re-processing the $links: {ob_ipce}.'
             raise ValueError(msg)
+
+        for k, v in ob_ipce.items():
+            assert not is_dataclass(v), ob_ipce
 
         # links = set(get_links_hash(x))
         #

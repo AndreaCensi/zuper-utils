@@ -67,6 +67,6 @@ SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
 
 USE_REMEMBERED_CLASSES = True
 PASS_THROUGH = (KeyboardInterrupt, RecursionError)
-schema_cache: Dict[Any, Union[type, _SpecialForm]] = {}
-use_schema_cache = True
+
 use_ipce_from_typelike_cache = True
+check_types = False
