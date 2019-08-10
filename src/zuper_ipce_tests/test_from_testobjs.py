@@ -7,6 +7,7 @@ import cbor2
 
 from zuper_commons.fs import locate_files, os, read_bytes_from_file
 from zuper_ipce import IPCE, ipce_from_object, object_from_ipce
+from zuper_ipce_tests.test_utils import assert_equal_ipce
 
 
 @dataclass
@@ -44,7 +45,6 @@ def find_objects(load: bool = True) -> Iterator[Case]:
 #         ipce2 = ipce_from_object(ob)
 
 def check_case(fn: str):
-
     from zuper_ipce import logger
     import traceback
 
@@ -55,23 +55,18 @@ def check_case(fn: str):
         ipce_gz = read_bytes_from_file(fn)
         ipce_cbor = gzip.decompress(ipce_gz)
         ipce = cbor2.loads(ipce_cbor)
+        # logger.info(f'ipce:\n\n{yaml.dump(ipce)}')
         ob = object_from_ipce(ipce, {})
-        # try:
-        #     # from zuper_ipcl.debug_print_ import debug_print
-        #     # print('reconstructed from ipce:\n' + debug_print(ob))
-        # except ImportError:
-        #     print(f'reconstructed from ipce:\n {ob}')
-
+        # logger.info(f'ob:\n\n{ob}')
         ipce2 = ipce_from_object(ob)
-        # assert_equal_ipce("", ipce, ipce2)
+        # logger.info(f'ipce2:\n\n{yaml.dump(ipce2)}')
+        assert_equal_ipce("", ipce, ipce2)
         # assert ipce == ipce2
     except BaseException:
         logger.error(traceback.format_exc())
         raise
 
-
-
-
+import yaml
 def main():
     print("""
 from .test_from_testobjs import check_case

@@ -355,7 +355,7 @@ def assert_equal_ipce(msg, a, b):
             json.dump(b, f, indent=2)
         msg += '\nSee differences in ipce1.json, ipce2.json'
         # msg += '\n' + side_by_side([yaml.dump(a), ' ', yaml.dump(b)])
-        # msg += '\n\n' + '\n'.join(str(_) for _ in patches)
+        msg += '\n\n' + '\n'.join(str(_) for _ in patches)
         msg += '\n\n' + '\n'.join("/".join(map(str, _.prefix)) for _ in patches)
         raise AssertionError(msg)
 

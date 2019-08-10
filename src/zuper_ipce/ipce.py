@@ -1098,7 +1098,7 @@ def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: Proc
     for k, v in cinfo.parameters_by_name.items():
         p[k] = ipce_from_typelike(v, globals_, processing)
     p['return'] = ipce_from_typelike(cinfo.returns, globals_, processing)
-    res['ordering'] = cinfo.ordering
+    res['ordering'] = list(cinfo.ordering)
     # print(res)
     res = sorted_dict_with_cbor_ordering(res)
     return res
