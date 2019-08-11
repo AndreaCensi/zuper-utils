@@ -6,7 +6,7 @@ import warnings
 from dataclasses import Field, _FIELDS, is_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union, cast
 
 import numpy as np
 
@@ -17,7 +17,7 @@ from zuper_ipce.constants import (ATT_PYTHON_NAME, GlobalsDict, ID_ATT, JSC_ADDI
                                   JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT,
                                   JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema, PASS_THROUGH,
                                   ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
-                                  X_CLASSVARS, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
+                                  X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
 from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
@@ -25,10 +25,10 @@ from zuper_ipce.schema_utils import make_ref, make_url
 from zuper_ipce.structures import CannotResolveTypeVar, FakeValues
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_name_K_V,
                                              get_FixedTuple_args, get_ForwardRef_arg, get_Optional_arg,
-                                             get_Sequence_arg, get_Set_name_V, get_Tuple_name, get_Union_args,
-                                             get_VarTuple_arg, is_Any, is_Callable, is_ClassVar, is_FixedTuple,
-                                             is_ForwardRef, is_Optional, is_Sequence, is_TupleLike, is_Type, is_Union,
-                                             is_VarTuple)
+                                             get_Sequence_arg, get_Set_name_V, get_Tuple_name, get_TypeVar_name,
+                                             get_Type_arg, get_Union_args, get_VarTuple_arg, is_Any, is_Callable,
+                                             is_ClassVar, is_FixedTuple, is_ForwardRef, is_Optional, is_Sequence,
+                                             is_TupleLike, is_Type, is_TypeVar, is_Union, is_VarTuple)
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2, PYTHON_36
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_ListLike_name, get_SetLike_arg, is_DictLike,
                                   is_ListLike, is_SetLike)
@@ -37,25 +37,33 @@ from zuper_typing.zeneric2 import get_name_without_brackets
 
 
 def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None) -> JSONSchema:
-    tr = ipce_from_typelike_tr(T, globals0, processing)
+    if processing is None:
+        processing = {}
+    c = IFTContext(globals0, processing, ())
+    tr = ipce_from_typelike_tr(T, c)
     return tr.schema
 
 
-def ipce_from_typelike_tr(T: Any, globals0: dict, processing: ProcessingDict = None) -> TRE:
-    # pprint('type_to_schema', T=T)
-    globals_ = dict(globals0)
-    processing = processing or {}
-    # processing_refs = list(get_all_refs(processing))
+from dataclasses import dataclass
 
+
+@dataclass
+class IFTContext:
+    globals_: dict
+    processing: ProcessingDict
+    context: Tuple[str, ...]
+
+
+def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
     if hasattr(T, '__name__'):
-        if T.__name__ in processing:
-            ref = processing[T.__name__]
+        if T.__name__ in c.processing:
+            ref = c.processing[T.__name__]
             res = make_ref(ref)
             return TRE(res, {T.__name__: ref})
 
         if use_ipce_from_typelike_cache:
             try:
-                return get_ipce_from_typelike_cache(T, processing)
+                return get_ipce_from_typelike_cache(T, c.processing)
             except KeyError:
                 pass
 
@@ -85,15 +93,18 @@ def ipce_from_typelike_tr(T: Any, globals0: dict, processing: ProcessingDict = N
                 if klass is object:
                     continue
 
-                globals_[get_name_without_brackets(klass.__name__)] = klass
+                globals2 = dict(c.globals_)
+                globals2[get_name_without_brackets(klass.__name__)] = klass
 
                 bindings = getattr(klass, BINDINGS_ATT, {})
                 for k, v in bindings.items():
-                    if hasattr(v, '__name__') and v.__name__ not in globals_:
-                        globals_[v.__name__] = v
-                    globals_[k.__name__] = v
+                    if hasattr(v, '__name__') and v.__name__ not in globals2:
+                        globals2[v.__name__] = v
+                    globals2[k.__name__] = v
 
-        tr: TRE = ipce_from_typelike_tr_(T, globals_, processing)
+                c = dataclasses.replace(c, globals_=globals2)
+
+        tr: TRE = ipce_from_typelike_tr_(T, c)
 
         set_ipce_from_typelike_cache(T, tr.used, tr.schema)
 
@@ -107,7 +118,7 @@ def ipce_from_typelike_tr(T: Any, globals0: dict, processing: ProcessingDict = N
             m += f' (name = {T.__name__!r})'
         msg = pretty_dict(m, dict(  # globals0=globals0,
               # globals=globals_,
-              processing=processing))
+              processing=c.processing))
         # msg += '\n' + traceback.format_exc()
         raise type(e)(msg) from e
     except PASS_THROUGH:
@@ -116,21 +127,21 @@ def ipce_from_typelike_tr(T: Any, globals0: dict, processing: ProcessingDict = N
         m = f'Cannot get schema for {T}'
         if hasattr(T, '__name__'):
             m += f' (name = {T.__name__!r})'
-            m += f' {T.__name__ in processing}'
+            m += f' {T.__name__ in c.processing}'
         msg = pretty_dict(m, dict(  # globals0=globals0,
               # globals=globals_,
-              processing=processing))
+              processing=c.processing))
         raise TypeError(msg) from e
 
 
-def ipce_from_typelike_dict(T, globals_, processing) -> TRE:
+def ipce_from_typelike_dict(T, c: IFTContext) -> TRE:
     assert is_DictLike(T), T
     K, V = get_DictLike_args(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if isinstance(K, type) and issubclass(K, str):
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
-        tr = ipce_from_typelike_tr(V, globals_, processing)
+        tr = ipce_from_typelike_tr(V, c)
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
@@ -138,33 +149,33 @@ def ipce_from_typelike_dict(T, globals_, processing) -> TRE:
     else:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
-        tr = ipce_from_typelike_tr(props, globals_, processing)
+        tr = ipce_from_typelike_tr(props, c)
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
         return TRE(res, tr.used)
 
 
-def ipce_from_typelike_SetLike(T, globals_, processing) -> TRE:
+def ipce_from_typelike_SetLike(T, c: IFTContext) -> TRE:
     assert is_SetLike(T), T
     V = get_SetLike_arg(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Set_name_V(V)
     res[JSC_PROPERTY_NAMES] = SCHEMA_CID
-    tr = ipce_from_typelike_tr(V, globals_, processing)
+    tr = ipce_from_typelike_tr(V, c)
     res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
     res[SCHEMA_ATT] = SCHEMA_ID
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, tr.used)
 
 
-def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
+def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
     assert is_TupleLike(T), T
 
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -195,14 +206,14 @@ def ipce_from_typelike_TupleLike(T, globals_: GlobalsDict, processing: Processin
         assert False
 
 
-def ipce_from_typelike_ListLike(T, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
+def ipce_from_typelike_ListLike(T, c: IFTContext) -> TRE:
     assert is_ListLike(T), T
     items = get_ListLike_arg(T)
     res = cast(JSONSchema, {})
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -214,13 +225,13 @@ def ipce_from_typelike_ListLike(T, globals_: GlobalsDict, processing: Processing
     return TRE(res, used)
 
 
-def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
+def ipce_from_typelike_Callable(T: Type, c: IFTContext) -> TRE:
     assert is_Callable(T), T
     cinfo = get_Callable_info(T)
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -241,7 +252,7 @@ def ipce_from_typelike_Callable(T: Type, globals_: GlobalsDict, processing: Proc
     return TRE(res, used)
 
 
-def ipce_from_typelike_tr_(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
+def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
     if T is None:
         raise ValueError('None is not a type!')
 
@@ -310,22 +321,22 @@ def ipce_from_typelike_tr_(T: Type, globals_: GlobalsDict, processing: Processin
         return TRE(res)
 
     if is_Union(T):
-        return ipce_from_typelike_Union(T, globals_, processing)
+        return ipce_from_typelike_Union(T, c)
 
     if is_Optional(T):
-        return ipce_from_typelike_Optional(T, globals_, processing)
+        return ipce_from_typelike_Optional(T, c)
 
     if is_DictLike(T):
-        return ipce_from_typelike_dict(T, globals_, processing)
+        return ipce_from_typelike_dict(T, c)
 
     if is_SetLike(T):
-        return ipce_from_typelike_SetLike(T, globals_, processing)
+        return ipce_from_typelike_SetLike(T, c)
 
     if is_Intersection(T):
-        return ipce_from_typelike_Intersection(T, globals_, processing)
+        return ipce_from_typelike_Intersection(T, c)
 
     if is_Callable(T):
-        return ipce_from_typelike_Callable(T, globals_, processing)
+        return ipce_from_typelike_Callable(T, c)
 
     if is_Sequence(T):
         msg = ('Translating Sequence into List')
@@ -333,14 +344,14 @@ def ipce_from_typelike_tr_(T: Type, globals_: GlobalsDict, processing: Processin
         # raise ValueError(msg)
         V = get_Sequence_arg(T)
         T = List[V]
-        return ipce_from_typelike_ListLike(T, globals_, processing)
+        return ipce_from_typelike_ListLike(T, c)
 
     if is_ListLike(T):
-        return ipce_from_typelike_ListLike(T, globals_, processing)
+        return ipce_from_typelike_ListLike(T, c)
 
     if is_TupleLike(T):
         # noinspection PyTypeChecker
-        return ipce_from_typelike_TupleLike(T, globals_, processing)
+        return ipce_from_typelike_TupleLike(T, c)
 
     assert isinstance(T, type), T
 
@@ -348,18 +359,18 @@ def ipce_from_typelike_tr_(T: Type, globals_: GlobalsDict, processing: Processin
     #     return ipce_from_typelike_generic(T, globals_, processing)
 
     if is_dataclass(T):
-        return ipce_from_typelike_dataclass(T, globals_, processing)
+        return ipce_from_typelike_dataclass(T, c)
 
     if T is np.ndarray:
-        return ipce_from_typelike_ndarray(T, globals_, processing)
+        return ipce_from_typelike_ndarray()
 
     msg = f'Cannot interpret this type: {T!r}'
-    msg += f'\n   globals_: {globals_}'
-    msg += f'\n processing: {processing}'
+    msg += f'\n   globals_: {c.globals_}'
+    msg += f'\n processing: {c.processing}'
     raise ValueError(msg)
 
 
-def ipce_from_typelike_ndarray(T, globals_, processing) -> TRE:
+def ipce_from_typelike_ndarray() -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_NUMPY
@@ -376,7 +387,8 @@ def ipce_from_typelike_slice() -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_SLICE
-    tr = ipce_from_typelike_tr(Optional[int], {}, {})
+    c = IFTContext({}, {}, ())
+    tr = ipce_from_typelike_tr(Optional[int], c)
     properties = {
           'start': tr.schema,  # TODO
           'stop':  tr.schema,  # TODO
@@ -387,12 +399,12 @@ def ipce_from_typelike_slice() -> TRE:
     return TRE(res, tr.used)
 
 
-def ipce_from_typelike_Intersection(T, globals_, processing):
+def ipce_from_typelike_Intersection(T, c: IFTContext):
     args = get_Intersection_args(T)
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -402,27 +414,83 @@ def ipce_from_typelike_Intersection(T, globals_, processing):
     return TRE(res, used)
 
 
-def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: ProcessingDict) -> TRE:
+from dataclasses import replace
+
+
+def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
+    if T in context:
+        return
+    c2 = context + (T,)
+    if is_dataclass(T):
+        if context:
+            yield T.__name__
+        for v in T.__annotations__.values():
+            yield from get_mentioned_names(v, c2)
+    elif is_Type(T):
+        return
+    elif is_TypeVar(T):
+        yield get_TypeVar_name(T)
+    elif is_TupleLike(T):
+        if is_FixedTuple(T):
+            for t in get_FixedTuple_args(T):
+                yield from get_mentioned_names(t, c2)
+        else:
+            t = get_VarTuple_arg(T)
+            yield from get_mentioned_names(t, c2)
+
+    elif is_ListLike(T):
+        t = get_ListLike_arg(T)
+        yield from get_mentioned_names(t, c2)
+
+    if is_DictLike(T):
+        K, V = get_DictLike_args(T)
+        yield from get_mentioned_names(K, c2)
+        yield from get_mentioned_names(V, c2)
+    elif is_SetLike(T):
+        t = get_SetLike_arg(T)
+        yield from get_mentioned_names(t, c2)
+
+    elif is_ForwardRef(T):
+        pass
+
+    elif is_Optional(T):
+
+        t = get_Optional_arg(T)
+        yield from get_mentioned_names(t, c2)
+
+    elif is_Union(T):
+        for t in get_Union_args(T):
+            yield from get_mentioned_names(t, c2)
+    else:
+        pass
+
+
+def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     # from zuper_ipcl.debug_print_ import debug_print
     # d = {'processing': processing, 'globals_': globals_}
     # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
-    globals2 = dict(globals_)
-    p2 = dict(processing)
+
+    c = replace(c, globals_=dict(c.globals_),
+                processing=dict(c.processing),
+                context=c.context + (T.__name__,))
 
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals2, p2)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
     res = cast(JSONSchema, {})
-
-    my_ref = make_url(T.__name__)
+    mentioned = set(get_mentioned_names(T, ()))
+    relevant = [x for x in c.context if x in mentioned and x != T.__name__]
+    relevant.append(T.__qualname__)
+    url_name = '_'.join(relevant)
+    my_ref = make_url(url_name)
     res[ID_ATT] = my_ref
     res[JSC_TITLE] = T.__name__
-    p2[T.__name__] = my_ref
+    c.processing[T.__name__] = my_ref
 
     if not hasattr(T, '__qualname__'):
         raise Exception(T)
@@ -444,11 +512,11 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
             if not isinstance(t2, TypeVar):
                 continue
 
-            url = make_url(f'{T.__name__}/{t2.__name__}')
+            url = make_url(f'{T.__qualname__}/{t2.__name__}')
 
-            p2[f'{t2.__name__}'] = url
+            c.processing[f'{t2.__name__}'] = url
             # noinspection PyTypeHints
-            globals2[t2.__name__] = t2
+            c.globals_[t2.__name__] = t2
 
             bound = t2.__bound__ or Any
             schema = f(bound)
@@ -457,7 +525,7 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
             definitions[t2.__name__] = schema
 
-            globals_[t2.__name__] = t2
+            c.globals_[t2.__name__] = t2
 
         if definitions:
             res[JSC_DEFINITIONS] = sorted_dict_with_cbor_ordering(definitions)
@@ -482,39 +550,106 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
 
         try:
             if isinstance(t, str):
-                t = eval_just_string(t, globals_)
+                # t = eval_just_string(t, c.globals_)
+                msg = 'Before serialization, need to have all text references substituted.'
+                msg += f'\n found reference {t!r} in class {T}.'
+                raise Exception(msg)
 
             if is_ClassVar(t):
                 tt = get_ClassVar_arg(t)
+                # logger.info(f'ClassVar found : {tt}')
+                if is_Type(tt):
+                    u = get_Type_arg(tt)
+                    if is_TypeVar(u):
+                        tn = get_TypeVar_name(u)
+                        if tn in c.processing:
+                            ref = c.processing[tn]
+                            schema = make_ref(ref)
+                            classvars[name] = schema
+                            used.update({tn: ref})
 
-                result = eval_field(tt, globals2, p2)
-                used.update(result.tre.used)
-                classvars[name] = result.tre.schema
-
-                if hasattr(T, name):
-                    # special case
-                    the_att = getattr(T, name)
-
-                    if isinstance(the_att, type):
-                        classatts[name] = f(the_att)
-
+                            classatts[name] = f(type)
+                            # return TRE(schema,)
+                        else:
+                            msg = f'Unknown typevar {tn} in class {T}; processing = {c.processing}'
+                            raise NotImplementedError(msg)
                     else:
-                        classatts[name] = ipce_from_object(the_att, globals2)
+                        # classatts[name] = ipce_from_object(u, c.globals_)
+                        # raise NotImplementedError(T)
+                        classvars[name] = f(u)
+                        if hasattr(T, name):
+                            # special case
+                            the_att = getattr(T, name)
+
+                            if isinstance(the_att, type):
+                                classatts[name] = f(the_att)
+                            else:
+                                classatts[name] = ipce_from_object(the_att, c.globals_)
+                        else:
+                            raise NotImplementedError(T)
+                else:
+                    # logger.info(f'ClassVar {tt} is not Type, going through f')
+                    classvars[name] = f(tt)
+                    if hasattr(T, name):
+                        # special case
+                        the_att = getattr(T, name)
+
+                        if isinstance(the_att, type):
+                            classatts[name] = f(the_att)
+
+                        else:
+                            classatts[name] = ipce_from_object(the_att, c.globals_)
+                    else:
+                        raise NotImplementedError(T)
+                # else:
+                #     tt = get_ClassVar_arg(t)
+                #
+                #     result = eval_field(tt, c.globals_, c.processing)
+                #     used.update(result.tre.used)
+                #     classvars[name] = result.tre.schema
+                #
+                #     if hasattr(T, name):
+                #         # special case
+                #         the_att = getattr(T, name)
+                #
+                #         if isinstance(the_att, type):
+                #             classatts[name] = f(the_att)
+                #
+                #         else:
+                #             classatts[name] = ipce_from_object(the_att, c.globals_)
 
             else:
 
-                result = eval_field(t, globals2, p2)
-                if not result.optional:
-                    required.append(name)
-                # result.schema['qui'] = 1
-                properties[name] = result.tre.schema
-                used.update(result.tre.used)
+                if is_Optional(t):
+                    t = get_Optional_arg(t)
+                    optional = True
+                else:
+                    optional = False
+                properties[name] = f(t)
 
-                if not result.optional:
+                # properties[name] = result.tre.schema
+
+                if not optional:
+                    required.append(name)
+
                     if not isinstance(afield.default, dataclasses._MISSING_TYPE):
                         # logger.info(f'default for {name} is {afield.default}')
                         properties[name] = copy.copy(properties[name])
-                        properties[name]['default'] = ipce_from_object(afield.default, globals2)
+                        properties[name]['default'] = ipce_from_object(afield.default, c.globals_)
+
+                # else:
+                #     result = eval_field(t, c.globals_, c.processing)
+                #     if not result.optional:
+                #         required.append(name)
+                #     # result.schema['qui'] = 1
+                #     properties[name] = result.tre.schema
+                #     used.update(result.tre.used)
+                #
+                #     if not result.optional:
+                #         if not isinstance(afield.default, dataclasses._MISSING_TYPE):
+                #             # logger.info(f'default for {name} is {afield.default}')
+                #             properties[name] = copy.copy(properties[name])
+                #             properties[name]['default'] = ipce_from_object(afield.default, c.globals_)
         except PASS_THROUGH:
             raise
         except BaseException as e:
@@ -528,25 +663,26 @@ def ipce_from_typelike_dataclass(T: Type, globals_: GlobalsDict, processing: Pro
     if classatts:
         res[X_CLASSATTS] = classatts
 
+    assert len(classvars) == len(classatts), (classvars, classatts)
+
     if properties:
         res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
 
-    res['order'] = names
+    res[X_ORDER] = names
 
     res = sorted_dict_with_cbor_ordering(res)
-    # res['sroted'] = 1
 
     if my_ref in used:
         used.pop(my_ref)
     return TRE(res, used)
 
 
-def ipce_from_typelike_Union(t, globals_, processing) -> TRE:
+def ipce_from_typelike_Union(t, c: IFTContext) -> TRE:
     types = get_Union_args(t)
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -556,12 +692,12 @@ def ipce_from_typelike_Union(t, globals_, processing) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_Optional(t, globals_, processing) -> TRE:
+def ipce_from_typelike_Optional(t, c: IFTContext) -> TRE:
     types = [get_Optional_arg(t), type(None)]
     used = {}
 
     def f(x):
-        tr = ipce_from_typelike_tr(x, globals_, processing)
+        tr = ipce_from_typelike_tr(x, c)
         used.update(tr.used)
         return tr.schema
 
@@ -667,6 +803,7 @@ class Result:
 def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
     debug_info2 = lambda: dict(globals_=globals_, processing=processing)
 
+    c = IFTContext(globals_=globals_, processing=processing, context=())
     if isinstance(t, str):
         te = eval_type_string(t, globals_, processing)
         return te
@@ -676,19 +813,19 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         return Result(TRE(res))
 
     if is_TupleLike(t):
-        tr = ipce_from_typelike_TupleLike(t, globals_, processing)
+        tr = ipce_from_typelike_TupleLike(t, c)
         return Result(tr)
 
     if is_ListLike(t):
-        tr = ipce_from_typelike_ListLike(t, globals_, processing)
+        tr = ipce_from_typelike_ListLike(t, c)
         return Result(tr)
 
     if is_DictLike(t):
-        tr = ipce_from_typelike_dict(t, globals_, processing)
+        tr = ipce_from_typelike_dict(t, c)
         return Result(tr)
 
     if is_SetLike(t):
-        tr = ipce_from_typelike_SetLike(t, globals_, processing)
+        tr = ipce_from_typelike_SetLike(t, c)
         return Result(tr)
 
     if is_ForwardRef(t):
@@ -701,7 +838,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         return Result(result.tre, optional=True)
 
     if is_Union(t):
-        return Result(ipce_from_typelike_Union(t, globals_, processing))
+        return Result(ipce_from_typelike_Union(t, c))
 
     if is_Any(t):
         res = cast(JSONSchema, {'$schema': 'http://json-schema.org/draft-07/schema#'})
@@ -716,7 +853,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         # I am not sure why this is different in Python 3.6
         if PYTHON_36 and (l in globals_):  # pragma: no cover
             T = globals_[l]
-            tr = ipce_from_typelike_tr(T, globals_, processing)
+            tr = ipce_from_typelike_tr(T, c)
             return Result(tr)
 
         m = f'Could not resolve the TypeVar {t}'
@@ -728,7 +865,7 @@ def eval_field(t, globals_: GlobalsDict, processing: ProcessingDict) -> Result:
         if t.__name__ in processing:
             return eval_field(t.__name__, globals_, processing)
         else:
-            tr = ipce_from_typelike_tr(t, globals_, processing)
+            tr = ipce_from_typelike_tr(t, c)
             return Result(tr)
 
     msg = f'Could not deal with {t}'

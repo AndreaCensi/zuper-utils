@@ -1,6 +1,5 @@
-from typing import TypeVar, Generic, Optional
+from typing import Generic, TypeVar
 
-from zuper_ipce.constants import JSONSchema
 from zuper_typing.monkey_patching_typing import my_dataclass
 
 

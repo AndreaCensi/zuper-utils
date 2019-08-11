@@ -119,7 +119,7 @@ def ipce_from_object_(ob,
     if isinstance(ob, np.ndarray):
         res = ipce_from_numpy_array(ob)
         if with_schema:
-            res[SCHEMA_ATT] = ipce_from_typelike_ndarray(type(ob), globals_, {}).schema
+            res[SCHEMA_ATT] = ipce_from_typelike_ndarray().schema
         return res
 
     assert not isinstance(ob, type), ob

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Generic, NewType, Optional, TypeVar, Union
+from typing import Any, Generic, NewType, Optional, TypeVar, Union, Type
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -12,7 +12,7 @@ from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
-                                             name_for_type_like)
+                                             name_for_type_like, is_Type)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
 
@@ -181,3 +181,8 @@ a: true
     assert T.__annotations__['a'] is bool, T.__annotations__
 
     ob = object_from_ipce(ipce, {})
+
+
+def test_Type1():
+    T = Type[int]
+    assert is_Type(T)

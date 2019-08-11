@@ -67,8 +67,8 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     if schema != schema2:
         msg = 'Different schemas'
         d = {
-              'T':  T, 'T.qual': T.__qualname__, 'schema': schema0,
-              'T2': T2, 'T2.qual': T2.__qualname__, 'schema2': schema2
+              'T':  T, 'T.qual': T.__qualname__, 'TAnn': T.__annotations__, 'Td': T.__dict__, 'schema': schema0,
+              'T2': T2, 'T2.qual': T2.__qualname__,'TAnn2': T2.__annotations__, 'Td2': T2.__dict__,  'schema2': schema2
               }
         msg = pretty_dict(msg, d)
         # print(msg)

@@ -1,4 +1,4 @@
-from typing import NewType, Dict, Any, cast, Union
+from typing import Any, Dict, NewType, cast
 
 JSONSchema = NewType('JSONSchema', dict)
 GlobalsDict = Dict[str, Any]
@@ -15,7 +15,7 @@ REF_ATT = '$ref'
 
 X_CLASSVARS = 'classvars'
 X_CLASSATTS = 'classatts'
-
+X_ORDER = 'order'
 JSC_FORMAT = 'format'
 JSC_REQUIRED = 'required'
 JSC_TYPE = 'type'

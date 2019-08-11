@@ -39,7 +39,6 @@ class IPCETypelikeCache:
 
 def get_cached():
     return {k[1]: [x for x, _ in v.items()] for k, v in IPCETypelikeCache.c.items()}
-from . import logger
 
 
 def get_ipce_from_typelike_cache(T, context: Dict[str, str]) -> TRE:

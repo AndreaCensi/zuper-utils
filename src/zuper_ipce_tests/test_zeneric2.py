@@ -6,8 +6,8 @@ from typing import Generic
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
+from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -332,6 +332,7 @@ def test_more3_simpler():
     @dataclass
     class MyClass(Generic[X]):
         XT: ClassVar[Type[X]]
+        a: int
 
     ipce = ipce_from_typelike(MyClass, {})
     print(yaml.dump(ipce))
@@ -339,7 +340,24 @@ def test_more3_simpler():
     #
     # # type_to_schema(MyClass, {})
 
-    C = MyClass[int, str]
+    C = MyClass[int]
+    assert_type_roundtrip(C, {})
+
+
+def test_more3b_simpler():
+    X = TypeVar('X')
+
+    @dataclass
+    class MyClass(Generic[X]):
+        XT: ClassVar[Type[X]]
+
+    ipce = ipce_from_typelike(MyClass, {})
+    print(yaml.dump(ipce))
+    assert_type_roundtrip(MyClass, {})
+    #
+    # # type_to_schema(MyClass, {})
+
+    C = MyClass[int]
     assert_type_roundtrip(C, {})
 
 

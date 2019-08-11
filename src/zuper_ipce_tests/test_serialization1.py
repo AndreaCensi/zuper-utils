@@ -120,16 +120,18 @@ class Chain:
 
 
 def get_symbols():
+
+    @dataclass
+    class FB:
+        mine: int
+
     @dataclass
     class FA:
         """ Describes a Name with optional middle name"""
         value: str
 
-        down: 'FB'
+        down: FB
 
-    @dataclass
-    class FB:
-        mine: int
 
     symbols = {
           'Office':   Office,
@@ -406,8 +408,11 @@ def test_2_ok():
     class MyClass:
         f: "Optional[M[int]]"
 
+        __depends__ = (M, )
+
     # do not put M
-    ipce_from_typelike(MyClass, {'M': M})  # <---- note
+    # ipce_from_typelike(MyClass, {'M': M})  # <---- note
+    ipce_from_typelike(MyClass,{})  # <---- note
 
 
 @raises(Exception)

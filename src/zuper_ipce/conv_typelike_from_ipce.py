@@ -1,6 +1,6 @@
 import dataclasses
 import datetime
-from dataclasses import field, make_dataclass
+from dataclasses import dataclass, field, make_dataclass
 from decimal import Decimal
 from numbers import Number
 from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, Type, TypeVar, cast
@@ -16,7 +16,7 @@ from zuper_ipce.constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict,
                                   JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE,
                                   JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY,
                                   JSC_TITLE_SLICE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID,
-                                  X_CLASSATTS, X_CLASSVARS, X_PYTHON_MODULE_ATT)
+                                  X_CLASSATTS, X_CLASSVARS, X_PYTHON_MODULE_ATT, X_ORDER)
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.structures import CannotFindSchemaReference
 from zuper_ipce.types import TypeLike
@@ -24,12 +24,11 @@ from zuper_typing.annotations_tricks import (get_ForwardRef_arg, is_Any, is_Forw
                                              make_VarTuple)
 from zuper_typing.constants import PYTHON_36
 from zuper_typing.monkey_patching_typing import MyNamedArg, get_remembered_class, remember_created_class
-from zuper_typing.my_dict import make_dict, make_set, make_list
+from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection
-from zuper_typing.zeneric2 import RecLogger, loglevel
 
 
-@dataclasses.dataclass
+@dataclass
 class SRE:
     res: TypeLike
     used: Dict[str, Any] = dataclasses.field(default_factory=dict)
@@ -45,13 +44,6 @@ def typelike_from_ipce(schema0: JSONSchema,
 def typelike_from_ipce_sr(schema0: JSONSchema,
                           global_symbols: Dict,
                           encountered: Dict) -> SRE:
-    # if use_schema_cache:
-    #     h = schema_hash([schema0, list(global_symbols), list(encountered)])
-    #     if h in schema_cache:
-    #         # logger.info(f'cache hit for {schema0}')
-    #         return schema_cache[h]
-    # else:
-    #     h = None
 
     try:
         sre = typelike_from_ipce_sr_(schema0, global_symbols, encountered)
@@ -67,10 +59,7 @@ def typelike_from_ipce_sr(schema0: JSONSchema,
     if ID_ATT in schema0:
         schema_id = schema0[ID_ATT]
         encountered[schema_id] = res
-        # print(f'Found {schema_id} -> {res}')
 
-    # if use_schema_cache:
-    #     schema_cache[h] = res
     return sre
 
 
@@ -154,15 +143,6 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
             return typelike_from_ipce_SetType(schema, global_symbols, encountered)
         elif jsc_title == JSC_TITLE_SLICE:
             return SRE(slice)
-        # elif JSC_DEFINITIONS in schema:
-        #     return typelike_from_ipce_dataclass(schema, global_symbols, encountered)
-        # elif ATT_PYTHON_NAME in schema:
-        #     tn = schema[ATT_PYTHON_NAME]
-        #     if tn in global_symbols:
-        #         return global_symbols[tn]
-        #     else:
-        #         # logger.debug(f'did not find {tn} in {global_symbols}')
-        #         return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         else:
             return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
         assert False, schema  # pragma: no cover
@@ -230,6 +210,7 @@ def typelike_from_ipce_array(schema, global_symbols, encountered) -> SRE:
 
     # logger.info(f'found list like: {res}')
     return SRE(res, used)
+
 
 def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
     K = str
@@ -300,9 +281,11 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
     return SRE(res, used)
 
 
-@loglevel
+import json
+
+
 def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encountered: EncounteredDict,
-                                 schema_id=None, rl: RecLogger = None) -> SRE:
+                                 schema_id=None) -> SRE:
     used = {}
 
     def f(x):
@@ -313,18 +296,26 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     assert res[JSC_TYPE] == JSC_OBJECT
     cls_name = res[JSC_TITLE]
 
+    definitions = res.get(JSC_DEFINITIONS, {})
+
+    required = res.get(JSC_REQUIRED, [])
+
+    properties = res.get(JSC_PROPERTIES, {})
+    classvars = res.get(X_CLASSVARS, {})
+    classatts = res.get(X_CLASSATTS, {})
+
     if (not X_PYTHON_MODULE_ATT in res) or not ATT_PYTHON_NAME in res:
         msg = f'Cannot find attributes for {cls_name}: \n {res}'
         raise ValueError(msg)
     module_name = res[X_PYTHON_MODULE_ATT]
     qual_name = res[ATT_PYTHON_NAME]
+
     try:
         res = get_remembered_class(module_name, qual_name)
         return SRE(res)
     except KeyError:
         pass
 
-    definitions = res.get(JSC_DEFINITIONS, {})
     typevars: List[TypeVar] = []
     for tname, t in definitions.items():
         bound = f(t)
@@ -354,41 +345,46 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     Placeholder = type(f'PlaceholderFor{cls_name}', (), {})
 
     encountered[schema_id] = Placeholder
-    required = res.get(JSC_REQUIRED, [])
 
     fields = []  # (name, type, Field)
 
-    properties = res.get(JSC_PROPERTIES, {})
-    # if 'order' in res:
-    names = res.get('order', list(properties))
+
+    names = res.get(X_ORDER, list(properties))
     # assert_equal(set(names), set(properties), msg=yaml.dump(res))
     # else:
     #     names = list(properties)
     #
+
     from zuper_ipce.conv_object_from_ipce import object_from_ipce
     # logger.info(f'reading {cls_name} names {names}')
     for pname in names:
-        if pname not in properties:
-            continue
-        v = properties[pname]
-        ptype = f(v)
-        # logger.info(f'got for pname {pname} {v} -> ptype {ptype}')
-        if pname in required:
-            _Field = field()
+        if pname in properties:
+
+            v = properties[pname]
+            ptype = f(v)
+            # logger.info(f'got for pname {pname} {v} -> ptype {ptype}')
+            if pname in required:
+                _Field = field()
+            else:
+                _Field = field(default=None)
+                ptype = Optional[ptype]
+            _Field.name = pname
+            if JSC_DEFAULT in v:
+                default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
+                _Field.default = default_value
+
+            fields.append((pname, ptype, _Field))
+        elif pname in classvars:
+            v = classvars[pname]
+            ptype = f(v)
+            fields.append((pname, ClassVar[ptype], field()))
+        elif pname in classatts:
+            msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
+            raise ValueError(msg)
         else:
-            _Field = field(default=None)
-            ptype = Optional[ptype]
-        _Field.name = pname
-        if JSC_DEFAULT in v:
-            default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
-            _Field.default = default_value
-
-        fields.append((pname, ptype, _Field))
-
-    # pprint('making dataclass with fields', fields=fields, res=res)
-    for pname, v in res.get(X_CLASSVARS, {}).items():
-        ptype = f(v)
-        fields.append((pname, ClassVar[ptype], field()))
+            msg = f'Cannot find {pname!r} either in properties ({list(properties)}) or classvars ({list(classvars)}) ' \
+                  f'or classatts {list(classatts)}'
+            raise ValueError(msg)
 
     # _MISSING_TYPE should be first (default fields last)
     # XXX: not tested
@@ -414,7 +410,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     fix_annotations_with_self_reference(T, cls_name, Placeholder)
     from zuper_ipce.conv_object_from_ipce import object_from_ipce
-    for pname, v in res.get(X_CLASSATTS, {}).items():
+    for pname, v in classatts.items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
             interpreted = f(cast(JSONSchema, v))
         else:
