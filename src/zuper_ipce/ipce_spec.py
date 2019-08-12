@@ -32,7 +32,7 @@ def assert_sorted_dict_with_cbor_ordering(x: dict):
         raise ValueError(msg)
 
 
-def assert_canonical_ipce(ob_ipce: IPCE):
+def assert_canonical_ipce(ob_ipce: IPCE, max=2):
     if isinstance(ob_ipce, dict):
         if '/' in ob_ipce:
             raise ValueError(ob_ipce)
@@ -47,6 +47,8 @@ def assert_canonical_ipce(ob_ipce: IPCE):
 
         for k, v in ob_ipce.items():
             assert not is_dataclass(v), ob_ipce
+            if max > 0:
+                assert_canonical_ipce(v, max=max-1)
 
         # links = set(get_links_hash(x))
         #

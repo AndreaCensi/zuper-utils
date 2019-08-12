@@ -8,15 +8,15 @@ import numpy as np
 from frozendict import frozendict
 
 from zuper_commons.text import pretty_dict
-from zuper_typing.annotations_tricks import (get_Optional_arg, get_VarTuple_arg, is_Any, is_Callable, is_ClassVar,
-                                             is_Dict, is_List, is_Optional, is_Sequence, is_Set, is_Tuple, is_TupleLike,
-                                             is_Union, is_VarTuple, get_Union_args)
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike_ndarray
+from zuper_typing.annotations_tricks import (get_Optional_arg, get_Union_args, get_VarTuple_arg, is_Any, is_Callable,
+                                             is_ClassVar, is_Dict, is_List, is_Optional, is_Sequence, is_Set, is_Tuple,
+                                             is_TupleLike, is_Union, is_VarTuple)
 from zuper_typing.my_dict import (get_CustomDict_args, get_DictLike_args, get_ListLike_arg, get_SetLike_arg,
                                   is_CustomDict, is_DictLike, is_ListLike, is_SetLike)
 from .assorted_recursive_type_subst import resolve_all
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
-from .numpy_encoding import ipce_from_numpy_array
 from .structures import FakeValues
 from .types import IPCE
 from .utils_text import get_sha256_base58
@@ -73,18 +73,9 @@ def ipce_from_object_(ob,
     if isinstance(ob, tuple):
         return ipce_from_object_tuple(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
 
-    from .conv_ipce_from_typelike import (ipce_from_typelike_slice, ipce_from_typelike,
-                                          ipce_from_typelike_ndarray)
+    from .conv_ipce_from_typelike import (ipce_from_typelike)
     if isinstance(ob, slice):
-        res = {
-              'start': ob.start,
-              'step':  ob.step,
-              'stop':  ob.stop
-              }
-        if with_schema:
-            res[SCHEMA_ATT] = ipce_from_typelike_slice().schema
-        res = sorted_dict_with_cbor_ordering(res)
-        return res
+        return ipce_from_object_slice(ob, with_schema)
 
     if isinstance(ob, set):
         return ipce_from_object_set(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
@@ -101,10 +92,7 @@ def ipce_from_object_(ob,
         return ipce_from_typelike(ob, globals_, processing={})
 
     if isinstance(ob, np.ndarray):
-        res = ipce_from_numpy_array(ob)
-        if with_schema:
-            res[SCHEMA_ATT] = ipce_from_typelike_ndarray().schema
-        return res
+        return ipce_from_object_numpy(ob, with_schema)
 
     assert not isinstance(ob, type), ob
     if is_dataclass(ob):
@@ -113,13 +101,36 @@ def ipce_from_object_(ob,
     msg = f'I do not know a way to convert object of type {type(ob)} ({ob}).'
     raise NotImplementedError(msg)
 
+
+def ipce_from_object_numpy(ob, with_schema) -> IPCE:
+    from .numpy_encoding import ipce_from_numpy_array
+
+    res = ipce_from_numpy_array(ob)
+    if with_schema:
+        res[SCHEMA_ATT] = ipce_from_typelike_ndarray().schema
+    return res
+
+
+def ipce_from_object_slice(ob, with_schema):
+    from .conv_ipce_from_typelike import (ipce_from_typelike_slice)
+    res = {
+          'start': ob.start,
+          'step':  ob.step,
+          'stop':  ob.stop
+          }
+    if with_schema:
+        res[SCHEMA_ATT] = ipce_from_typelike_slice().schema
+    res = sorted_dict_with_cbor_ordering(res)
+    return res
+
+
 def ipce_from_object_union(ob, globals_, with_schema, suggest_type) -> IPCE:
     ts = get_Union_args(suggest_type)
     errors = []
     for Ti in ts:
         try:
-            return  ipce_from_object(ob, globals_=globals_, with_schema=with_schema,
-                                     suggest_type=Ti)
+            return ipce_from_object(ob, globals_=globals_, with_schema=with_schema,
+                                    suggest_type=Ti)
         except BaseException as e:
             errors.append((Ti, e))
 

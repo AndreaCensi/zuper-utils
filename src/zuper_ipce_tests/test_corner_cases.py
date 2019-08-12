@@ -213,7 +213,7 @@ def test_error_scalar1():
     a = 's'
     S = Union[int, bool]
     ipce = ipce_from_object(a, suggest_type=S)
-    
+
 
 
 @raises(TypeError)

@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Tuple, Type, TypeVar, cast
 import numpy as np
 
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_name_K_V,
-                                             get_FixedTuple_args, get_ForwardRef_arg, get_Optional_arg,
+                                             get_FixedTuple_args, get_Optional_arg,
                                              get_Sequence_arg, get_Set_name_V, get_Tuple_name, get_TypeVar_name,
                                              get_Type_arg, get_Union_args, get_VarTuple_arg, is_Any, is_Callable,
                                              is_ClassVar, is_FixedTuple, is_ForwardRef, is_Optional, is_Sequence,
@@ -28,7 +28,7 @@ from .constants import (ATT_PYTHON_NAME, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_
                         JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema,
                         ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
                         X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
-from .ipce_spec import sorted_dict_with_cbor_ordering
+from .ipce_spec import sorted_dict_with_cbor_ordering, assert_canonical_ipce
 from .pretty import pretty_dict
 from .schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
 from .schema_utils import make_ref, make_url
@@ -40,7 +40,9 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
         processing = {}
     c = IFTContext(globals0, processing, ())
     tr = ipce_from_typelike_tr(T, c)
-    return tr.schema
+    schema = tr.schema
+    assert_canonical_ipce(schema)
+    return schema
 
 
 from dataclasses import dataclass
@@ -258,9 +260,6 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
     # we have a special case for dataclass
 
     if is_ForwardRef(T):  # pragma: no cover
-        arg = get_ForwardRef_arg(T)
-        # if arg == MemoryJSON.__name__:
-        #     return type_to_schema_(MemoryJSON, globals_, processing)
         msg = f'It is not supported to have an ForwardRef here yet: {T}'
         raise ValueError(msg)
 
@@ -268,7 +267,6 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         msg = f'It is not supported to have a string here: {T!r}'
         raise ValueError(msg)
 
-    # pprint('type_to_schema_', T=T)
     if T is str:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID})
         res = sorted_dict_with_cbor_ordering(res)
@@ -353,7 +351,6 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
 
     assert isinstance(T, type), T
 
-
     if is_dataclass(T):
         return ipce_from_typelike_dataclass(T, c)
 
@@ -370,11 +367,13 @@ def ipce_from_typelike_ndarray() -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_NUMPY
-    res[JSC_PROPERTIES] = {
+    properties = {
           'shape': {},  # TODO
           'dtype': {},  # TODO
           'data':  SCHEMA_BYTES
           }
+    properties = sorted_dict_with_cbor_ordering(properties)
+    res[JSC_PROPERTIES] = properties
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res)
 
@@ -517,7 +516,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
             schema = f(bound)
             schema = copy.copy(schema)
             schema[ID_ATT] = url
-
+            schema = sorted_dict_with_cbor_ordering(schema)
             definitions[t2.__name__] = schema
 
             c.globals_[t2.__name__] = t2
@@ -562,9 +561,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                             schema = make_ref(ref)
                             classvars[name] = schema
                             used.update({tn: ref})
-
                             classatts[name] = f(type)
-                            # return TRE(schema,)
                         else:
                             msg = f'Unknown typevar {tn} in class {T}; processing = {c.processing}'
                             raise NotImplementedError(msg)
@@ -575,7 +572,6 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         if hasattr(T, name):
                             # special case
                             the_att = getattr(T, name)
-
                             if isinstance(the_att, type):
                                 classatts[name] = f(the_att)
                             else:
@@ -610,6 +606,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                 # properties[name] = result.tre.schema
 
                 has_default = not isinstance(afield.default, dataclasses._MISSING_TYPE)
+                # original_order.append(name)
+
                 if has_default:
                     # logger.info(f'default for {name} is {afield.default}')
                     default = afield.default
@@ -622,19 +620,6 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                     if not optional:
                         required.append(name)
 
-                # else:
-                #     result = eval_field(t, c.globals_, c.processing)
-                #     if not result.optional:
-                #         required.append(name)
-                #     # result.schema['qui'] = 1
-                #     properties[name] = result.tre.schema
-                #     used.update(result.tre.used)
-                #
-                #     if not result.optional:
-                #         if not isinstance(afield.default, dataclasses._MISSING_TYPE):
-                #             # logger.info(f'default for {name} is {afield.default}')
-                #             properties[name] = copy.copy(properties[name])
-                #             properties[name]['default'] = ipce_from_object(afield.default, c.globals_)
 
         except BaseException as e:
             msg = f'Cannot write schema for attribute {name} -> {t} of type {T.__name__}'

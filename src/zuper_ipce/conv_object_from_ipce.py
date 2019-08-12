@@ -140,22 +140,6 @@ def object_from_ipce_(mj: IPCE,
     if K is slice:
         return object_from_ipce_slice(mj)
 
-    # if is_Union(K):
-    #     errors = []
-    #     ts = get_Union_args(K)
-    #     for T in ts:
-    #         try:
-    #             return object_from_ipce(mj,
-    #                                     global_symbols,
-    #                                     encountered,
-    #                                     expect_type=T)
-    #         except PASS_THROUGH:
-    #             raise
-    #         except BaseException as e:
-    #             errors.append(e)
-    #     msg = f'Cannot deserialize with any of {ts}'
-    #     msg += '\n'.join(str(e) for e in errors)
-    #     raise TypeError(msg)
 
     if is_Any(K):
         if looks_like_set(mj):
@@ -274,16 +258,11 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
     # assert  isinstance(K, type), K
     global_symbols = dict(global_symbols)
     global_symbols[K.__name__] = K
-    # logger.debug(global_symbols)
+
     from  .conv_typelike_from_ipce import typelike_from_ipce
-    # logger.debug(f'Deserializing object of type {K}')
-    # logger.debug(f'mj: \n' + json.dumps(mj, indent=2))
-    # some data classes might have no annotations ("Empty")
+
     anns = getattr(K, '__annotations__', {})
-    if not anns:
-        pass
-        # logger.warning(f'No annotations for class {K}')
-    # pprint(f'annotations: {anns}')
+
     attrs = {}
     hints = mj.get(HINTS_ATT, {})
     # logger.info(f'hints for {K.__name__} = {hints}')
@@ -304,13 +283,10 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 
             if k in hints:
                 expect_type = typelike_from_ipce(hints[k], global_symbols, encountered)
-                # logger.info(f'hint for member {k} is {expect_type} of {K.__name__}')
-            # else:
-            # logger.info(f'no hint for member {k} of {K.__name__}')
+
             try:
                 attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
-            # except PASS_THROUGH:
-            #     raise
+
             except BaseException as e:
                 msg = f'Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})'
                 msg += f'\n annotations of class {K.__name__} = {K.__annotations__}'
