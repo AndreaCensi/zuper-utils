@@ -1,7 +1,7 @@
 import typing
 from dataclasses import fields
 from numbers import Number
-from typing import Generic
+
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -11,7 +11,7 @@ from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
-from zuper_typing import dataclass
+from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type
 from zuper_typing.constants import enable_type_checking
 from zuper_typing.subcheck import can_be_used_as2

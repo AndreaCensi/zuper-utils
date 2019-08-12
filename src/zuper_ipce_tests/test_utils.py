@@ -83,7 +83,7 @@ class NotEquivalent(ValueError):
 
 
 def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
-    debug(f'equivalent', T1=T1, T2=T2)
+    # debug(f'equivalent', T1=T1, T2=T2)
     key = (id(T1), id(T2))
     if key in assume_yes:
         return
@@ -92,7 +92,7 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
     try:
         # print(f'assert_equivalent_types({T1},{T2})')
         if T1 is T2:
-            logger.debug('same by equality')
+            # logger.debug('same by equality')
             return
         # if hasattr(T1, '__dict__'):
         #     debug('comparing',
@@ -104,7 +104,8 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
         # if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
 
         if is_dataclass(T1):
-            assert is_dataclass(T2)
+            if not is_dataclass(T2):
+                raise NotEquivalent((T1, T2))
 
             for k in ['__name__', '__module__', '__doc__']:
                 msg = f'Difference for {k} of {T1} ({type(T1)}) and {T2} ({type(T2)}'
@@ -188,49 +189,60 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
         #             if m1 is T1 or m2 is T2: continue
         #             assert_equivalent_types(m1, m2, assume_yes=set())
         elif is_ClassVar(T1):
-            assert is_ClassVar(T2)
+            if not is_ClassVar(T2):
+                raise NotEquivalent((T1, T2))
             t1 = get_ClassVar_arg(T1)
             t2 = get_ClassVar_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_Optional(T1):
-            assert is_Optional(T2)
+            if not is_Optional(T2):
+                raise NotEquivalent((T1, T2))
             t1 = get_Optional_arg(T1)
             t2 = get_Optional_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_Union(T1):
-            assert is_Union(T2)
+            if not is_Union(T2):
+                raise NotEquivalent((T1, T2))
             ts1 = get_Union_args(T1)
             ts2 = get_Union_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
         elif is_FixedTuple(T1):
-            assert is_FixedTuple(T2)
+            if not is_FixedTuple(T2):
+                raise NotEquivalent((T1, T2))
             ts1 = get_FixedTuple_args(T1)
             ts2 = get_FixedTuple_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
         elif is_VarTuple(T1):
-            assert is_VarTuple(T2)
+            if not is_VarTuple(T2):
+                raise NotEquivalent((T1, T2))
             t1 = get_VarTuple_arg(T1)
             t2 = get_VarTuple_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_SetLike(T1):
-            assert is_SetLike(T2)
+            if not is_SetLike(T2):
+                raise NotEquivalent((T1, T2))
             t1 = get_SetLike_arg(T1)
             t2 = get_SetLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_ListLike(T1):
-            assert is_ListLike(T2)
+            if not is_ListLike(T2):
+                raise NotEquivalent((T1, T2))
             t1 = get_ListLike_arg(T1)
             t2 = get_ListLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_DictLike(T1):
-            assert is_DictLike(T2)
+            if not is_DictLike(T2):
+                raise NotEquivalent((T1, T2))
             t1, u1 = get_DictLike_args(T1)
             t2, u2 = get_DictLike_args(T2)
             assert_equivalent_types(t1, t2, assume_yes)
             assert_equivalent_types(u1, u2, assume_yes)
-        elif T1 in (int, str, bool, Decimal, datetime, float):
+        elif is_Any(T1):
+            if not is_Any(T2):
+                raise NotEquivalent((T1, T2))
+        elif T1 in (int, str, bool, Decimal, datetime, float, type):
             if T1 != T2:
                 raise NotEquivalent((T1, T2))
         else:
