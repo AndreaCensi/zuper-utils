@@ -1,11 +1,12 @@
-from typing import Dict, ForwardRef, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from zuper_commons.text import pretty_dict
+from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
 from zuper_ipce_tests.test_utils import assert_equivalent_types
 from zuper_typing import dataclass
 from zuper_typing.my_dict import make_dict, make_list, make_set
-from zuper_ipce import logger
+
 
 def test_rec1():
     @dataclass
@@ -20,7 +21,6 @@ def test_rec1():
         h: make_list(int)
         i: Optional[int]
         l: Tuple[int, ...]
-
 
     def swap(x):
         if x is int:
