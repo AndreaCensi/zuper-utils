@@ -46,11 +46,9 @@ jobs:
           command: |
             make test-parallel-circle
             
+      - store_test_results:
+          path: test-results
 
-      - run:
-          name: CodeCov
-          command: |
-            codecov
 
       - store_artifacts:
           path: cover
@@ -59,6 +57,11 @@ jobs:
       - store_artifacts:
           path: notebooks
           destination: notebooks
+      - run:
+          name: CodeCov
+          command: |
+            codecov
+
 
 
   test-3.7:
