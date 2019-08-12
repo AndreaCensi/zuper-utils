@@ -20,7 +20,7 @@ def test_rec1():
         h: make_list(int)
         i: Optional[int]
         l: Tuple[int, ...]
-        
+
 
     def swap(x):
         if x is int:
