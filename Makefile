@@ -1,24 +1,42 @@
-comptest_package=zuper_json
+
 coverage_include='*src/zuper_*'
 coveralls_repo_token=5eha7C63Y0403x9LRaGscdqQet7yC3WoR
 
+cover_packages=zuper_typing,zuper_typing_tests,zuper_ipce,zuper_ipce_tests
 
-all: test-zuper-utils
+parallel=--processes=8 --process-timeout=1000 --process-restartworker
+coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
 
-test-zuper-utils:
+xunitmp=--with-xunitmp --xunitmp-file=test-results/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
+
+
+all: test
+
+
+
+test:
 	rm -f .coverage
 	rm -rf cover
-	nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_typing_tests,zuper_ipce,zuper_ipce_tests zuper_typing zuper_typing_tests zuper_ipce_tests -v
-	#nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_json zuper_typing 	   -v
+	nosetests $(coverage) $(xunitmp) src  -v
 
-
-
-test-zuper-utils-interrupt:
+test-parallel:
 	rm -f .coverage
 	rm -rf cover
-	nosetests -x --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_typing_tests,zuper_ipce,zuper_ipce_tests zuper_typing zuper_typing_tests zuper_ipce_tests -v
-	#nosetests --cover-html --cover-tests --with-coverage --cover-package=zuper_typing,zuper_json zuper_typing 	   -v
+	nosetests $(coverage) src  -v  $(parallel)
 
+test-parallel-failed:
+	rm -f .coverage
+	rm -rf cover
+	nosetests   $(coverage) src  -v  $(parallel)
+
+test-parallel-circle:
+	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests --with-parallel $(coverage) $(xunitmp) src  -v  $(parallel)
+# 2>&1 | grep -v module-not-measured
+
+test-failed:
+	rm -f .coverage
+	rm -rf cover
+	nosetests --with-id --failed $(coverage) src  -v
 
 
 

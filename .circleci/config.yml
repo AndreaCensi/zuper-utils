@@ -44,8 +44,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-
-            make
+            make test-parallel-circle
             
 
       - run:
