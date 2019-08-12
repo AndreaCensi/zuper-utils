@@ -383,9 +383,9 @@ def test_more3():
     C = MyClass[int, str]
     assert_type_roundtrip(C, {})
     # print(f'Annotations for C: {C.__annotations__}')
-    assert_equal(C.__annotations__['XT'], ClassVar[Type[int]])
+    assert_equal(C.__annotations__['XT'], ClassVar[type])
     assert_equal(C.XT, int)
-    assert_equal(C.__annotations__['YT'], ClassVar[Type[str]])
+    assert_equal(C.__annotations__['YT'], ClassVar[type])
     assert_equal(C.YT, str)
 
     schema = ipce_from_typelike(C, {})

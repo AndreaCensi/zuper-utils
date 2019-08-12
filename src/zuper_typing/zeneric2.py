@@ -333,6 +333,7 @@ else:
 
 def make_type(cls: type, bindings: B) -> type:
     assert not is_NewType(cls)
+    logger.info(f'make_type ({cls}) {bindings}')
     # print(f'make_type for {cls.__name__}')
     # rl.p(f'make_type for {cls.__name__}')
     # rl.p(f'  dataclass {is_dataclass(cls)}')
@@ -411,25 +412,31 @@ def make_type(cls: type, bindings: B) -> type:
     # pprint(f'symbols', **symbols)
 
     new_annotations = {}
+    other_attrs = {}
 
+    logger.info(f'annotations ({annotations}) ')
     for k, v0 in annotations.items():
-
         v = replace_typevars(v0, bindings=bindings, symbols=symbols)
+
         # print(f'{v0!r} -> {v!r}')
         if is_ClassVar(v):
             s = get_ClassVar_arg(v)
-            # s = eval_type(s, bindings, symbols)
+
             if is_Type(s):
                 st = get_Type_arg(s)
-                # concrete = eval_type(st, bindings, symbols)
-                concrete = st
-                new_annotations[k] = ClassVar[Type[st]]
+                concrete = replace_typevars(st, bindings=bindings, symbols=symbols)
+                logger.info(f'is_Type ({s}) -> {concrete}')
+                # concrete = st
+                new_annotations[k] = ClassVar[type]
                 setattr(cls2, k, concrete)
             else:
-                new_annotations[k] = ClassVar[s]
+                s2 = replace_typevars(s, bindings=bindings, symbols=symbols)
+                new_annotations[k] = ClassVar[s2]
         else:
+
             new_annotations[k] = v
 
+    logger.info(f'new_annotations {new_annotations}')
     # pprint('  new annotations', **new_annotations)
     original__post_init__ = getattr(cls, '__post_init__', None)
 

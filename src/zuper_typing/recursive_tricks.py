@@ -31,11 +31,9 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
     already = already or {}
 
     if cls is type:
-        return cls
+        return type
 
     if id(cls) in already:
-        # rl.p('cached')
-        # XXX
         return already[id(cls)]
 
     elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
@@ -73,6 +71,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
         if x == r:
             return cls
         return Type[r]
+        # return type
     elif is_DictLike(cls):
         K0, V0 = get_DictLike_args(cls)
         K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols)

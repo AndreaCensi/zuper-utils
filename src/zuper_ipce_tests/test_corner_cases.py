@@ -1,15 +1,15 @@
-from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, NewType, Optional, Sequence, Type, TypeVar, Union
+from zuper_typing import dataclass
+from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Type, TypeVar, Union
 
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce.constants import check_types
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
-from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
+from zuper_ipce_tests.test_utils import (NotEquivalent, assert_equivalent_types, assert_object_roundtrip,
+                                         assert_type_roundtrip)
 from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
                                              is_Type, name_for_type_like)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
@@ -63,7 +63,6 @@ def test_not_know():
         pass
 
     ipce_from_object(C(), {}, {})
-
 
 
 @raises(TypeError)
@@ -215,7 +214,6 @@ def test_error_scalar1():
     ipce = ipce_from_object(a, suggest_type=S)
 
 
-
 @raises(TypeError)
 def test_error_scalar2():
     a = 's'
@@ -305,3 +303,135 @@ def test_sequence():
     ipce1 = ipce_from_typelike(a, {}, {})
     ipce2 = ipce_from_typelike(b, {}, {})
     assert ipce1 == ipce2
+
+
+def test_union1():
+    @dataclass
+    class MyCD3:
+        a: Union[int, bool]
+
+    assert_type_roundtrip(MyCD3, {})
+
+    assert_object_roundtrip(MyCD3, {})
+
+
+def make_class(tl):
+    @dataclass
+    class MyCD4:
+        a: tl
+
+    # MyCD4.__name__ = MyCD4.__qualname__ = 'TestClass' + str(tl)
+    return MyCD4
+
+
+def make_class_default(tl, default):
+    @dataclass
+    class MyCD4:
+        a: tl = default
+
+    # MyCD4.__name__ = MyCD4.__qualname__ = 'TestClass' + str(tl)
+    return MyCD4
+
+
+@raises(NotEquivalent)
+def test_not_equal1():
+    T1 = Union[int, bool]
+    T2 = Union[int, str]
+    A = make_class(T1)
+    B = make_class(T2)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal2():
+    T1 = Dict[int, bool]
+    T2 = Dict[int, str]
+    A = make_class(T1)
+    B = make_class(T2)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal3():
+    T1 = Dict[str, bool]
+    T2 = Dict[int, bool]
+    A = make_class(T1)
+    B = make_class(T2)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal4():
+    T1 = Set[str]
+    T2 = Set[int]
+    A = make_class(T1)
+    B = make_class(T2)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal5():
+    T1 = List[str]
+    T2 = List[int]
+    A = make_class(T1)
+    B = make_class(T2)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal6():
+    T1 = ClassVar[str]
+    T2 = ClassVar[int]
+    A = make_class(T1)
+    B = make_class(T2)
+    print(A.__annotations__)
+    print(B.__annotations__)
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal7():
+    T1 = ClassVar[str]
+    T2 = ClassVar[int]
+    assert_equivalent_types(T1, T2, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal8():
+    T = bool
+    A = make_class_default(T, True)
+    B = make_class_default(T, False)
+
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal9():
+    T = Optional[bool]
+    A = make_class_default(T, True)
+    B = make_class_default(T, False)
+
+    assert_equivalent_types(A, B, set())
+
+
+@raises(NotEquivalent)
+def test_not_equal10():
+    T = Optional[bool]
+    A = make_class_default(T, None)
+    B = make_class_default(T, False)
+
+    assert_equivalent_types(A, B, set())
+
+
+def test_type():
+
+    X = TypeVar('X')
+
+    @dataclass
+    class MyClass(Generic[X]):
+        a: X
+        XT: ClassVar[Type[X]]
+
+    MyClassInt = MyClass[int]
+    print(MyClassInt.__annotations__)
+    assert_equal(MyClassInt.XT, int)
