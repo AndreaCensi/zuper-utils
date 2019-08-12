@@ -3,13 +3,14 @@ from typing import cast
 
 import cbor2
 
-from zuper_ipce.constants import JSONSchema, REF_ATT
+from .constants import JSONSchema, REF_ATT
 
 
 def schema_hash(k):
     ob_cbor = cbor2.dumps(k)
     ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
     return ob_cbor_hash
+
 
 #
 # def get_all_refs(schema):

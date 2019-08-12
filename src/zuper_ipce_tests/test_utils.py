@@ -21,9 +21,8 @@ import cbor2 as cbor
 import yaml
 from nose.tools import assert_equal
 
-from zuper_typing.zeneric2 import RecLogger
 from zuper_ipce import logger
-from zuper_typing.annotations_tricks import is_Dict
+from zuper_typing.annotations_tricks import is_Dict, is_Optional, get_Optional_arg
 
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
@@ -35,7 +34,7 @@ from zuper_ipce.pretty import pretty_dict
 
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # assert T is not None
-    rl = RecLogger()
+    # rl = RecLogger()
     # resolve_types(T)
     schema0 = ipce_from_typelike(T, use_globals)
 
@@ -50,10 +49,10 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     #     assert hasattr(T, '__qualname__')
     #     assert T2.__qualname__ == T.__qualname__, (T2.__qualname__, T.__qualname__)
 
-    if False:
-        rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
-        rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
-        rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
+    # if False:
+    #     rl.pp('\n\nschema', schema=json.dumps(schema, indent=2))
+    #     rl.pp(f"\n\nT ({T})  the original one", **getattr(T, '__dict__', {}))
+    #     rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
 
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
@@ -68,7 +67,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         msg = 'Different schemas'
         d = {
               'T':  T, 'T.qual': T.__qualname__, 'TAnn': T.__annotations__, 'Td': T.__dict__, 'schema': schema0,
-              'T2': T2, 'T2.qual': T2.__qualname__,'TAnn2': T2.__annotations__, 'Td2': T2.__dict__,  'schema2': schema2
+              'T2': T2, 'T2.qual': T2.__qualname__, 'TAnn2': T2.__annotations__, 'Td2': T2.__dict__, 'schema2': schema2
               }
         msg = pretty_dict(msg, d)
         # print(msg)
@@ -85,33 +84,42 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
 from zuper_typing.constants import PYTHON_36
 
 
-def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
+def debug(s, **kwargs):
+    ss = pretty_dict(s, kwargs)
+    logger.debug(ss)
+
+
+def assert_equivalent_types(T1: type, T2: type, assume_yes: set):
     key = (id(T1), id(T2))
     if key in assume_yes:
         return
     assume_yes = set(assume_yes)
     assume_yes.add(key)
-    rl = rl or RecLogger()
     try:
         # print(f'assert_equivalent_types({T1},{T2})')
         if T1 is T2:
-            rl.p('same by equality')
+            logger.debug('same by equality')
             return
         if hasattr(T1, '__dict__'):
-            rl.pp('comparing',
+            debug('comparing',
                   T1=f'{T1!r}',
                   T2=f'{T2!r}',
-
                   T1_dict=T1.__dict__, T2_dict=T2.__dict__)
 
         # for these builtin we cannot set/get the attrs
-        if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
-            for k in ['__name__', '__module__', '__doc__']:
-                msg = f'Difference for {k} of {T1} ({type(T1)} and {T2} ({type(T2)}'
-                assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
+        # if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
 
+
+        if is_Optional(T1) and is_Optional(T2):
+            t1 = get_Optional_arg(T1)
+            t2 = get_Optional_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
         if is_dataclass(T1):
             assert is_dataclass(T2)
+
+            for k in ['__name__', '__module__', '__doc__']:
+                msg = f'Difference for {k} of {T1} ({type(T1)}) and {T2} ({type(T2)}'
+                assert_equal(getattr(T1, k, ()), getattr(T2, k, ()), msg=msg)
 
             # noinspection PyDataclass
             fields1 = fields(T1)
@@ -128,7 +136,7 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
             for k in fields1:
                 t1 = fields1[k].type
                 t2 = fields2[k].type
-                rl.pp(f'checking the fields {k}',
+                debug(f'checking the fields {k}',
                       t1=f'{t1!r}',
                       t2=f'{t2!r}',
                       t1_ann=f'{T1.__annotations__[k]!r}',
@@ -142,6 +150,8 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
                     msg += f'\n t2 = {t2!r}'
                     msg += f'\n t1_ann = {T1.__annotations__[k]!r}'
                     msg += f'\n t2_ann = {T2.__annotations__[k]!r}'
+                    msg += f'\n t1_attribute = {getattr(T1, k, "no attribute")!r}'
+                    msg += f'\n t2_attribute = {getattr(T2, k, "no attribute")!r}'
                     raise Exception(msg) from e
 
         # for k in ['__annotations__']:
@@ -162,7 +172,7 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set, rl=None):
         else:
             if isinstance(T1, typing._GenericAlias):
                 # noinspection PyUnresolvedReferences
-                if not is_Dict(T1):
+                if not is_Dict(T1) and not is_Optional(T1):
                     # noinspection PyUnresolvedReferences
                     for z1, z2 in zip(T1.__args__, T2.__args__):
                         assert_equivalent_types(z1, z2, assume_yes=assume_yes)
@@ -181,7 +191,8 @@ def save_object(x: object, ipce: object):
         import zuper_ipcl
     except:
         return
-
+    print(f'saving {x}')
+    x2 = object_from_ipce(ipce, {}, {})
     ipce_bytes = cbor2.dumps(ipce, canonical=True, value_sharing=True)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
     from zuper_ipcl.debug_print_ import debug_print
@@ -198,8 +209,8 @@ def save_object(x: object, ipce: object):
         # fn = os.path.join(dn, digest + '.ipce.yaml')
         # write_ustring_to_utf8_file(yaml.dump(y1), fn)
         fn = os.path.join(dn, digest + '.object.ansi')
-        s = debug_print(x) #'\n\n as ipce: \n\n' + debug_print(ipce) \
-        s+= '\n\n as YAML: \n\n' + yaml.dump(ipce)
+        s = debug_print(x)  # '\n\n as ipce: \n\n' + debug_print(ipce) \
+        s += '\n\n as YAML: \n\n' + yaml.dump(ipce)
         write_ustring_to_utf8_file(s, fn)
 
 
@@ -341,10 +352,10 @@ def test_testing2():
 
     def get2():
         @dataclass
-        class C1:
+        class C2:
             A: float
 
-        return C1
+        return C2
 
     try:
         assert_equivalent_types(get1(), get2(), set())

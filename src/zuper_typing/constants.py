@@ -9,3 +9,8 @@ INTERSECTION_ATT = '__intersection__'
 GENERIC_ATT2 = '__generic2__'
 BINDINGS_ATT = '__binding__'
 enable_type_checking = False
+cache_enabled = True
+
+
+class MakeTypeCache:
+    cache = {}

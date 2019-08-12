@@ -66,7 +66,7 @@ SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
                                SCHEMA_ATT: SCHEMA_ID})
 
 USE_REMEMBERED_CLASSES = True
-PASS_THROUGH = (KeyboardInterrupt, RecursionError)
+# PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
 
 use_ipce_from_typelike_cache = True
 check_types = False

@@ -23,22 +23,22 @@ def create_tree(nlevels, branching, x) -> Tree:
 
     return Tree(x, branches)
 
-
-@dataclass
-class TreeDict:
-    data: int
-    branches: 'Dict[str, TreeDict]'
-
-
-def create_tree_dict(nlevels, branching, x) -> TreeDict:
-    if nlevels == 0:
-        branches = {}
-    else:
-        branches = {}
-        for i in range(branching):
-            branches[str(i)] = create_tree_dict(nlevels - 1, branching, x * (branching + 1) + i + 1)
-
-    return TreeDict(x, branches)
+#
+# @dataclass
+# class TreeDict:
+#     data: int
+#     branches: 'Dict[str, TreeDict]'
+#
+#
+# def create_tree_dict(nlevels, branching, x) -> TreeDict:
+#     if nlevels == 0:
+#         branches = {}
+#     else:
+#         branches = {}
+#         for i in range(branching):
+#             branches[str(i)] = create_tree_dict(nlevels - 1, branching, x * (branching + 1) + i + 1)
+#
+#     return TreeDict(x, branches)
 
 
 @dataclass

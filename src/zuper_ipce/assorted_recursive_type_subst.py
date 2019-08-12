@@ -1,16 +1,15 @@
 from dataclasses import is_dataclass
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # from zuper_ipce.conv_ipce_from_typelike import (eval_field)
-from zuper_ipce.conv_ipce_from_typelike import eval_just_string
-from zuper_typing.annotations_tricks import (is_ForwardRef, get_ForwardRef_arg, is_Optional, get_Optional_arg,
-                                             is_TupleLike, is_Union, get_Union_args, make_Union, is_VarTuple,
-                                             get_VarTuple_arg, is_FixedTuple, get_FixedTuple_args, make_Tuple, is_Dict,
-                                             get_Dict_args, is_List, get_List_arg, is_Set, get_Set_arg)
+# from zuper_ipce.conv_ipce_from_typelike import eval_just_string
+from zuper_typing.annotations_tricks import (get_Dict_args, get_FixedTuple_args, get_List_arg, get_Optional_arg,
+                                             get_Set_arg, get_Union_args, get_VarTuple_arg, is_Dict, is_FixedTuple,
+                                             is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Union,
+                                             is_VarTuple, make_Tuple, make_Union)
 from zuper_typing.monkey_patching_typing import my_dataclass
-from zuper_typing.my_dict import (is_CustomDict, get_CustomDict_args, make_dict,
-                                  is_CustomList, get_CustomList_arg, make_list, make_set, is_CustomSet,
-                                  get_CustomSet_arg)
+from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
+                                  is_CustomList, is_CustomSet, make_dict, make_list, make_set)
 
 
 def resolve_all(T, globals_):
@@ -23,13 +22,13 @@ def resolve_all(T, globals_):
     if isinstance(T, type):
         return T
 
-    if isinstance(T, str):
-        T = eval_just_string(T, globals_)
-        return T
-
-    if is_ForwardRef(T):
-        tn = get_ForwardRef_arg(T)
-        return resolve_all(tn, globals_)
+    # if isinstance(T, str):
+    #     T = eval_just_string(T, globals_)
+    #     return T
+    #
+    # if is_ForwardRef(T):
+    #     tn = get_ForwardRef_arg(T)
+    #     return resolve_all(tn, globals_)
 
     if is_Optional(T):
         t = get_Optional_arg(T)
@@ -127,7 +126,7 @@ def recursive_type_subst(T, f, ignore=()):
               '__annotations__': annotations2,
               '__module__':      T.__module__,
               '__doc__':         getattr(T, '__doc__', None),
-              '__qualname__': getattr(T, '__qualname__')
+              '__qualname__':    getattr(T, '__qualname__')
               }))
 
         # from zuper_ipcl.debug_print_ import debug_print
@@ -137,5 +136,3 @@ def recursive_type_subst(T, f, ignore=()):
 
     else:
         return f(T)
-
-

@@ -8,24 +8,24 @@ from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple
 import numpy as np
 
 from zuper_commons.types import check_isinstance
-from zuper_ipce import logger
-from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
-from zuper_ipce.constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, ID_ATT, JSC_ADDITIONAL_PROPERTIES,
-                                  JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT, JSC_DEFINITIONS,
-                                  JSC_DESCRIPTION, JSC_INTEGER, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES,
-                                  JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE,
-                                  JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY,
-                                  JSC_TITLE_SLICE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID,
-                                  X_CLASSATTS, X_CLASSVARS, X_PYTHON_MODULE_ATT, X_ORDER)
-from zuper_ipce.pretty import pretty_dict
-from zuper_ipce.structures import CannotFindSchemaReference
-from zuper_ipce.types import TypeLike
 from zuper_typing.annotations_tricks import (get_ForwardRef_arg, is_Any, is_ForwardRef, make_Tuple, make_Union,
                                              make_VarTuple)
 from zuper_typing.constants import PYTHON_36
 from zuper_typing.monkey_patching_typing import MyNamedArg, get_remembered_class, remember_created_class
 from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection
+from . import logger
+from .assorted_recursive_type_subst import recursive_type_subst
+from .constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, ID_ATT, JSC_ADDITIONAL_PROPERTIES,
+                        JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT, JSC_DEFINITIONS,
+                        JSC_DESCRIPTION, JSC_INTEGER, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES,
+                        JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE,
+                        JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY,
+                        JSC_TITLE_SLICE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID,
+                        X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT)
+from .pretty import pretty_dict
+from .structures import CannotFindSchemaReference
+from .types import TypeLike
 
 
 @dataclass
@@ -44,7 +44,6 @@ def typelike_from_ipce(schema0: JSONSchema,
 def typelike_from_ipce_sr(schema0: JSONSchema,
                           global_symbols: Dict,
                           encountered: Dict) -> SRE:
-
     try:
         sre = typelike_from_ipce_sr_(schema0, global_symbols, encountered)
         assert isinstance(sre, SRE), (schema0, sre)
@@ -348,15 +347,15 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     fields = []  # (name, type, Field)
 
-
     names = res.get(X_ORDER, list(properties))
     # assert_equal(set(names), set(properties), msg=yaml.dump(res))
     # else:
     #     names = list(properties)
     #
 
-    from zuper_ipce.conv_object_from_ipce import object_from_ipce
+    from .conv_object_from_ipce import object_from_ipce
     # logger.info(f'reading {cls_name} names {names}')
+    other_set_attr = {}
     for pname in names:
         if pname in properties:
 
@@ -372,7 +371,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             if JSC_DEFAULT in v:
                 default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
                 _Field.default = default_value
-
+                other_set_attr[pname] = default_value
             fields.append((pname, ptype, _Field))
         elif pname in classvars:
             v = classvars[pname]
@@ -409,14 +408,15 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         raise
 
     fix_annotations_with_self_reference(T, cls_name, Placeholder)
-    from zuper_ipce.conv_object_from_ipce import object_from_ipce
+    from .conv_object_from_ipce import object_from_ipce
     for pname, v in classatts.items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
             interpreted = f(cast(JSONSchema, v))
         else:
             interpreted = object_from_ipce(v, global_symbols)
         setattr(T, pname, interpreted)
-
+    for k, v in other_set_attr.items():
+        setattr(T, k, v)
     if JSC_DESCRIPTION in res:
         setattr(T, '__doc__', res[JSC_DESCRIPTION])
     else:
@@ -438,6 +438,40 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     return SRE(T, used)
 
+
+def fix_annotations_with_self_reference(T, cls_name, Placeholder):
+    # print('fix_annotations_with_self_reference')
+    # logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
+    # logger.info(f'encountered: {encountered}')
+    # logger.info(f'global_symbols: {global_symbols}')
+
+    def f(M):
+        if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
+            return T
+        elif M == Placeholder:
+            return T
+        elif is_ForwardRef(M):
+            arg = get_ForwardRef_arg(M)
+            if arg == cls_name:
+                return T
+            else:
+                return M
+        else:
+            return M
+
+    f.__name__ = f'replacer_for_{cls_name}'
+
+    anns2 = {}
+
+    anns: dict = T.__annotations__
+    for k, v0 in anns.items():
+        v = recursive_type_subst(v0, f)
+
+        anns2[k] = v
+    T.__annotations__ = anns2
+
+    for f in dataclasses.fields(T):
+        f.type = T.__annotations__[f.name]
 
 #
 # @loglevel
@@ -516,61 +550,3 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 #     if X_PYTHON_MODULE_ATT in res:
 #         setattr(T, '__module__', res[X_PYTHON_MODULE_ATT])
 #     return T
-def fix_annotations_with_self_reference(T, cls_name, Placeholder):
-    # print('fix_annotations_with_self_reference')
-    # logger.info(f'fix_annotations_with_self_reference {cls_name}, placeholder: {Placeholder}')
-    # logger.info(f'encountered: {encountered}')
-    # logger.info(f'global_symbols: {global_symbols}')
-
-    def f(M):
-        # print((M, Placeholder, M is Placeholder, M == Placeholder, id(M), id(Placeholder)))
-        if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
-            return T
-        elif M == Placeholder:
-            return T
-        elif is_ForwardRef(M):
-            arg = get_ForwardRef_arg(M)
-            if arg == cls_name:
-                return T
-            else:
-                return M
-        else:
-            return M
-
-    f.__name__ = f'replacer_for_{cls_name}'
-    # def f2(M):
-    #     # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} ')
-    #     r = f(M)
-    #     # if is_dataclass(M):
-    #
-    #     if is_dataclass(M):
-    #         d0 = getattr(M, '__doc__', 'NO DOC')
-    #         d1 = getattr(r, '__doc__', 'NO DOC')
-    #     else:
-    #         d0 = d1 = None
-    #     # logger.info(f'f2 for {cls_name}: M = {M} -> {r}')
-    #     # print(f'fix_annotation({T}, {cls_name}, {Placeholder})  {M} {d0!r} -> {r} {d1!r}')
-    #     return r
-
-    # from zuper_ipcl.debug_print_ import  debug_print
-
-    anns2 = {}
-
-    anns: dict = T.__annotations__
-    for k, v0 in anns.items():
-        v = recursive_type_subst(v0, f)
-        # d = debug_print(dict(v0=v0, v=v))
-        # logger.info(f'annotation for {cls_name} ({Placeholder.__name__}) argument {k}\n{d}')
-        anns2[k] = v
-    T.__annotations__ = anns2
-    # s = debug_print(v)
-    # if Placeholder.__name__ in s:
-    #     raise ValueError(s)
-    # d0 = getattr(v0, '__doc__', 'NO DOC')
-    # d1 = getattr(v, '__doc__', 'NO DOC')
-    # assert_equal(d0, d1)
-
-    for f in dataclasses.fields(T):
-        f.type = T.__annotations__[f.name]
-
-    # logger.info(pretty_dict(f'annotations resolved for {T} ({Placeholder})', T.__annotations__))

@@ -1,18 +1,17 @@
 from dataclasses import dataclass
-from typing import Any, Generic, NewType, Optional, TypeVar, Union, Type
+from typing import Any, Dict, Generic, NewType, Optional, Type, TypeVar, Union
 
 import yaml
 from nose.tools import assert_equal, raises
 
 from zuper_ipce.constants import check_types
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
-
 from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
-                                             name_for_type_like, is_Type)
+                                             is_Type, name_for_type_like)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
 
@@ -65,6 +64,7 @@ def test_not_know():
 
     ipce_from_object(C(), {}, {})
 
+
 if check_types:
     @raises(TypeError)
     def test_corner_cases07():
@@ -75,7 +75,6 @@ if check_types:
         can = can_be_used_as2(int, T, {})
         assert not can, can
         object_from_ipce(12, {}, expect_type=T)
-
 
 if check_types:
     @raises(TypeError)
@@ -186,3 +185,113 @@ a: true
 def test_Type1():
     T = Type[int]
     assert is_Type(T)
+
+
+@raises(TypeError)
+def test_error_list1():
+    a = [1, 2, 3]
+    S = int
+    ipce_from_object(a, suggest_type=S)
+
+
+@raises(TypeError)
+def test_error_list2():
+    a = [1, 2, 3]
+    S = Union[int, str]
+    ipce_from_object(a, suggest_type=S)
+
+
+@raises(TypeError)
+def test_error_list2():
+    a = [1, 2, 3]
+    S = Union[int, str]
+    object_from_ipce(a, {}, {}, expect_type=S)
+
+
+@raises(TypeError)
+def test_error_scalar1():
+    a = 's'
+    S = Union[int, bool]
+    ipce = ipce_from_object(a, suggest_type=S)
+    print(yaml.dump(ipce))
+
+@raises(TypeError)
+def test_error_scalar2():
+    a = 's'
+    S = Union[int, bool]
+    object_from_ipce(a, {}, {}, expect_type=S)
+
+
+def test_corner_optional():
+    a = {}
+    S = Optional[Dict[str, int]]
+    object_from_ipce(a, {}, {}, expect_type=S)
+
+
+@raises(TypeError)
+def test_corner_union():
+    a = {}
+    S = Union[str, int]
+    object_from_ipce(a, {}, {}, expect_type=S)
+
+
+@raises(TypeError)
+def test_corner_noclass():
+    a = {}
+
+    class S:
+        pass
+
+    object_from_ipce(a, {}, {}, expect_type=S)
+
+
+def test_classvars():
+    @dataclass
+    class MyConstant:
+        a: Any
+
+    @dataclass
+    class MyNominal:
+        op1: MyConstant
+        op2: MyConstant
+        nominal = True
+
+    assert_type_roundtrip(MyNominal, {})
+    a = MyNominal(MyConstant(1), MyConstant(2))
+
+    assert_object_roundtrip(a, {})
+
+
+from zuper_ipce import logger
+
+
+def test_corner_optional_with_default():
+    @dataclass
+    class MyCD:
+        a: Optional[bool] = True
+
+    assert_type_roundtrip(MyCD, {})
+    a = MyCD()
+
+    assert_object_roundtrip(a, {})
+
+    ipce = ipce_from_typelike(MyCD, {})
+    logger.info('yaml:\n\n' + yaml.dump(ipce))
+    assert ipce['properties']['a']['default'] == True
+    assert 'required' not in ipce
+
+
+def test_corner_optional_with_default2():
+    @dataclass
+    class MyCD2:
+        a: bool = True
+
+    assert_type_roundtrip(MyCD2, {})
+    a = MyCD2()
+
+    assert_object_roundtrip(a, {})
+
+    ipce = ipce_from_typelike(MyCD2, {})
+    logger.info('yaml:\n\n' + yaml.dump(ipce))
+    assert ipce['properties']['a']['default'] == True
+    assert 'required' not in ipce

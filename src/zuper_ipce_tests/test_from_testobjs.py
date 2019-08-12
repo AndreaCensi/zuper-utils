@@ -9,7 +9,6 @@ from zuper_commons.fs import locate_files, os, read_bytes_from_file
 from zuper_ipce import IPCE
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
-from zuper_ipce_tests.test_utils import assert_equal_ipce
 
 
 @dataclass
@@ -19,7 +18,7 @@ class Case:
     digest: str
 
 
-def find_objects(load: bool = True) -> Iterator[Case]:
+def find_objects(load: bool = True) -> Iterator[Case]:  # pragma: no cover
     d = 'test_objects'
     filenames = locate_files(d, '*.ipce.cbor.gz', normalize=False)
 
@@ -51,7 +50,7 @@ def check_case(fn: str):
     import traceback
 
     try:
-        if not os.path.exists(fn):
+        if not os.path.exists(fn):  # pragma: no cover
             raise SkipTest(f"File {fn} not found")
         print('check_case ' + fn)
         ipce_gz = read_bytes_from_file(fn)
@@ -64,12 +63,12 @@ def check_case(fn: str):
         # logger.info(f'ipce2:\n\n{yaml.dump(ipce2)}')
         # assert_equal_ipce("", ipce, ipce2)
         # assert ipce == ipce2
-    except BaseException:
+    except BaseException:  # pragma: no cover
         logger.error(traceback.format_exc())
         raise
 
 
-def main():
+def main():  # pragma: no cover
     print("""
 from .test_from_testobjs import check_case
     """)
@@ -82,5 +81,5 @@ def test_{case.digest}():
         print(s)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     main()

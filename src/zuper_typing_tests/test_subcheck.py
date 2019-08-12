@@ -7,7 +7,7 @@ from zuper_typing.annotations_tricks import is_Tuple, is_Any, name_for_type_like
     is_Sequence, is_Iterator
 from zuper_typing.my_dict import make_set
 from zuper_typing.subcheck import can_be_used_as2
-from zuper_typing.zeneric2 import replace_typevars
+from zuper_typing.recursive_tricks import replace_typevars
 
 
 def test_corner_cases10():
@@ -295,7 +295,7 @@ def test_replace_typevars():
 
 
 def try_(orig, subst, result):
-    obtained = replace_typevars(orig, bindings=subst, symbols={}, rl=None)
+    obtained = replace_typevars(orig, bindings=subst, symbols={})
     print(f'obtained {type(obtained)} {obtained!r}')
     assert_equal(name_for_type_like(obtained), name_for_type_like(result))
 

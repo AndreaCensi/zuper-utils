@@ -11,7 +11,7 @@ from nose.tools import raises, assert_equal
 
 from zuper_typing.constants import BINDINGS_ATT
 from zuper_ipce_tests.test_utils import assert_object_roundtrip
-from zuper_typing.zeneric2 import NoConstructorImplemented
+from zuper_typing.recursive_tricks import NoConstructorImplemented
 
 X = TypeVar('X')
 

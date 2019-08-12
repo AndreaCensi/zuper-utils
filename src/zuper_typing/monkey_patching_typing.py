@@ -146,38 +146,7 @@ def MyNamedArg_old(x: type, name: str):
         return x
 
     return x2
-    #
-    # try:
-    #     meta = getattr(x, '__metaclass__', type)
-    #
-    #     d = {NAME_ARG: name, 'original': x}
-    #     # FIXME not sure why this is needed
-    #     # if not hasattr(x, '__name__'):
-    #     #     setattr(x, NAME_ARG, name)
-    #     #     # setattr(x, 'original', x)
-    #     #     return x
-    #     #     raise Exception(x)
-    #
-    #     if not hasattr(x, '__name__'):
-    #         cname = name_for_type_like(x)
-    #     else:
-    #         # raise NotImplementedError(x)
-    #         cname = x.__name__
-    #
-    #     try:
-    #         res = meta(cname, (x,), d)
-    #     except:
-    #         res = types.new_class(cname, (x,), d)
-    #
-    #     res.__module__ = 'MyNamedArg'
-    #
-    #
-    # except:
-    #     from .logging import logger
-    #     logger.info(f'Could not create MyNamedArg({x!r},{name!r})')
-    #     raise
-    # Reg.already[key] = res
-    # return res
+
 
 
 import mypy_extensions
@@ -293,7 +262,7 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
     k = '__' + _cls.__name__.replace('[', '_').replace(']', '_')
     if nominal:
         # # annotations = getattr(K, '__annotations__', {})
-        old_annotations[k] = typing.Optional[bool]
+        old_annotations[k] = bool # typing.Optional[bool]
         setattr(_cls, k, True)
 
     # reorder the fields
@@ -328,8 +297,6 @@ def my_dataclass_(_cls, *, init=True, repr=True, eq=True, order=False,
 
     setattr(res, '__repr__', __repr__)
     setattr(res, '__str__', __str__)
-    # res.__doc__  = res.__doc__.replace(' ', '')
-    # if original_doc is None:
     setattr(res, '__doc__', original_doc)
 
     if nominal:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Union
 
-from zuper_ipce.constants import _SpecialForm
+from  .constants import _SpecialForm
 
 IPCE = Union[int, str, float, bytes, datetime, List['IPCE'], Dict[str, 'IPCE'], type(None)]
 

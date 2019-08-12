@@ -7,8 +7,10 @@ from dataclasses import dataclass, fields
 from typing import Any, ClassVar, Dict, Sequence, Tuple, Type, TypeVar, _eval_type
 
 from zuper_commons.text import indent, pretty_dict
+from zuper_typing.constants import cache_enabled, MakeTypeCache
 from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_SetLike_arg, is_CustomList, is_DictLike,
                                   is_SetLike, make_dict, make_list, make_set)
+from zuper_typing.recursive_tricks import get_name_without_brackets, replace_typevars, NoConstructorImplemented
 from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
                                  get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
                                  get_Type_arg, get_Union_args, get_tuple_types, is_Callable, is_ClassVar, is_ForwardRef,
@@ -18,50 +20,43 @@ from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, PYTHON_36
 from .logging import logger
 from .subcheck import can_be_used_as2
 
-
-def loglevel(f):
-    def f2(*args, **kwargs):
-        RecLogger.levels += 1
-        # if RecLogger.levels >= 10:
-        #     raise AssertionError()
-        try:
-            return f(*args, **kwargs)
-        finally:
-            RecLogger.levels -= 1
-
-    return f2
-
-
-class RecLogger:
-    levels = 0
-    prefix: Tuple[str, ...]
-    count = 0
-
-    def __init__(self, prefix=None):
-        if prefix is None:
-            prefix = (str(RecLogger.count),)
-        RecLogger.count += 1
-        self.prefix = prefix
-
-    def p(self, s):
-        p = '  ' * RecLogger.levels + ':'
-        # p = '/'.join(('root',) + self.prefix) + ':'
-        print(indent(s, p))
-
-    def pp(self, msg, **kwargs):
-        self.p(pretty_dict(msg, kwargs))
-
-    def child(self, name=None):
-        name = name or '-'
-        prefix = self.prefix + (name,)
-        return RecLogger(prefix)
+#
+# def loglevel(f):
+#     def f2(*args, **kwargs):
+#         RecLogger.levels += 1
+#         # if RecLogger.levels >= 10:
+#         #     raise AssertionError()
+#         try:
+#             return f(*args, **kwargs)
+#         finally:
+#             RecLogger.levels -= 1
+#
+#     return f2
 
 
-def get_name_without_brackets(name: str) -> str:
-    if '[' in name:
-        return name[:name.index('[')]
-    else:
-        return name
+# class RecLogger:
+#     levels = 0
+#     prefix: Tuple[str, ...]
+#     count = 0
+#
+#     def __init__(self, prefix=None):
+#         if prefix is None:
+#             prefix = (str(RecLogger.count),)
+#         RecLogger.count += 1
+#         self.prefix = prefix
+#
+#     def p(self, s):
+#         p = '  ' * RecLogger.levels + ':'
+#         # p = '/'.join(('root',) + self.prefix) + ':'
+#         print(indent(s, p))
+#
+#     def pp(self, msg, **kwargs):
+#         self.p(pretty_dict(msg, kwargs))
+#
+#     def child(self, name=None):
+#         name = name or '-'
+#         prefix = self.prefix + (name,)
+#         return RecLogger(prefix)
 
 
 def as_tuple(x) -> Tuple:
@@ -249,17 +244,7 @@ class MyABC(ABCMeta, StructuralTyping):
         return cls
 
 
-class NoConstructorImplemented(TypeError):
-    pass
-
-
 from typing import Optional, Union, List, Set
-
-
-def get_default_attrs():
-    return dict(Any=Any, Optional=Optional, Union=Union, Tuple=Tuple,
-                List=List, Set=Set,
-                Dict=Dict)
 
 
 class Fake:
@@ -278,7 +263,6 @@ class Fake:
         return self.myt[item]
 
 
-@loglevel
 def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any]] = None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
@@ -316,10 +300,10 @@ def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any
         if not isinstance(v, str) and is_ClassVar(v):
             continue  # XXX
         try:
-            r = replace_typevars(v, bindings={}, symbols=symbols, rl=None)
+            r = replace_typevars(v, bindings={}, symbols=symbols)
             # rl.p(f'{k!r} -> {v!r} -> {r!r}')
             annotations[k] = r
-        except NameError as e:
+        except NameError:
             msg = f'resolve_type({T.__name__}):' \
                   f' Cannot resolve names for attribute "{k}" = {v!r}.'
             # msg += f'\n symbols: {symbols}'
@@ -341,203 +325,14 @@ def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any
 
 from dataclasses import is_dataclass
 
-
-@loglevel
-def replace_typevars(cls, *, bindings, symbols, rl: Optional[RecLogger], already=None):
-    rl = rl or RecLogger()
-    # rl.p(f'Replacing typevars {cls}')
-    # rl.p(f'   bindings {bindings}')
-    # rl.p(f'   symbols {symbols}')
-
-    already = already or {}
-
-    if cls is type:
-        return cls
-
-    if id(cls) in already:
-        # rl.p('cached')
-        # XXX
-        return already[id(cls)]
-
-    elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
-        return bindings[cls]
-    elif is_TypeVar(cls):
-        name = get_TypeVar_name(cls)
-
-        for k, v in bindings.items():
-            if is_TypeVar(k) and get_TypeVar_name(k) == name:
-                return v
-        return cls
-        # return bindings[cls]
-
-    elif isinstance(cls, str):
-        if cls in symbols:
-            return symbols[cls]
-        g = dict(get_default_attrs())
-        g.update(symbols)
-        # for t, u in zip(types, types2):
-        #     g[t.__name__] = u
-        #     g[u.__name__] = u
-        g0 = dict(g)
-        try:
-            return eval(cls, g)
-        except NameError as e:
-            msg = f'Cannot resolve {cls!r}\ng: {list(g0)}'
-            # msg += 'symbols: {list(g0)'
-            raise NameError(msg) from e
-    elif is_NewType(cls):
-        return cls
-
-    elif is_Type(cls):
-        x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('classvar arg'))
-        if x == r:
-            return cls
-        return Type[r]
-    elif is_DictLike(cls):
-        K0, V0 = get_DictLike_args(cls)
-        K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('k'))
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('v'))
-        # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
-        if (K0, V0) == (K, V):
-            return cls
-        return make_dict(K, V)
-    elif is_SetLike(cls):
-        V0 = get_SetLike_arg(cls)
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('v'))
-        if V0 == V:
-            return cls
-        return make_set(V)
-    elif is_CustomList(cls):
-        V0 = get_CustomList_arg(cls)
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('v'))
-        if V0 == V:
-            return cls
-        return make_list(V)
-    # XXX NOTE: must go after CustomDict
-    elif hasattr(cls, '__annotations__'):
-        return make_type(cls, bindings)
-    elif is_ClassVar(cls):
-        x = get_ClassVar_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('classvar arg'))
-        if x == r:
-            return cls
-        return typing.ClassVar[r]
-    elif is_Type(cls):
-        x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('classvar arg'))
-        if x == r:
-            return cls
-        return typing.Type[r]
-    elif is_Iterator(cls):
-        x = get_Iterator_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('classvar arg'))
-        if x == r:
-            return cls
-        return typing.Iterator[r]
-    elif is_Sequence(cls):
-        x = get_Sequence_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                             rl=rl.child('classvar arg'))
-        if x == r:
-            return cls
-
-        return typing.Sequence[r]
-
-    elif is_List(cls):
-        arg = get_List_arg(cls)
-        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
-                                rl=rl.child('list arg'))
-        if arg == arg2:
-            return cls
-        return typing.List[arg2]
-    elif is_Set(cls):
-        arg = get_Set_arg(cls)
-        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols,
-                                rl=rl.child('set arg'))
-        if arg == arg2:
-            return cls
-        return typing.Set[arg2]
-    elif is_Optional(cls):
-        x = get_Optional_arg(cls)
-        x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols,
-                              rl=rl.child('optional arg'))
-        if x == x2:
-            return cls
-        return typing.Optional[x2]
-
-    elif is_Union(cls):
-        xs = get_Union_args(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
-                                    rl=rl.child())
-                   for _ in xs)
-        if ys == xs:
-            return cls
-        return typing.Union[ys]
-    elif is_Tuple(cls):
-
-        xs = get_tuple_types(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
-                                    rl=rl.child())
-                   for _ in xs)
-        if ys == xs:
-            return cls
-        return typing.Tuple[ys]
-    elif is_Callable(cls):
-        cinfo = get_Callable_info(cls)
-
-        def f(_):
-            return replace_typevars(_, bindings=bindings, already=already, symbols=symbols,
-                                    rl=rl.child())
-
-        cinfo2 = cinfo.replace(f)
-        return cinfo2.as_callable()
-        #
-        # pos = []
-        # for p in cinfo.parameters_by_name:
-        #
-        # ret = replace_typevars(cinfo.returns, bindings=bindings, already=already,
-        # symbols=symbols, rl=rl.child())
-        #
-        # xs = get_tuple_types(cls)
-        # ys = tuple()
-        #            for _ in xs)
-        # return typing.Tuple[ys]
-
-    elif is_ForwardRef(cls):
-        T = get_ForwardRef_arg(cls)
-        return replace_typevars(T, bindings=bindings, already=already, symbols=symbols,
-                                rl=rl.child('forward '))
-    else:
-        # logger.debug(f'Nothing to do with {cls!r} {cls}')
-        return cls
-
-
-cache_enabled = True
-
-
-class MakeTypeCache:
-    cache = {}
-
-
 if PYTHON_36:
     B = Dict[Any, Any]  # bug in Python 3.6
 else:
     B = Dict[TypeVar, Any]
 
 
-# @loglevel
-def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
+def make_type(cls: type, bindings: B) -> type:
     assert not is_NewType(cls)
-    rl = rl or RecLogger()
     # print(f'make_type for {cls.__name__}')
     # rl.p(f'make_type for {cls.__name__}')
     # rl.p(f'  dataclass {is_dataclass(cls)}')
@@ -560,7 +355,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     name_without = get_name_without_brackets(cls.__name__)
 
     def param_name(x):
-        x2 = replace_typevars(x, bindings=bindings, symbols=symbols, rl=rl.child('param_name'))
+        x2 = replace_typevars(x, bindings=bindings, symbols=symbols)
         return name_for_type_like(x2)
 
     if generic_att2:
@@ -602,7 +397,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
     # first of all, replace the bindings in the generic_att
 
     generic_att2_new = tuple(
-          replace_typevars(_, bindings=bindings, symbols=symbols, rl=rl.child('attribute')) for
+          replace_typevars(_, bindings=bindings, symbols=symbols) for
           _ in generic_att2)
 
     # logger.debug(
@@ -619,7 +414,7 @@ def make_type(cls: type, bindings: B, rl: RecLogger = None) -> type:
 
     for k, v0 in annotations.items():
 
-        v = replace_typevars(v0, bindings=bindings, symbols=symbols, rl=rl.child(f'ann {k}'))
+        v = replace_typevars(v0, bindings=bindings, symbols=symbols)
         # print(f'{v0!r} -> {v!r}')
         if is_ClassVar(v):
             s = get_ClassVar_arg(v)

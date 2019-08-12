@@ -6,7 +6,7 @@ from .types import IPCE
 
 def ipce_from_numpy_array(x: np.ndarray) -> IPCE:
     res = {'shape': list(x.shape), 'dtype': x.dtype.name, 'data': x.tobytes()}
-    from zuper_ipce.ipce_spec import sorted_dict_with_cbor_ordering
+    from  .ipce_spec import sorted_dict_with_cbor_ordering
     res = sorted_dict_with_cbor_ordering(res)
     return res
 
