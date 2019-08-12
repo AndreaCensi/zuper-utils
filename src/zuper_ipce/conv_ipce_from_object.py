@@ -301,12 +301,9 @@ def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
     except:  # XXX
         pass
     V = Any
-    # noinspection PyBroadException
-    try:
-        if len(set(type_values)) == 1:
-            V = type_values[0]
-    except:  # XXX
-        pass
+    if len(set(type_values)) == 1:
+        V = type_values[0]
+
     return K, V
 
 
