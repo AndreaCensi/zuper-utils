@@ -488,9 +488,10 @@ def make_type(cls: type, bindings: B) -> type:
     cls2.__module__ = cls.__module__
     setattr(cls2, '__name__', name2)
     qn = cls.__qualname__
-    qn0, _, _ = qn.rpartition('.')
 
-    setattr(cls2, '__qualname__', qn0 + '.' + name2)
+    qn0, sep, _ = qn.rpartition('.')
+    if not sep: sep = ''
+    setattr(cls2, '__qualname__', qn0 + sep + name2)
     # logger.info(f'choosing qualname {cls2.__qualname__!r} from {qn}')
     setattr(cls2, BINDINGS_ATT, bindings)
 

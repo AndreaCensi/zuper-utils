@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, Optional, Set, Tuple, Union
 
 from nose.tools import raises
 
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_typing.annotations_tricks import make_Tuple
-from zuper_typing.my_dict import make_set, make_list, make_dict
+from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection
-from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
@@ -124,7 +123,7 @@ def test_set_with_optional():
     T = make_set(Optional[int])
     assert_type_roundtrip(T, {})
 
-@known_failure
+
 def test_set_with_optional2():
     # even though it does not make sense ...
     T = Set[Optional[int]]
@@ -134,5 +133,3 @@ def test_set_with_optional2():
 def test_dict_with_optional_key():
     T = Dict[Optional[int], int]
     assert_type_roundtrip(T, {})
-
-

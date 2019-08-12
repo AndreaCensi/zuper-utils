@@ -28,7 +28,7 @@ from .constants import (ATT_PYTHON_NAME, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_
                         JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema,
                         ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
                         X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
-from .ipce_spec import sorted_dict_with_cbor_ordering, assert_canonical_ipce
+from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .pretty import pretty_dict
 from .schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
 from .schema_utils import make_ref, make_url
@@ -134,7 +134,7 @@ def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
         raise TypeError(msg) from e
 
 
-def ipce_from_typelike_dict(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_DictLike(T, c: IFTContext) -> TRE:
     assert is_DictLike(T), T
     K, V = get_DictLike_args(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
@@ -150,6 +150,8 @@ def ipce_from_typelike_dict(T, c: IFTContext) -> TRE:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
         tr = ipce_from_typelike_tr(props, c)
+        # logger.warning(f'props IPCE:\n\n {yaml.dump(tr.schema)}')
+
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
@@ -323,7 +325,7 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         return ipce_from_typelike_Optional(T, c)
 
     if is_DictLike(T):
-        return ipce_from_typelike_dict(T, c)
+        return ipce_from_typelike_DictLike(T, c)
 
     if is_SetLike(T):
         return ipce_from_typelike_SetLike(T, c)

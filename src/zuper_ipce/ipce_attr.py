@@ -1,7 +1,7 @@
-from typing import Any, List
+from typing import List
+
 
 # IPCE_REPR_ATTR = '__ipce_
-
 
 
 class SchemaCache:
@@ -12,6 +12,9 @@ def make_key(x):
     k0 = id(type(x))
     k1 = getattr(x, '__qualname__', None)
     k2 = getattr(x, '__name__', None)
+    k2b = getattr(x, '__dict_type__', None)
+    k2c = getattr(x, '__set_type__', None)
+    k2d = getattr(x, '__list_type__', None)
     k3 = id(x)
     # if hasattr(x, '__dict__'):
     #     k4 = id(x.__dict__)
@@ -22,8 +25,7 @@ def make_key(x):
     # except:
     #     k5 = None
     # k5 = None
-    k4 = k5 = None
-    k = (k0, k1, k2, k3, k4, k5)
+    k = (k0, k1, k2, k2b, k2c, k2d, k3)
     return k
 
 
@@ -31,7 +33,6 @@ def make_key_ipce(x, processing: List[str]):
     k = make_key(x)
     k += tuple(processing)
     return k
-
 
 # def has_ipce_repr_attr(x: Any, processing: List[str]):
 #     k = make_key_ipce(x, processing)

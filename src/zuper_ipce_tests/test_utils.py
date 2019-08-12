@@ -1,35 +1,25 @@
 import json
 import traceback
-import typing
-# noinspection PyUnresolvedReferences
-from contextlib import contextmanager
 from dataclasses import dataclass, fields, is_dataclass
 
 import cbor2
-
-from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
-from zuper_typing_tests.test_utils import known_failure
-
-try:
-    # noinspection PyUnresolvedReferences
-    from typing import ForwardRef
-except ImportError:  # pragma: no cover
-    # noinspection PyUnresolvedReferences
-    from typing import _ForwardRef as ForwardRef
-
 import cbor2 as cbor
 import yaml
 from nose.tools import assert_equal
 
+from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
 from zuper_ipce import logger
-from zuper_typing.annotations_tricks import is_Dict, is_Optional, get_Optional_arg
-
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.json_utils import encode_bytes_before_json_serialization, decode_bytes_before_json_deserialization
+from zuper_ipce.json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 from zuper_ipce.pretty import pretty_dict
+from zuper_ipce.types import TypeLike
+from zuper_typing.annotations_tricks import *
+from zuper_typing.my_dict import *
+from zuper_typing_tests.test_utils import known_failure
+
 
 
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
@@ -81,15 +71,12 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     return T2
 
 
-from zuper_typing.constants import PYTHON_36
-
-
 def debug(s, **kwargs):
     ss = pretty_dict(s, kwargs)
     logger.debug(ss)
 
 
-def assert_equivalent_types(T1: type, T2: type, assume_yes: set):
+def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
     key = (id(T1), id(T2))
     if key in assume_yes:
         return
@@ -98,22 +85,17 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set):
     try:
         # print(f'assert_equivalent_types({T1},{T2})')
         if T1 is T2:
-            logger.debug('same by equality')
+            # logger.debug('same by equality')
             return
-        if hasattr(T1, '__dict__'):
-            debug('comparing',
-                  T1=f'{T1!r}',
-                  T2=f'{T2!r}',
-                  T1_dict=T1.__dict__, T2_dict=T2.__dict__)
+        # if hasattr(T1, '__dict__'):
+        #     debug('comparing',
+        #           T1=f'{T1!r}',
+        #           T2=f'{T2!r}',
+        #           T1_dict=T1.__dict__, T2_dict=T2.__dict__)
 
         # for these builtin we cannot set/get the attrs
         # if not isinstance(T1, typing.TypeVar) and (not isinstance(T1, ForwardRef)) and not is_Dict(T1):
 
-
-        if is_Optional(T1) and is_Optional(T2):
-            t1 = get_Optional_arg(T1)
-            t2 = get_Optional_arg(T2)
-            assert_equivalent_types(t1, t2, assume_yes)
         if is_dataclass(T1):
             assert is_dataclass(T2)
 
@@ -167,15 +149,45 @@ def assert_equivalent_types(T1: type, T2: type, assume_yes: set):
                     if m1 is T1 or m2 is T2: continue
                     assert_equivalent_types(m1, m2, assume_yes=set())
 
-        if PYTHON_36:  # pragma: no cover
-            pass  # XX
-        else:
-            if isinstance(T1, typing._GenericAlias):
-                # noinspection PyUnresolvedReferences
-                if not is_Dict(T1) and not is_Optional(T1):
-                    # noinspection PyUnresolvedReferences
-                    for z1, z2 in zip(T1.__args__, T2.__args__):
-                        assert_equivalent_types(z1, z2, assume_yes=assume_yes)
+        if is_Optional(T1):
+            assert is_Optional(T2)
+            t1 = get_Optional_arg(T1)
+            t2 = get_Optional_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+        if is_Union(T1):
+            assert is_Union(T2)
+            ts1 = get_Union_args(T1)
+            ts2 = get_Union_args(T2)
+            for t1, t2 in zip(ts1, ts2):
+                assert_equivalent_types(t1, t2, assume_yes)
+        if is_FixedTuple(T1):
+            assert is_FixedTuple(T2)
+            ts1 = get_FixedTuple_args(T1)
+            ts2 = get_FixedTuple_args(T2)
+            for t1, t2 in zip(ts1, ts2):
+                assert_equivalent_types(t1, t2, assume_yes)
+        if is_VarTuple(T1):
+            assert is_VarTuple(T2)
+            t1 = get_VarTuple_arg(T1)
+            t2 = get_VarTuple_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+        if is_SetLike(T1):
+            assert is_SetLike(T2)
+            t1 = get_SetLike_arg(T1)
+            t2 = get_SetLike_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+        if is_ListLike(T1):
+            assert is_ListLike(T2)
+            t1 = get_ListLike_arg(T1)
+            t2 = get_ListLike_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+        if is_DictLike(T1):
+            assert is_DictLike(T2)
+            t1, u1 = get_DictLike_arg(T1)
+            t2, u2 = get_DictLike_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+            assert_equivalent_types(u1, u2, assume_yes)
+
     except BaseException as e:
         msg = f'Could not establish the two types to be equivalent.'
         msg += f'\n T1 = {id(T1)} {T1!r}'
