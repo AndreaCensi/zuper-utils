@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from typing import Dict, Optional, Set, Tuple, Union
 
 from nose.tools import raises

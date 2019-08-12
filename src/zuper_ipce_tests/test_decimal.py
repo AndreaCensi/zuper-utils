@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from decimal import Decimal
 
 from .test_utils import assert_object_roundtrip

@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from typing import Optional
 
 from jsonschema import validate

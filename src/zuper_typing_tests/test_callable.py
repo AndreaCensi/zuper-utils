@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from mypy_extensions import NamedArg
+from zuper_typing.monkey_patching_typing import MyNamedArg as NamedArg
 from nose.tools import assert_equal
 
 from zuper_typing.annotations_tricks import is_Callable, get_Callable_info

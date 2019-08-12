@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from typing import Tuple, List
 
 from zuper_typing.my_dict import make_list

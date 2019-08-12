@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from datetime import datetime
 from typing import TypeVar, Dict
 

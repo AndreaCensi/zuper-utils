@@ -1,5 +1,5 @@
 import gzip
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from typing import Iterator
 from unittest import SkipTest
 

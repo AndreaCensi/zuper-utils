@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from zuper_typing import dataclass
 from typing import Any, List, Optional, Tuple
 
 import yaml
