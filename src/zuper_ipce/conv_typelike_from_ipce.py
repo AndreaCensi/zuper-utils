@@ -3,12 +3,12 @@ import datetime
 from dataclasses import dataclass, field, make_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, TypeVar, cast
 
 import numpy as np
 
 from zuper_commons.types import check_isinstance
-from zuper_typing.annotations_tricks import (get_ForwardRef_arg, is_Any, is_ForwardRef, make_Tuple, make_Union,
+from zuper_typing.annotations_tricks import (is_Any, is_ForwardRef, make_Tuple, make_Union,
                                              make_VarTuple)
 from zuper_typing.constants import PYTHON_36
 from zuper_typing.monkey_patching_typing import MyNamedArg, get_remembered_class, remember_created_class
@@ -48,7 +48,7 @@ def typelike_from_ipce_sr(schema0: JSONSchema,
         sre = typelike_from_ipce_sr_(schema0, global_symbols, encountered)
         assert isinstance(sre, SRE), (schema0, sre)
         res = sre.res
-    except (TypeError, ValueError) as e:
+    except (TypeError, ValueError) as e:  # pragma: no cover
         msg = 'Cannot interpret schema as a type.'
         # msg += '\n\n' + indent(yaml.dump(schema0)[:400], ' > ')
         # msg += '\n\n' + pretty_dict('globals', global_symbols)
@@ -86,8 +86,9 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
         if r == SCHEMA_ID:
             if schema.get(JSC_TITLE, '') == 'type':
                 return SRE(type)
-            else:
-                return SRE(Type)
+            else:  # pragma: no cover
+                raise NotImplementedError(schema)
+                # return SRE(Type)
 
         if r in encountered:
             res = encountered[r]
@@ -229,7 +230,7 @@ def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
 
     try:
         D = make_dict(K, V)
-    except (TypeError, ValueError) as e:
+    except (TypeError, ValueError) as e:  # pragma: no cover
         msg = f'Cannot reconstruct dict type with K = {K!r}  V = {V!r}'
         msg += '\n\n' + pretty_dict('globals', global_symbols)
         msg += '\n\n' + pretty_dict('encountered', encountered)
@@ -241,7 +242,7 @@ def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
 
 
 def typelike_from_ipce_SetType(schema, global_symbols, encountered):
-    if not JSC_ADDITIONAL_PROPERTIES in schema:
+    if not JSC_ADDITIONAL_PROPERTIES in schema:  # pragma: no cover
         msg = f'Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}'
         raise ValueError(msg)
     used = {}
@@ -303,7 +304,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     classvars = res.get(X_CLASSVARS, {})
     classatts = res.get(X_CLASSATTS, {})
 
-    if (not X_PYTHON_MODULE_ATT in res) or not ATT_PYTHON_NAME in res:
+    if (not X_PYTHON_MODULE_ATT in res) or not ATT_PYTHON_NAME in res:  # pragma: no cover
         msg = f'Cannot find attributes for {cls_name}: \n {res}'
         raise ValueError(msg)
     module_name = res[X_PYTHON_MODULE_ATT]
@@ -377,10 +378,10 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             v = classvars[pname]
             ptype = f(v)
             fields.append((pname, ClassVar[ptype], field()))
-        elif pname in classatts:
+        elif pname in classatts:  # pragma: no cover
             msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
             raise ValueError(msg)
-        else:
+        else:  # pragma: no cover
             msg = f'Cannot find {pname!r} either in properties ({list(properties)}) or classvars ({list(classvars)}) ' \
                   f'or classatts {list(classatts)}'
             raise ValueError(msg)
@@ -446,16 +447,19 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
     # logger.info(f'global_symbols: {global_symbols}')
 
     def f(M):
-        if hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
+        assert not is_ForwardRef(M)
+        if M is Placeholder:
             return T
-        elif M == Placeholder:
+        elif hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
             return T
-        elif is_ForwardRef(M):
-            arg = get_ForwardRef_arg(M)
-            if arg == cls_name:
-                return T
-            else:
-                return M
+        # elif M == Placeholder:
+        #     return T
+        # elif is_ForwardRef(M):
+        #     arg = get_ForwardRef_arg(M)
+        #     if arg == cls_name:
+        #         return T
+        #     else:
+        #         return M
         else:
             return M
 

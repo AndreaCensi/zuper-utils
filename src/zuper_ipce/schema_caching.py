@@ -29,7 +29,7 @@ class TRE:
     def __post_init__(self):
         try:
             assert_canonical_schema(self.schema)
-        except ValueError as e:
+        except ValueError as e: # pragma: no cover
             msg = f'Invalid schema: {self.schema}'
             raise ValueError(msg) from e
 
@@ -38,8 +38,8 @@ class IPCETypelikeCache:
     c: Dict[Tuple, Dict[Tuple, JSONSchema]] = defaultdict(dict)
 
 
-def get_cached():
-    return {k[1]: [x for x, _ in v.items()] for k, v in IPCETypelikeCache.c.items()}
+# def get_cached():
+#     return {k[1]: [x for x, _ in v.items()] for k, v in IPCETypelikeCache.c.items()}
 
 
 def get_ipce_from_typelike_cache(T, context: Dict[str, str]) -> TRE:

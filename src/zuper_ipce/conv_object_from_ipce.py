@@ -382,7 +382,7 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
             attrs[k] = object_from_ipce(v, global_symbols, encountered,
                                         expect_type=expect_type_V)
 
-        except (TypeError, NotImplementedError) as e:
+        except (TypeError, NotImplementedError) as e: # pragma: no cover
             msg = f'Cannot deserialize element at index "{k}".'
             msg += f'\n\n D = {D}'
             msg += '\n\n' + indent(yaml.dump(mj), '> ')

@@ -1,15 +1,12 @@
-import hashlib
 from typing import cast
-
-import cbor2
 
 from .constants import JSONSchema, REF_ATT
 
 
-def schema_hash(k):
-    ob_cbor = cbor2.dumps(k)
-    ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
-    return ob_cbor_hash
+# def schema_hash(k):
+#     ob_cbor = cbor2.dumps(k)
+#     ob_cbor_hash = hashlib.sha256(ob_cbor).digest()
+#     return ob_cbor_hash
 
 
 #

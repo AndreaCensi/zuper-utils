@@ -1,7 +1,7 @@
 from typing import Any, List
 
 # IPCE_REPR_ATTR = '__ipce_
-__all__ = ['has_ipce_repr_attr', 'get_ipce_repr_attr', 'set_ipce_repr_attr']
+
 
 
 class SchemaCache:
@@ -33,32 +33,32 @@ def make_key_ipce(x, processing: List[str]):
     return k
 
 
-def has_ipce_repr_attr(x: Any, processing: List[str]):
-    k = make_key_ipce(x, processing)
-    # logger.debug(k)
-    return k in SchemaCache.key2schema
-
-
-def get_ipce_repr_attr(x: Any, processing: List[str]):
-    k = make_key_ipce(x, processing)
-    res = SchemaCache.key2schema[k]
-    # logger.debug(f'Found schema cache for {x} processing = {processing}')
-    return res
-
-
-def set_ipce_repr_attr(x: object, processing: List[str], a):
-    k = make_key_ipce(x, processing)
-    if k in SchemaCache.key2schema:
-        prev = SchemaCache.key2schema[k]
-        if prev != a:
-            msg = f'INCONSISTENT setting of schema cache for {x}:\n'
-            # msg += side_by_side([yaml.dump(prev)[:400], ' ', yaml.dump(a)[:400]])
-            raise ValueError(msg)
-        else:
-            pass
-
-            # logger.debug(f'Double Setting schema cache for {x} processing = {processing}')
-    else:
-        # logger.debug(f'Setting schema cache for {x}  processing = {processing}\n{k}')
-        SchemaCache.key2schema[k] = a
-
+# def has_ipce_repr_attr(x: Any, processing: List[str]):
+#     k = make_key_ipce(x, processing)
+#     # logger.debug(k)
+#     return k in SchemaCache.key2schema
+#
+#
+# def get_ipce_repr_attr(x: Any, processing: List[str]):
+#     k = make_key_ipce(x, processing)
+#     res = SchemaCache.key2schema[k]
+#     # logger.debug(f'Found schema cache for {x} processing = {processing}')
+#     return res
+#
+#
+# def set_ipce_repr_attr(x: object, processing: List[str], a):
+#     k = make_key_ipce(x, processing)
+#     if k in SchemaCache.key2schema:
+#         prev = SchemaCache.key2schema[k]
+#         if prev != a:
+#             msg = f'INCONSISTENT setting of schema cache for {x}:\n'
+#             # msg += side_by_side([yaml.dump(prev)[:400], ' ', yaml.dump(a)[:400]])
+#             raise ValueError(msg)
+#         else:
+#             pass
+#
+#             # logger.debug(f'Double Setting schema cache for {x} processing = {processing}')
+#     else:
+#         # logger.debug(f'Setting schema cache for {x}  processing = {processing}\n{k}')
+#         SchemaCache.key2schema[k] = a
+#

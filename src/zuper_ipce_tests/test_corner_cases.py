@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, NewType, Optional, Sequence, Type, TypeVar, Union
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -65,23 +65,23 @@ def test_not_know():
     ipce_from_object(C(), {}, {})
 
 
-if check_types:
-    @raises(TypeError)
-    def test_corner_cases07():
-        can0 = can_be_used_as2(int, bool, {})
-        assert not can0, can0
 
-        T = Union[bool, str]
-        can = can_be_used_as2(int, T, {})
-        assert not can, can
-        object_from_ipce(12, {}, expect_type=T)
+@raises(TypeError)
+def test_corner_cases07():
+    can0 = can_be_used_as2(int, bool, {})
+    assert not can0, can0
 
-if check_types:
-    @raises(TypeError)
-    def test_corner_cases08():
-        T = Optional[bool]
-        assert not can_be_used_as2(int, T, {}).result
-        object_from_ipce(12, {}, expect_type=Optional[bool])
+    T = Union[bool, str]
+    can = can_be_used_as2(int, T, {})
+    assert not can, can
+    object_from_ipce(12, {}, expect_type=T)
+
+
+@raises(TypeError)
+def test_corner_cases08():
+    T = Optional[bool]
+    assert not can_be_used_as2(int, T, {}).result
+    object_from_ipce(12, {}, expect_type=Optional[bool])
 
 
 def test_newtype1():
@@ -213,7 +213,8 @@ def test_error_scalar1():
     a = 's'
     S = Union[int, bool]
     ipce = ipce_from_object(a, suggest_type=S)
-    print(yaml.dump(ipce))
+    
+
 
 @raises(TypeError)
 def test_error_scalar2():
@@ -295,3 +296,12 @@ def test_corner_optional_with_default2():
     logger.info('yaml:\n\n' + yaml.dump(ipce))
     assert ipce['properties']['a']['default'] == True
     assert 'required' not in ipce
+
+
+def test_sequence():
+    a = Sequence[int]
+    b = List[int]
+
+    ipce1 = ipce_from_typelike(a, {}, {})
+    ipce2 = ipce_from_typelike(b, {}, {})
+    assert ipce1 == ipce2
