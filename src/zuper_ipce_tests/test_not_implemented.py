@@ -5,7 +5,7 @@ from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing_tests.test_utils import known_failure
 
-if not USE_REMEMBERED_CLASSES:
+if not USE_REMEMBERED_CLASSES: # pragma: no cover
     @known_failure
     def test_default_arguments():
         @dataclass

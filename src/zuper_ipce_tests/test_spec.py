@@ -16,12 +16,12 @@ def test_spec2():
 
 
 @raises(ValueError)
-def test_spec2():
+def test_spec3():
     x = {'$self': {}}
     assert_canonical_ipce(x)
 
 
 @raises(ValueError)
-def test_spec2():
+def test_spec4():
     x = (1, 2)
     assert_canonical_ipce(x)

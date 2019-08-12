@@ -201,7 +201,7 @@ def test_error_list2():
 
 
 @raises(TypeError)
-def test_error_list2():
+def test_error_list2b():
     a = [1, 2, 3]
     S = Union[int, str]
     object_from_ipce(a, {}, {}, expect_type=S)
