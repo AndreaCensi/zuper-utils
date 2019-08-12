@@ -30,7 +30,7 @@ test-parallel-failed:
 	nosetests   $(coverage) src  -v  $(parallel)
 
 test-parallel-circle:
-	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests --with-parallel $(coverage) $(xunitmp) src  -v  $(parallel)
+	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $(parallel)
 # 2>&1 | grep -v module-not-measured
 
 test-failed:
@@ -82,49 +82,6 @@ coverage_run=coverage run
 
 tests-clean:
 	rm -rf $(out) $(coverage_dir) .coverage .coverage.*
-
-
-# junit:
-# 	mkdir -p $(out)/junit
-# 	comptests-to-junit $(out)/compmake > $(out)/junit/junit.xml
-
-# tests:
-# 	comptests --nonose $(comptest_package)
-
-# tests-contracts:
-# 	comptests --contracts --nonose  $(comptest_package)
-
-# tests-contracts-coverage:
-# 	$(MAKE) tests-coverage-single-contracts
-# 	$(MAKE) coverage-report
-# 	$(MAKE) coverage-coveralls
-
-# tests-coverage:
-# 	$(MAKE) tests-coverage-single-nocontracts
-# 	$(MAKE) coverage-report
-# 	$(MAKE) coverage-coveralls
-
-
-# tests-coverage-single-nocontracts:
-# 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit"  $(comptest_package)
-# 	-DISABLE_CONTRACTS=1 $(coverage_run)  `which compmake` $(out)  -c "rmake"
-
-# tests-coverage-single-contracts:
-# 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit"  $(comptest_package)
-# 	-DISABLE_CONTRACTS=0 $(coverage_run)  `which compmake` $(out) --contracts -c "rmake"
-
-# tests-coverage-parallel-contracts:
-# 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit" $(comptest_package)
-# 	-DISABLE_CONTRACTS=0 $(coverage_run)  `which compmake` $(out) --contracts -c "rparmake"
-
-# coverage-report:
-# 	coverage combine
-# 	coverage html -d $(coverage_dir)
-
-coverage-coveralls:
-	# without --nogit, coveralls does not find the source code
-	COVERALLS_REPO_TOKEN=$(coveralls_repo_token) coveralls
-
 
 
 
