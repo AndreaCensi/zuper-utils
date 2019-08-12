@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 from nose.tools import raises
 
@@ -48,3 +48,15 @@ def test_multiple_optional3():
     U = get_Optional_arg(a)
     assert is_Union(U)
     assert int, str == get_Union_args(U)
+
+
+def test_optional1():
+    T = Optional[int]
+    S = get_Optional_arg(T)
+    assert S is int
+
+
+def test_multiple_union2():
+    ts = (int, type(None))
+    U = make_Union(*ts)
+    assert is_Optional(U)

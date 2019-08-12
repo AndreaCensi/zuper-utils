@@ -1,24 +1,16 @@
 import sys
-import typing
 import warnings
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, fields
-# noinspection PyUnresolvedReferences
-from typing import Any, ClassVar, Dict, Sequence, Tuple, Type, TypeVar, _eval_type
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Any, ClassVar, Dict, Tuple
 
-from zuper_commons.text import indent, pretty_dict
-from zuper_typing.constants import cache_enabled, MakeTypeCache
-from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_SetLike_arg, is_CustomList, is_DictLike,
-                                  is_SetLike, make_dict, make_list, make_set)
-from zuper_typing.recursive_tricks import get_name_without_brackets, replace_typevars, NoConstructorImplemented
-from .annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
-                                 get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg, get_TypeVar_name,
-                                 get_Type_arg, get_Union_args, get_tuple_types, is_Callable, is_ClassVar, is_ForwardRef,
-                                 is_Iterator, is_List, is_NewType, is_Optional, is_Sequence, is_Set, is_Tuple, is_Type,
-                                 is_TypeVar, is_Union, name_for_type_like)
-from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, PYTHON_36
+from .annotations_tricks import (get_ClassVar_arg, get_Type_arg, is_ClassVar, is_NewType, is_Type,
+                                 name_for_type_like)
+from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, MakeTypeCache, PYTHON_36, cache_enabled
 from .logging import logger
+from .recursive_tricks import NoConstructorImplemented, get_name_without_brackets, replace_typevars
 from .subcheck import can_be_used_as2
+
 
 #
 # def loglevel(f):
@@ -244,7 +236,7 @@ class MyABC(ABCMeta, StructuralTyping):
         return cls
 
 
-from typing import Optional, Union, List, Set
+from typing import Optional
 
 
 class Fake:
@@ -263,7 +255,7 @@ class Fake:
         return self.myt[item]
 
 
-def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any]] = None):
+def resolve_types(T, locals_=None, refs: Tuple = (), nrefs: Optional[Dict[str, Any]] = None):
     nrefs = nrefs or {}
     assert is_dataclass(T)
     # rl = RecLogger()
@@ -311,9 +303,8 @@ def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any
             # raise NameError(msg) from e
             logger.warning(msg)
             continue
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
             msg = f'Cannot resolve type for attribute "{k}".'
-
             raise TypeError(msg) from e
     for f in fields(T):
         if not f.name in annotations:
@@ -323,15 +314,14 @@ def resolve_types(T, locals_=None, refs: Tuple=(), nrefs: Optional[Dict[str, Any
         f.type = annotations[f.name]
 
 
-from dataclasses import is_dataclass
+#
+# if PYTHON_36:
+#     B = Dict[Any, Any]  # bug in Python 3.6
+# else:
+#     B = Dict[TypeVar, Any]
 
-if PYTHON_36:
-    B = Dict[Any, Any]  # bug in Python 3.6
-else:
-    B = Dict[TypeVar, Any]
 
-
-def make_type(cls: type, bindings: B) -> type:
+def make_type(cls: type, bindings) -> type:
     assert not is_NewType(cls)
     # logger.info(f'make_type ({cls}) {bindings}')
     # print(f'make_type for {cls.__name__}')
@@ -368,7 +358,7 @@ def make_type(cls: type, bindings: B) -> type:
         cls2 = type(name2, (cls,), {'need': lambda: None})
         # cls2.__qualname__ = cls.__qualname__
         # logger.info(f'Created class {cls2} ({name2}) and set qualname {cls2.__qualname__}')
-    except TypeError as e:
+    except TypeError as e:  # pragma: no cover
         msg = f'Cannot create derived class "{name2}" from {cls!r}'
         raise TypeError(msg) from e
 
@@ -413,7 +403,6 @@ def make_type(cls: type, bindings: B) -> type:
 
     new_annotations = {}
 
-
     # logger.info(f'annotations ({annotations}) ')
     for k, v0 in annotations.items():
         v = replace_typevars(v0, bindings=bindings, symbols=symbols)
@@ -447,12 +436,12 @@ def make_type(cls: type, bindings: B) -> type:
             if isinstance(v, type):
                 val = getattr(self, k)
                 try:
-                    if type(val).__name__ != v.__name__ and not isinstance(val, v):
+                    if type(val).__name__ != v.__name__ and not isinstance(val, v):  # pragma: no cover
                         msg = f'Expected field "{k}" to be a "{v.__name__}"' \
                               f'but found {type(val).__name__}'
                         warnings.warn(msg, stacklevel=3)
                         # raise ValueError(msg)
-                except TypeError as e:
+                except TypeError as e:  # pragma: no cover
                     msg = f'Cannot judge annotation of {k} (supposedly {v}.'
 
                     if sys.version_info[:2] == (3, 6):

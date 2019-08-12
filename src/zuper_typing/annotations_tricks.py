@@ -16,7 +16,7 @@ def is_Optional(x):
 def get_Optional_arg(x):
     assert is_Optional(x)
     args = x.__args__
-    if len(args) == 1:
+    if len(args) == 2:
         return args[0]
     else:
         return make_Union(args[:-1])
@@ -506,7 +506,7 @@ def get_Tuple_name(V):
 def get_tuple_types(V):
     if V is tuple:
         return Any, ...
-    if PYTHON_36:
+    if PYTHON_36: # pragma: no cover
         if V.__args__ is None:
             return Any, ...
     args = V.__args__  # XXX
