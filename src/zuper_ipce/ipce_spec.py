@@ -49,7 +49,10 @@ def assert_canonical_ipce(ob_ipce: IPCE, max=2):
             assert not is_dataclass(v), ob_ipce
             if max > 0:
                 assert_canonical_ipce(v, max=max-1)
-
+    elif isinstance(ob_ipce, list):
+        pass
+    elif isinstance(ob_ipce, tuple):
+        raise ValueError(ob_ipce)
         # links = set(get_links_hash(x))
         #
         # if links:

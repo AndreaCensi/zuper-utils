@@ -44,6 +44,7 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
     if is_Any(T2):
         return CanBeUsed(True, 'Any', matches)
 
+
     if is_Union(T1):
         if is_Union(T2):
             if get_Union_args(T1) == get_Union_args(T2):
@@ -70,6 +71,18 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         msg = f'Cannot use {T1} as any of {T2}:\n' + "\n".join(reasons)
         return CanBeUsed(False, msg, matches)
+
+    if is_Optional(T1):
+        t1 = get_Optional_arg(T1)
+
+        if is_Optional(T2):
+            t2 = get_Optional_arg(T2)
+            return can_be_used_as2(t1, t2, matches, assumptions)
+
+        if T2 is type(None):
+            return CanBeUsed(True, '', matches)
+
+        return can_be_used_as2(t1, T2, matches, assumptions)
 
     if is_Optional(T2):
         t2 = get_Optional_arg(T2)
