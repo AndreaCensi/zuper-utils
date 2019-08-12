@@ -21,3 +21,7 @@ numpy
 ipython # for debugging
 codecov
 
+nose2
+nose2-html-report
+nose-parallel
+nose_xunitmp
