@@ -270,8 +270,8 @@ def get_VarTuple_arg(x):
         return Any
     assert is_VarTuple(x), x
     ts = get_tuple_types(x)
-    if len(ts) == 0: # pragma: no cover
-        return Any
+    # if len(ts) == 0: # pragma: no cover
+    #     return Any
     return ts[0]
 
 

@@ -349,6 +349,9 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         # noinspection PyTypeChecker
         return ipce_from_typelike_TupleLike(T, c)
 
+    if is_Type(T):
+        raise NotImplementedError(T)
+
     assert isinstance(T, type), T
 
     if is_dataclass(T):
@@ -587,8 +590,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
 
                         else:
                             classatts[name] = ipce_from_object(the_att, c.globals_)
-                    else:
-                        raise NotImplementedError(T)
+                    # else:
+                    #     raise NotImplementedError(T)
 
 
             else:  # not classvar
@@ -625,7 +628,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     if classatts:
         res[X_CLASSATTS] = classatts
 
-    assert len(classvars) == len(classatts), (classvars, classatts)
+    assert len(classvars) >= len(classatts), (classvars, classatts)
 
     if properties:
         res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)

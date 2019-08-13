@@ -54,12 +54,12 @@ from .subcheck import can_be_used_as2
 def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
-
-def map_none_to_nonetype(x):
-    if x is None:
-        return type(None)
-    else:
-        return x
+#
+# def map_none_to_nonetype(x):
+#     if x is None:
+#         return type(None)
+#     else:
+#         return x
 
 
 class ZenericFix:
@@ -70,7 +70,7 @@ class ZenericFix:
     def __class_getitem__(cls0, params):
         # logger.info(f'ZenericFix.__class_getitem__ params = {params}')
         types = as_tuple(params)
-        types = tuple(map(map_none_to_nonetype, types))
+        # types = tuple(map(map_none_to_nonetype, types))
 
         # logger.info(f'types {types}')
 
@@ -111,8 +111,8 @@ class ZenericFix:
 
                 bindings = {}
 
-                if types == types2:
-                    return cls2
+                # if types == types2:
+                #     return cls2
 
                 for T, U in zip(types, types2):
                     bindings[T] = U
@@ -156,8 +156,8 @@ class StructuralTyping(type):
         if i:
             return True
 
-        # loadable
-        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'):
+        # loadable  - To remove
+        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'): # pragma: no cover
             if hasattr(instance, 'T'):
                 T = getattr(instance, 'T')
                 can = can_be_used_as2(T, self, {})
@@ -183,8 +183,8 @@ class MyABC(ABCMeta, StructuralTyping):
         if i:
             return True
 
-        # loadable
-        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'):
+        # loadable  - To remove
+        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'): # pragma: no cover
             T = getattr(instance, 'T')
             logger.info(f'Comparing {self} and type {type(instance)} {T}')
             can = can_be_used_as2(T, self, {})
@@ -307,10 +307,10 @@ def resolve_types(T, locals_=None, refs: Tuple = (), nrefs: Optional[Dict[str, A
             msg = f'Cannot resolve type for attribute "{k}".'
             raise TypeError(msg) from e
     for f in fields(T):
-        if not f.name in annotations:
+        assert f.name in annotations
             # msg = f'Cannot get annotation for field {f.name!r}'
             # logger.warning(msg)
-            continue
+            # continue
         f.type = annotations[f.name]
 
 
