@@ -619,7 +619,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
             raise TypeError(msg) from e
 
     if required:  # empty is error
-        res[JSC_REQUIRED] = required
+        res[JSC_REQUIRED] =sorted(required)
     if classvars:
         res[X_CLASSVARS] = classvars
     if classatts:

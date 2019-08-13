@@ -109,8 +109,8 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             from zuper_typing.zeneric2 import make_type
             cls2 = make_type(cls, bindings)
             from .logging import logger
-            logger.info(f'old cls: {cls.__annotations__}')
-            logger.info(f'new cls2: {cls2.__annotations__}')
+            # logger.info(f'old cls: {cls.__annotations__}')
+            # logger.info(f'new cls2: {cls2.__annotations__}')
             return cls2
         else: # pragma: no cover
             already[id(cls)] = ForwardRef(cls.__name__)
