@@ -138,3 +138,8 @@ def test_Dict3():
     assert is_CustomDict(D)
     N = name_for_type_like(D)
     assert_equal(N, 'Dict[str,int]')
+
+
+def test_corner_Type():
+    T = Type
+    get_Type_arg(T)
