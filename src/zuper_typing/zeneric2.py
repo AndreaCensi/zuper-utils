@@ -272,13 +272,13 @@ def resolve_types(T, locals_=None, refs: Tuple = (), nrefs: Optional[Dict[str, A
         # logger.info(f't = {t} n {n}')
         name_without = get_name_without_brackets(n)
 
-        if name_without in ['Union', 'Dict', ]:
-            # FIXME please add more here
-            continue
+        # if name_without in ['Union', 'Dict', ]:
+        #     # FIXME please add more here
+        #     continue
         if name_without not in symbols:
             symbols[name_without] = Fake(t, symbols)
-        else:
-            pass
+        # else:
+        #     pass
 
     for x in getattr(T, GENERIC_ATT2, ()):
         if hasattr(x, '__name__'):
