@@ -419,7 +419,8 @@ def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
         for v in T.__annotations__.values():
             yield from get_mentioned_names(v, c2)
     elif is_Type(T):
-        return
+        v = get_Type_arg(T)
+        yield from get_mentioned_names(v, c2)
     elif is_TypeVar(T):
         yield get_TypeVar_name(T)
     elif is_TupleLike(T):
@@ -558,7 +559,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                             classvars[name] = schema
                             used.update({tn: ref})
                             classatts[name] = f(type)
-                        else:
+                        else: # pragma: no cover
                             msg = f'Unknown typevar {tn} in class {T}; processing = {c.processing}'
                             raise NotImplementedError(msg)
                     else:
