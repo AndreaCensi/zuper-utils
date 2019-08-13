@@ -238,7 +238,6 @@ class MyABC(ABCMeta, StructuralTyping):
 
 from typing import Optional
 
-
 class Fake:
     def __init__(self, myt, symbols):
         self.myt = myt
@@ -367,17 +366,18 @@ def make_type(cls: type, bindings) -> type:
     MakeTypeCache.cache[cache_key] = cls2
 
     #
-    class Fake:
-        def __getitem__(self, item):
-            n = name_for_type_like(item)
-            complete = f'{name_without}[{n}]'
-            if complete in symbols:
-                return symbols[complete]
-            # noinspection PyUnresolvedReferences
-            return cls[item]
+    if False: # pragma: no cover
+        class Fake2:
+            def __getitem__(self, item):
+                n = name_for_type_like(item)
+                complete = f'{name_without}[{n}]'
+                if complete in symbols:
+                    return symbols[complete]
+                # noinspection PyUnresolvedReferences
+                return cls[item]
 
-    if name_without not in symbols:
-        symbols[name_without] = Fake()
+        if name_without not in symbols:
+            symbols[name_without] = Fake2()
 
     for T, U in bindings.items():
         symbols[T.__name__] = U
