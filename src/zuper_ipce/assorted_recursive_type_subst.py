@@ -1,6 +1,7 @@
 import datetime
 from dataclasses import is_dataclass
 from decimal import Decimal
+from numbers import Number
 from typing import Callable, ClassVar, List, Optional, Tuple, Type
 
 import numpy as np
