@@ -7,9 +7,9 @@ from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
 from zuper_ipce.constants import JSONSchema
 from zuper_ipce.schema_caching import assert_canonical_schema
-from zuper_ipce_tests.test_utils import assert_equivalent_types, assert_type_roundtrip, make_ForwardRef
+from zuper_ipce_tests.test_utils import assert_equivalent_types, assert_type_roundtrip, make_ForwardRef, NotEquivalent
 from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import is_Dict, is_Type
+from zuper_typing.annotations_tricks import is_Dict, is_Type, get_ClassVar_arg, is_ClassVar
 from zuper_typing.monkey_patching_typing import original_dict_getitem
 from zuper_typing.my_dict import make_dict, make_list, make_set
 
@@ -56,6 +56,9 @@ def test_rec1():
     logger.info(pretty_dict('T3', T3.__annotations__))
     assert_equivalent_types(A, T3, set())
 
+
+
+
     assert_type_roundtrip(A, {})
 
 
@@ -98,3 +101,27 @@ def test_Type_2():
 def test_schema1():
     schema = cast(JSONSchema, {})
     assert_canonical_schema(schema)
+
+
+def test_classvar():
+    def swap(x):
+        if x is int:
+            return str
+        if x is str:
+            return int
+        return x
+
+    T = ClassVar[int]
+    assert is_ClassVar(T)
+    assert get_ClassVar_arg(T) is int, T
+    T2 = recursive_type_subst(T, swap)
+    print(T)
+    print(T2)
+
+    assert get_ClassVar_arg(T2) is str, T2
+    try:
+        assert_equivalent_types(T, T2, set())
+    except NotEquivalent:
+        pass
+    else:
+        raise Exception()

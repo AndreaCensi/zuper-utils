@@ -1,12 +1,12 @@
 from dataclasses import is_dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, ClassVar
 
 # from zuper_ipce.conv_ipce_from_typelike import (eval_field)
 # from zuper_ipce.conv_ipce_from_typelike import eval_just_string
 from zuper_typing.annotations_tricks import (get_Dict_args, get_FixedTuple_args, get_List_arg, get_Optional_arg,
                                              get_Set_arg, get_Union_args, get_VarTuple_arg, is_Dict, is_FixedTuple,
                                              is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Union,
-                                             is_VarTuple, make_Tuple, make_Union)
+                                             is_VarTuple, make_Tuple, make_Union, is_ClassVar, get_ClassVar_arg)
 from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
                                   is_CustomList, is_CustomSet, make_dict, make_list, make_set)
@@ -85,6 +85,12 @@ def recursive_type_subst(T, f, ignore=()):
         if V == V2:
             return T
         return List[V2]
+    elif is_ClassVar(T):
+        V = get_ClassVar_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return ClassVar[V2]
     elif is_CustomList(T):
         V = get_CustomList_arg(T)
         V2 = r(V)
