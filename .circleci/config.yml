@@ -59,20 +59,17 @@ jobs:
           path: notebooks
           destination: notebooks
 
-     
+      - run:
+          name: CodeCov
+          command: |
+            codecov
+ 
 
 
   test-3.7:
     <<: *test-template
     docker:
-    - image: python:3.7
-    steps: 
-     <<: *steps
-     - run:
-          name: CodeCov
-          command: |
-            codecov
-
+    - image: python:3.7 
 
 #  test-3.8:
 #    <<: *test-template
