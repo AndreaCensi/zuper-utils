@@ -15,7 +15,6 @@ from zuper_typing.annotations_tricks import (get_FixedTuple_args, get_Optional_a
                                              is_VarTuple)
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_DictLike, is_ListLike,
                                   is_SetLike, make_dict, make_set)
-from .assorted_recursive_type_subst import resolve_all
 from .constants import (HINTS_ATT, JSC_TITLE, JSC_TITLE_TYPE, JSONSchema, SCHEMA_ATT, SCHEMA_ID)
 from .numpy_encoding import numpy_array_from_ipce
 from .structures import FakeValues
@@ -138,7 +137,6 @@ def object_from_ipce_(mj: IPCE,
     if K is slice:
         return object_from_ipce_slice(mj)
 
-
     if is_Any(K):
         if looks_like_set(mj):
             res = object_from_ipce_SetLike(None, mj, global_symbols, encountered)
@@ -257,7 +255,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
     global_symbols = dict(global_symbols)
     global_symbols[K.__name__] = K
 
-    from  .conv_typelike_from_ipce import typelike_from_ipce
+    from .conv_typelike_from_ipce import typelike_from_ipce
 
     anns = getattr(K, '__annotations__', {})
 
@@ -267,12 +265,12 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 
     for k, v in mj.items():
         if k in anns:
-            expect_type = resolve_all(anns[k], global_symbols)
+            expect_type = anns[k]
 
             if is_Optional(expect_type):
                 expect_type = get_Optional_arg(expect_type)
 
-            if inspect.isabstract(expect_type): # pragma: no cover
+            if inspect.isabstract(expect_type):  # pragma: no cover
                 msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
                 msg += f'\n annotation = {anns[k]}'
                 msg += f'\n expect_type = {expect_type}'
@@ -298,8 +296,8 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 
                 raise TypeError(msg) from e
 
-    for k, T0 in anns.items():
-        T = resolve_all(T0, global_symbols)
+    for k, T in anns.items():
+
         if is_ClassVar(T):
             continue
         if not k in mj:
@@ -309,7 +307,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 attrs[k] = None
                 pass
             else:
-                msg = f'Cannot find field {k!r} in data for class {K}. (T0 = {T0}) Know {sorted(mj)}'
+                msg = f'Cannot find field {k!r} in data for class {K}. (T = {T}) Know {sorted(mj)}'
                 msg += f'\n annotations: {anns}'
                 raise ValueError(msg)
 
@@ -356,7 +354,7 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
             attrs[k] = object_from_ipce(v, global_symbols, encountered,
                                         expect_type=expect_type_V)
 
-        except (TypeError, NotImplementedError) as e: # pragma: no cover
+        except (TypeError, NotImplementedError) as e:  # pragma: no cover
             msg = f'Cannot deserialize element at index "{k}".'
             msg += f'\n\n D = {D}'
             msg += '\n\n' + indent(yaml.dump(mj), '> ')

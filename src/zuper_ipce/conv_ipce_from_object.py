@@ -10,11 +10,10 @@ from frozendict import frozendict
 from zuper_commons.text import pretty_dict
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike_ndarray
 from zuper_typing.annotations_tricks import (get_Optional_arg, get_Union_args, get_VarTuple_arg, is_Any, is_Callable,
-                                             is_ClassVar, is_Dict, is_List, is_Optional, is_Sequence, is_Set, is_Tuple,
+                                             is_Dict, is_List, is_Optional, is_Sequence, is_Set, is_Tuple,
                                              is_TupleLike, is_Union, is_VarTuple)
 from zuper_typing.my_dict import (get_CustomDict_args, get_DictLike_args, get_ListLike_arg, get_SetLike_arg,
                                   is_CustomDict, is_DictLike, is_ListLike, is_SetLike)
-from .assorted_recursive_type_subst import resolve_all
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .structures import FakeValues
@@ -195,7 +194,7 @@ def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest
         v = getattr(ob, k)
 
         try:
-            suggest_type = resolve_all(suggest_type, globals_)
+            # suggest_type = resolve_all(suggest_type, globals_)
 
             # if is_ClassVar(suggest_type):
             #     continue

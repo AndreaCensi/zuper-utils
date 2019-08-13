@@ -12,31 +12,23 @@ from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_C
                                   is_CustomList, is_CustomSet, make_dict, make_list, make_set)
 
 
-def resolve_all(T, globals_):
-    """
-        Returns either a type or a generic alias
-
-
-    :return:
-    """
-    if isinstance(T, type):
-        return T
-
-    # if isinstance(T, str):
-    #     T = eval_just_string(T, globals_)
-    #     return T
-    #
-    # if is_ForwardRef(T):
-    #     tn = get_ForwardRef_arg(T)
-    #     return resolve_all(tn, globals_)
-
-    if is_Optional(T):
-        t = get_Optional_arg(T)
-        t = resolve_all(t, globals_)
-        return Optional[t]
-
-    # logger.debug(f'no thing to do for {T}')
-    return T
+# def resolve_all(T, globals_):
+#     """
+#         Returns either a type or a generic alias
+#
+#
+#     :return:
+#     """
+#     if isinstance(T, type):
+#         return T
+#
+#     if is_Optional(T):
+#         t = get_Optional_arg(T)
+#         t = resolve_all(t, globals_)
+#         return Optional[t]
+#
+#     # logger.debug(f'no thing to do for {T}')
+#     return T
 
 
 def recursive_type_subst(T, f, ignore=()):
