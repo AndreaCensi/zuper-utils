@@ -1,6 +1,6 @@
 import json
 import traceback
-from dataclasses import  fields, is_dataclass
+from dataclasses import fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
 
@@ -18,11 +18,12 @@ from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.types import TypeLike
+from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import *
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_DictLike, is_ListLike,
                                   is_SetLike)
 from zuper_typing_tests.test_utils import known_failure
-from zuper_typing import dataclass
+
 
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # assert T is not None
@@ -55,7 +56,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         assert_equivalent_types(T, T2, assume_yes=set())
 
     schema2 = ipce_from_typelike(T2, use_globals)
-    if schema != schema2: # pragma: no cover
+    if schema != schema2:  # pragma: no cover
         msg = 'Different schemas'
         d = {
               'T':  T, 'T.qual': T.__qualname__, 'TAnn': T.__annotations__, 'Td': T.__dict__, 'schema': schema0,
@@ -246,7 +247,7 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
         elif is_TypeVar(T1):
             if not is_TypeVar(T2):
                 raise NotEquivalent((T1, T2))
-            n1=  get_TypeVar_name(T1)
+            n1 = get_TypeVar_name(T1)
             n2 = get_TypeVar_name(T2)
             if n1 != n2:
                 raise NotEquivalent((n1, n2))
@@ -349,41 +350,47 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
         u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
 
-
     return locals()
+
+
+import numpy as np
 
 
 def check_equality(x1, x1b, expect_equality):
     if isinstance(x1b, type) and isinstance(x1, type):
         logger.warning('Skipping type equality check for %s and %s' % (x1b, x1))
     else:
-
-        eq1 = (x1b == x1)
-        eq2 = (x1 == x1b)
-
-        if expect_equality:  # pragma: no cover
-            if not eq1:
-                m = 'Object equality (next == orig) not preserved'
-                msg = pretty_dict(m,
-                                  dict(x1b=x1b,
-                                       x1b_=type(x1b),
-                                       x1=x1,
-                                       x1_=type(x1), x1b_eq=x1b.__eq__))
-                raise AssertionError(msg)
-            if not eq2:
-                m = 'Object equality (orig == next) not preserved'
-                msg = pretty_dict(m,
-                                  dict(x1b=x1b,
-                                       x1b_=type(x1b),
-                                       x1=x1,
-                                       x1_=type(x1),
-                                       x1_eq=x1.__eq__))
-                raise AssertionError(msg)
+        if isinstance(x1, np.ndarray):
+            pass
         else:
-            if eq1 and eq2:  # pragma: no cover
-                msg = 'You did not expect equality but they actually are'
-                logger.info(msg)
-                # raise Exception(msg)
+
+            eq1 = (x1b == x1)
+            eq2 = (x1 == x1b)
+
+            if expect_equality:  # pragma: no cover
+
+                if not eq1:
+                    m = 'Object equality (next == orig) not preserved'
+                    msg = pretty_dict(m,
+                                      dict(x1b=x1b,
+                                           x1b_=type(x1b),
+                                           x1=x1,
+                                           x1_=type(x1), x1b_eq=x1b.__eq__))
+                    raise AssertionError(msg)
+                if not eq2:
+                    m = 'Object equality (orig == next) not preserved'
+                    msg = pretty_dict(m,
+                                      dict(x1b=x1b,
+                                           x1b_=type(x1b),
+                                           x1=x1,
+                                           x1_=type(x1),
+                                           x1_eq=x1.__eq__))
+                    raise AssertionError(msg)
+            else:
+                if eq1 and eq2:  # pragma: no cover
+                    msg = 'You did not expect equality but they actually are'
+                    logger.info(msg)
+                    # raise Exception(msg)
 
 
 @known_failure
@@ -431,8 +438,6 @@ def test_testing2():
     except:
         print(traceback.format_exc())
         raise
-
-
 
 
 from typing import Any, Optional, Iterator, Tuple, Union

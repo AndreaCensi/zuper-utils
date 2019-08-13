@@ -101,9 +101,6 @@ def object_from_ipce_(mj: IPCE,
             msg = f'The value is None but the expected type is {expect_type}.'
             raise TypeError(msg)  # XXX
 
-    if expect_type is np.ndarray:
-        return numpy_array_from_ipce(mj)
-
     assert isinstance(mj, dict), type(mj)
     from .conv_typelike_from_ipce import typelike_from_ipce
     if mj.get(SCHEMA_ATT, '') == SCHEMA_ID:
@@ -125,6 +122,9 @@ def object_from_ipce_(mj: IPCE,
         else:
             msg = f'Cannot find a schema and expect_type=None.\n{mj}'
             raise ValueError(msg)
+
+    if K is np.ndarray:
+        return numpy_array_from_ipce(mj)
 
     if is_DictLike(K):
         return object_from_ipce_dict(K, mj, global_symbols, encountered)
