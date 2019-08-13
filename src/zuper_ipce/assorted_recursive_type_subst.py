@@ -134,7 +134,7 @@ def recursive_type_subst(T, f, ignore=()):
         # logger.info(f'changed {T.__name__} into {debug_print(T2.__annotations__)}')
 
         return T2
-    elif (T in (int, bool, float, Decimal, datetime, bytes, str, type(None), type, np.ndarray)):
+    elif (T in (int, bool, float, Decimal, datetime, bytes, str, type(None), type, np.ndarray, Number)):
         return f(T)
     elif is_TypeVar(T):
         return f(T)
