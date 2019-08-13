@@ -507,3 +507,9 @@ def test_corner_none2():
     x = None
     T = Any
     ipce_from_object(x, {}, suggest_type=T)
+
+
+def test_corner_list_Any():
+    x = [1, 2]
+    T = Any
+    ipce_from_object(x, {}, suggest_type=T)
