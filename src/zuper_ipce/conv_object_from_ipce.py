@@ -94,8 +94,6 @@ def object_from_ipce_(mj: IPCE,
             return None
         elif expect_type is type(None):
             return None
-        elif is_Optional(expect_type):
-            return None
         elif is_Any(expect_type):
             return None
         else:
@@ -274,7 +272,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
             if is_Optional(expect_type):
                 expect_type = get_Optional_arg(expect_type)
 
-            if inspect.isabstract(expect_type):
+            if inspect.isabstract(expect_type): # pragma: no cover
                 msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
                 msg += f'\n annotation = {anns[k]}'
                 msg += f'\n expect_type = {expect_type}'
@@ -287,7 +285,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
             try:
                 attrs[k] = object_from_ipce(v, global_symbols, encountered, expect_type=expect_type)
 
-            except BaseException as e:
+            except BaseException as e:  # pragma: no cover
                 msg = f'Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})'
                 msg += f'\n annotations of class {K.__name__} = {K.__annotations__}'
                 msg += f'\n anns[{k!r}] = {anns[k]}'

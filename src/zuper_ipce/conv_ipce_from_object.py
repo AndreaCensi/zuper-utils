@@ -251,11 +251,8 @@ def ipce_from_object_dict(ob: dict, globals_: GlobalsDict, suggest_type: Optiona
         FV = FakeValues[K, V]
 
         for k, v in ob.items():
-            if isinstance(k, int):
-                h = str(k)
-            else:
-                kj = ipce_from_object(k, globals_)
-                h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
+            kj = ipce_from_object(k, globals_)
+            h = get_sha256_base58(cbor2.dumps(kj)).decode('ascii')
             fv = FV(k, v)
             res[h] = ipce_from_object(fv, globals_, with_schema=with_schema)
     res = sorted_dict_with_cbor_ordering(res)
@@ -294,12 +291,9 @@ def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
     type_values = tuple(type(_) for _ in ob.values())
     type_keys = tuple(type(_) for _ in ob.keys())
     K = Any
-    # noinspection PyBroadException
-    try:
-        if len(set(type_keys)) == 1:
-            K = type_keys[0]
-    except:  # XXX
-        pass
+    if len(set(type_keys)) == 1:
+        K = type_keys[0]
+
     V = Any
     if len(set(type_values)) == 1:
         V = type_values[0]

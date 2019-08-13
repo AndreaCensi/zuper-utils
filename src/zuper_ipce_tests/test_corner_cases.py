@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Type, TypeVar, Union
+from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -15,6 +15,7 @@ from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, 
                                              is_Type, name_for_type_like)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing_tests.test_utils import known_failure
 
 
 def test_corner_cases01():
@@ -434,3 +435,48 @@ def test_type():
     assert_equal(MyClassInt.XT, int)
 
     assert_type_roundtrip(MyClass, {})
+
+
+def test_corner_list1():
+    x = [1, 2, 3]
+    T = Optional[List[int]]
+    ipce_from_object(x, globals_={}, suggest_type=T, with_schema=True)
+
+
+@raises(TypeError)
+def test_corner_list2():
+    x = [1, 2, 3]
+    T = Dict[str, str]
+    ipce_from_object(x, suggest_type=T)
+
+
+def test_corner_tuple1():
+    x = (1, 2, 3)
+    T = Optional[Tuple[int, ...]]
+    ipce_from_object(x, suggest_type=T)
+
+
+def test_corner_tuple2():
+    x = (1, 'a')
+    T = Optional[Tuple[int, str]]
+    ipce_from_object(x, suggest_type=T)
+
+
+@raises(TypeError)
+def test_corner_tuple3():
+    x = (1, 'a')
+    T = Dict[str, str]
+    ipce_from_object(x, suggest_type=T)
+
+
+def test_corner_none3():
+    x = None
+    T = Any
+    ipce_from_object(x, suggest_type=T)
+
+@known_failure
+@raises(TypeError)
+def test_corner_int3():
+    x = 1
+    T = Dict[str, str]
+    ipce_from_object(x, suggest_type=T)
