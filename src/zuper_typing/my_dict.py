@@ -13,7 +13,7 @@ class CustomSet(set):
         except AttributeError:
             try:
                 h = self._cached_hash = hash(tuple(sorted(self)))
-            except TypeError:
+            except TypeError: # pragma: no cover
                 h = self._cached_hash = hash(tuple(self))
             return h
 
@@ -24,7 +24,7 @@ class CustomList(list):
     def __hash__(self):
         try:
             return self._cached_hash
-        except AttributeError:
+        except AttributeError: # pragma: no cover
             h = self._cached_hash = hash(tuple(self))
             return h
 
@@ -51,7 +51,7 @@ class CustomDict(dict):
         except AttributeError:
             try:
                 h = self._cached_hash = hash(tuple(sorted(self.items())))
-            except TypeError:
+            except TypeError: # pragma: no cover
                 h = self._cached_hash = hash(tuple(self.items()))
             return h
 
@@ -167,7 +167,7 @@ def make_set(V) -> type:
             res2 = isinstance(other, type) and issubclass(other, CustomSet) and other.__set_type__ == V2
             return res2
 
-        def __hash__(cls):
+        def __hash__(cls): # pragma: no cover
             return 1  # XXX
 
     def copy(self):

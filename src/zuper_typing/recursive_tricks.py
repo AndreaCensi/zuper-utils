@@ -122,7 +122,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
         if arg == arg2:
             return cls
         return typing.List[arg2]
-    
+
     elif is_Optional(cls):
         x = get_Optional_arg(cls)
         x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
