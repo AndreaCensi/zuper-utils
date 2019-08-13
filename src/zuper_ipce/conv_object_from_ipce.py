@@ -185,13 +185,13 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
             suggest = get_ListLike_arg(expect_type)
             seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
             return seq
-        elif is_Optional(expect_type):
-            K = get_Optional_arg(expect_type)
-
-            return object_from_ipce(mj,
-                                    global_symbols,
-                                    encountered,
-                                    expect_type=K)
+        # elif is_Optional(expect_type):
+        #     K = get_Optional_arg(expect_type)
+        #
+        #     return object_from_ipce(mj,
+        #                             global_symbols,
+        #                             encountered,
+        #                             expect_type=K)
 
         else:
             msg = f'The object is a list, but expected {expect_type}.\nOb: {mj}'
