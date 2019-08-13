@@ -591,7 +591,6 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         else:
                             if isinstance(the_att, type):
                                 classatts[name] = f(the_att)
-
                             else:
                                 classatts[name] = ipce_from_object(the_att, c.globals_)
                     # else:
