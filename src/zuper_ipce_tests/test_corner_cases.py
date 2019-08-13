@@ -320,7 +320,6 @@ def make_class(tl):
     class MyCD4:
         a: tl
 
-    # MyCD4.__name__ = MyCD4.__qualname__ = 'TestClass' + str(tl)
     return MyCD4
 
 
@@ -329,7 +328,6 @@ def make_class_default(tl, default):
     class MyCD4:
         a: tl = default
 
-    # MyCD4.__name__ = MyCD4.__qualname__ = 'TestClass' + str(tl)
     return MyCD4
 
 
@@ -515,7 +513,8 @@ def test_corner_list_Any():
     T = Any
     ipce_from_object(x, {}, suggest_type=T)
 
+
 @raises(ValueError)
 def test_corner_ipce():
-    res = {'aa':1, 'a':2}
+    res = {'aa': 1, 'a': 2}
     assert_sorted_dict_with_cbor_ordering(res)

@@ -28,6 +28,8 @@ def test_rec1():
         h: make_list(int)
         i: Optional[int]
         l: Tuple[int, ...]
+        m:  original_dict_getitem((int, float))
+        n: original_dict_getitem((bool, float))
 
     def swap(x):
         if x is int:
