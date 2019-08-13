@@ -15,7 +15,7 @@ jobs:
     docker:
       - image: python:3.6
     working_directory: ~/repo
-    steps:
+    steps: &steps
       - checkout
       - run:
           name: Install deps
@@ -58,17 +58,22 @@ jobs:
       - store_artifacts:
           path: notebooks
           destination: notebooks
-      - run:
-          name: CodeCov
-          command: |
-            codecov
 
+     
 
 
   test-3.7:
     <<: *test-template
     docker:
     - image: python:3.7
+    steps: 
+    <<: *steps
+    - run:
+          name: CodeCov
+          command: |
+            codecov
+
+
 #  test-3.8:
 #    <<: *test-template
 #    docker:
