@@ -474,9 +474,29 @@ def test_corner_none3():
     T = Any
     ipce_from_object(x, suggest_type=T)
 
+
 @known_failure
 @raises(TypeError)
 def test_corner_int3():
     x = 1
     T = Dict[str, str]
     ipce_from_object(x, suggest_type=T)
+
+
+@raises(TypeError)
+def test_corner_int4():
+    x = 1
+    T = Dict[str, str]
+    object_from_ipce(x, {}, expect_type=T)
+
+
+def test_corner_none():
+    x = None
+    T = Any
+    object_from_ipce(x, {}, expect_type=T)
+
+
+def test_corner_none2():
+    x = None
+    T = Any
+    ipce_from_object(x, {}, suggest_type=T)
