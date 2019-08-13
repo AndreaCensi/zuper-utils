@@ -269,8 +269,8 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
         if k in anns:
             expect_type = anns[k]
 
-            if is_Optional(expect_type):
-                expect_type = get_Optional_arg(expect_type)
+            # if is_Optional(expect_type):
+            #     expect_type = get_Optional_arg(expect_type)
 
             if inspect.isabstract(expect_type):  # pragma: no cover
                 msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
@@ -311,7 +311,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                     logger.error(f'dict: {debug_print(dict(K.__dict__))}')
                     logger.error(f'anns: {debug_print(K.__annotations__)}')
                     # V = V.default
-                    raise Exception()
+                    raise Exception((k,V))
                 # logger.info(f'setting default {V}')
                 attrs[k] = V
             elif is_Optional(T):

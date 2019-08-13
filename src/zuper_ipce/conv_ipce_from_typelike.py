@@ -562,7 +562,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                             classvars[name] = schema
                             used.update({tn: ref})
                             classatts[name] = f(type)
-                        else: # pragma: no cover
+                        else:  # pragma: no cover
                             msg = f'Unknown typevar {tn} in class {T}; processing = {c.processing}'
                             raise NotImplementedError(msg)
                     else:
@@ -572,6 +572,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         if hasattr(T, name):
                             # special case
                             the_att = getattr(T, name)
+                            assert not isinstance(the_att, Field), the_att
                             if isinstance(the_att, type):
                                 classatts[name] = f(the_att)
                             else:
@@ -584,38 +585,35 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                     if hasattr(T, name):
                         # special case
                         the_att = getattr(T, name)
-
-                        if isinstance(the_att, type):
-                            classatts[name] = f(the_att)
-
+                        if  isinstance(the_att, Field):
+                            # actually attribute not there
+                            pass
                         else:
-                            classatts[name] = ipce_from_object(the_att, c.globals_)
+                            if isinstance(the_att, type):
+                                classatts[name] = f(the_att)
+
+                            else:
+                                classatts[name] = ipce_from_object(the_att, c.globals_)
                     # else:
                     #     raise NotImplementedError(T)
 
 
             else:  # not classvar
-
-                if is_Optional(t):
-                    t = get_Optional_arg(t)
-                    optional = True
-                else:
-                    optional = False
-                properties[name] = f(t)
+                schema = f(t)
 
                 has_default = afield.default is not dataclasses.MISSING
 
                 if has_default:
                     default = afield.default
-                    schema = copy.copy(properties[name])
+                    schema = copy.copy(schema)
                     schema['default'] = ipce_from_object(default, c.globals_)
 
                     schema = sorted_dict_with_cbor_ordering(schema)
-                    properties[name] = schema
-                else:
-                    if not optional:
-                        required.append(name)
 
+                else:
+                    required.append(name)
+
+                properties[name] = schema
 
         except BaseException as e:
             msg = f'Cannot write schema for attribute {name} -> {t} of type {T.__name__}'

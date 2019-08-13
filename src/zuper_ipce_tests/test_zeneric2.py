@@ -221,7 +221,7 @@ definitions:
 description: 'Entity0[X](data0: ~X, parent: ''Optional[Entity0[X]]'' = None)'
 properties:
   data0: {$ref: 'http://invalid.json-schema.org/Entity0[X]/X#'}
-  parent: {$ref: 'http://invalid.json-schema.org/Entity0[X]#'}
+  parent: {$ref: 'http://invalid.json-schema.org/Entity0[X]#', default: null}
 required: [data0]
 title: Entity0[X]
 type: object    
@@ -457,7 +457,7 @@ definitions:
   X: {$id: 'http://invalid.json-schema.org/Entity2[X]/X#', $schema: 'http://json-schema.org/draft-07/schema#'}
 description: 
 properties:
-  parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#'}
+  parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#', default: null}
 required: [data0, guid, security_model]
 __qualname__: QUAL
 __module__: module

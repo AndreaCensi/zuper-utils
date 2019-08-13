@@ -6,6 +6,7 @@ from numbers import Number
 from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, TypeVar, cast
 
 import numpy as np
+import yaml
 
 from zuper_commons.types import check_isinstance
 from zuper_typing.annotations_tricks import (is_Any, is_ForwardRef, make_Tuple, make_Union,
@@ -377,6 +378,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             else:
                 if not pname in required:
                     msg = f'Field {pname!r} is not required but I did not find a default'
+                    msg += '\n\n' + yaml.dump(res)
                     raise Exception(msg)
             fields.append((pname, ptype, _Field))
         elif pname in classvars:

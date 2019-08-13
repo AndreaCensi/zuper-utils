@@ -199,12 +199,12 @@ def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest
             # if is_ClassVar(suggest_type):
             #     continue
 
-            if v is None:
-                if is_Optional(suggest_type):
-                    continue
+            # if v is None:
+            #     if is_Optional(suggest_type):
+            #         continue
 
-            if is_Optional(suggest_type):
-                suggest_type = get_Optional_arg(suggest_type)
+            # if is_Optional(suggest_type):
+            #     suggest_type = get_Optional_arg(suggest_type)
 
             if f.default == v:
                 continue
