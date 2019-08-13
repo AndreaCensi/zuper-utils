@@ -8,7 +8,7 @@ from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.pretty import pprint
 from zuper_typing import dataclass
-from zuper_typing.my_dict import (get_DictLike_args, make_dict)
+from zuper_typing.my_dict import (get_DictLike_args, make_dict, make_list, make_set)
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
@@ -128,3 +128,24 @@ def test_dict_kv02():
 def test_dict_kv03():
     x = get_DictLike_args(Dict[int, str])
     assert_equal(x, (int, str))
+
+
+def test_dict_copy():
+    T = make_dict(int, str)
+    x = T({1: 'a'})
+    y = x.copy()
+    assert type(y) is T
+
+
+def test_set_copy():
+    T = make_set(int)
+    x = T({1})
+    y = x.copy()
+    assert type(y) is T
+
+
+def test_list_copy():
+    T = make_list(int)
+    x = T([1])
+    y = x.copy()
+    assert type(y) is T

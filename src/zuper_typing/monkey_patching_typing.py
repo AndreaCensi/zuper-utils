@@ -132,20 +132,20 @@ def MyNamedArg(T, name):
     Reg.already[key] = CNamedArg
     return CNamedArg
 
-
-def MyNamedArg_old(x: type, name: str):
-    key = f'{x} {name}'
-    if key in Reg.already:
-        return Reg.already[key]
-
-    x2 = copy.copy(x)
-    # noinspection PyBroadException
-    try:
-        setattr(x2, NAME_ARG, name)
-    except:
-        return x
-
-    return x2
+#
+# def MyNamedArg_old(x: type, name: str):
+#     key = f'{x} {name}'
+#     if key in Reg.already:
+#         return Reg.already[key]
+#
+#     x2 = copy.copy(x)
+#     # noinspection PyBroadException
+#     try:
+#         setattr(x2, NAME_ARG, name)
+#     except:
+#         return x
+#
+#     return x2
 
 
 

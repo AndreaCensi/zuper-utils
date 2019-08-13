@@ -3,7 +3,7 @@ import dataclasses
 import datetime
 import typing
 import warnings
-from dataclasses import Field, _FIELDS, is_dataclass
+from dataclasses import Field, _FIELDS, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
 from typing import Any, List, Optional, Tuple, Type, TypeVar, cast
@@ -21,13 +21,13 @@ from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_ListL
                                   is_ListLike, is_SetLike)
 from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from zuper_typing.recursive_tricks import get_name_without_brackets
-from .constants import (ATT_PYTHON_NAME, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_ARRAY, JSC_BOOL,
-                        JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_ITEMS, JSC_NULL, JSC_NUMBER,
-                        JSC_OBJECT, JSC_PROPERTIES, JSC_PROPERTY_NAMES, JSC_REQUIRED, JSC_STRING, JSC_TITLE,
-                        JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT,
-                        JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema,
-                        ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
-                        X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
+from .constants import (ALL_OF, ANY_OF, ATT_PYTHON_NAME, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_ARRAY, JSC_BOOL,
+                        JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_ITEMS, JSC_NULL, JSC_NUMBER, JSC_OBJECT,
+                        JSC_PROPERTIES, JSC_PROPERTY_NAMES, JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_CALLABLE,
+                        JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE,
+                        JSC_TITLE_TYPE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES,
+                        SCHEMA_CID, SCHEMA_ID, X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT,
+                        use_ipce_from_typelike_cache, CALLABLE_ORDERING, CALLABLE_RETURN)
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .pretty import pretty_dict
 from .schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
@@ -183,8 +183,6 @@ def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
 
     if is_VarTuple(T):
         items = get_VarTuple_arg(T)
-        # if args[-1] == Ellipsis:
-        #     items = args[0]
         res = cast(JSONSchema, {})
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
@@ -195,7 +193,6 @@ def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
     elif is_FixedTuple(T):
         args = get_FixedTuple_args(T)
         res = cast(JSONSchema, {})
-
         res[SCHEMA_ATT] = SCHEMA_ID
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = []
@@ -247,8 +244,8 @@ def ipce_from_typelike_Callable(T: Type, c: IFTContext) -> TRE:
 
     for k, v in cinfo.parameters_by_name.items():
         p[k] = f(v)
-    p['return'] = f(cinfo.returns)
-    res['ordering'] = list(cinfo.ordering)
+    p[CALLABLE_RETURN] = f(cinfo.returns)
+    res[CALLABLE_ORDERING] = list(cinfo.ordering)
     # print(res)
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, used)
@@ -406,12 +403,9 @@ def ipce_from_typelike_Intersection(T, c: IFTContext):
         return tr.schema
 
     options = [f(t) for t in args]
-    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "allOf": options})
+    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ALL_OF: options})
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, used)
-
-
-from dataclasses import replace
 
 
 def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
@@ -658,7 +652,7 @@ def ipce_from_typelike_Union(t, c: IFTContext) -> TRE:
         return tr.schema
 
     options = [f(t) for t in types]
-    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
+    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, used)
 
@@ -673,7 +667,7 @@ def ipce_from_typelike_Optional(t, c: IFTContext) -> TRE:
         return tr.schema
 
     options = [f(t) for t in types]
-    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, "anyOf": options})
+    res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, used)
 

@@ -9,7 +9,8 @@ _SpecialForm = Any
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = '$schema'
 HINTS_ATT='$hints'
-
+ANY_OF = 'anyOf'
+ALL_OF = 'allOf'
 ID_ATT = '$id'
 REF_ATT = '$ref'
 
@@ -70,3 +71,6 @@ USE_REMEMBERED_CLASSES = True
 
 use_ipce_from_typelike_cache = True
 check_types = False
+
+CALLABLE_ORDERING = 'ordering'
+CALLABLE_RETURN = 'return'

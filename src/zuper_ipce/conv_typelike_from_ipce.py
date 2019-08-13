@@ -22,7 +22,7 @@ from .constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, ID_ATT, J
                         JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE,
                         JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY,
                         JSC_TITLE_SLICE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID,
-                        X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT)
+                        X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, CALLABLE_RETURN, CALLABLE_ORDERING)
 from .pretty import pretty_dict
 from .structures import CannotFindSchemaReference
 from .types import TypeLike
@@ -267,9 +267,9 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
 
     schema = dict(schema)
     definitions = dict(schema[JSC_DEFINITIONS])
-    ret = f(definitions.pop('return'))
+    ret = f(definitions.pop(CALLABLE_RETURN))
     others = []
-    for k in schema['ordering']:
+    for k in schema[CALLABLE_ORDERING]:
         d = f(definitions[k])
         if not k.startswith('__'):
             d = MyNamedArg(d, k)

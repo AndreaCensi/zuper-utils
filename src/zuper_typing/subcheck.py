@@ -2,8 +2,9 @@ from dataclasses import dataclass, is_dataclass
 from typing import Any, Dict, Tuple
 
 from zuper_commons.text import indent
-from .annotations_tricks import (get_Optional_arg, get_Sequence_arg, get_Union_args, get_tuple_types, is_Any, is_List,
-                                 is_Optional, is_Sequence, is_Tuple, is_TypeVar, is_Union)
+from .annotations_tricks import (get_ForwardRef_arg, get_Optional_arg, get_Sequence_arg, get_Union_args,
+                                 get_tuple_types, is_Any, is_Callable, is_ForwardRef, is_List, is_Optional, is_Sequence,
+                                 is_Tuple, is_TypeVar, is_Union)
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (get_DictLike_args, get_ListLike_arg,
                       get_SetLike_arg, is_DictLike, is_ListLike,
@@ -43,7 +44,6 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
     if is_Any(T2):
         return CanBeUsed(True, 'Any', matches)
-
 
     if is_Union(T1):
         if is_Union(T2):
@@ -223,6 +223,29 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         return CanBeUsed(True, '', can.matches)
 
+    if is_Callable(T2):
+        if not is_Callable(T1):
+            return CanBeUsed(False, 'not callable', matches)
+
+        raise NotImplementedError((T1, T2))
+
+    if is_ForwardRef(T1):
+        n1 = get_ForwardRef_arg(T1)
+        if is_ForwardRef(T2):
+            n2 = get_ForwardRef_arg(T2)
+            if n1 == n2:
+                return CanBeUsed(True, '', matches)
+            else:
+                return CanBeUsed(False, 'different name', matches)
+        else:
+            return CanBeUsed(False, 'not fw ref', matches)
+    if is_ForwardRef(T2):
+        n2 = get_ForwardRef_arg(T2)
+        if hasattr(T1, '__name__'):
+            if T1.__name__ == n2:
+                return CanBeUsed(True, '', matches)
+            else:
+                return CanBeUsed(False, 'different name', matches)
     if is_SetLike(T2):
         if not is_SetLike(T1):
             msg = 'A Set can only be used as a Set'

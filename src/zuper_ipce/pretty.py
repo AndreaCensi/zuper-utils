@@ -18,16 +18,8 @@ def pretty_dict(head: Optional[str], d: Dict[str, Any], omit_falsy=False, sort_k
     for k in ordered:
         v = d[k]
 
-        if k == '__builtins__':
-            v = '(hiding __builtins__)'
-
-        # if not hasattr(v, 'conclusive') and (not isinstance(v, int)) and (not v) and omit_falsy:
-        #     continue
         prefix = (str(k) + ':').rjust(n + 1) + ' '
 
-        # if isinstance(v, TypeVar):
-        #     # noinspection PyUnresolvedReferences
-        #     v = f'TypeVar({v.__name__}, bound={v.__bound__})'
         if isinstance(v, dict):
             v = pretty_dict('', v)
         s.append(indent(v, '', prefix))

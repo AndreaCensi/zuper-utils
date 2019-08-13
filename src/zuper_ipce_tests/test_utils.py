@@ -55,7 +55,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         assert_equivalent_types(T, T2, assume_yes=set())
 
     schema2 = ipce_from_typelike(T2, use_globals)
-    if schema != schema2:
+    if schema != schema2: # pragma: no cover
         msg = 'Different schemas'
         d = {
               'T':  T, 'T.qual': T.__qualname__, 'TAnn': T.__annotations__, 'Td': T.__dict__, 'schema': schema0,
@@ -309,21 +309,13 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
 
     y1e = encode_bytes_before_json_serialization(y1)
     y1es = json.dumps(y1e, indent=2)
-    # logger.info(f'y1es: {y1es}')
+
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
     y1eslo = object_from_ipce(y1esl, use_globals)
 
     x1b = object_from_ipce(y1, use_globals)
 
     x1bj = ipce_from_object(x1b, use_globals)
-
-    # if False:
-    #     from zuper_ipce import store_json, recall_json
-    #     h1 = store_json(y1)
-    #     y1b = recall_json(h1)
-    #     assert y1b == y1
-    #     h2 = store_json(x1bj)
-    #     assert h1 == h2
 
     check_equality(x1, x1b, expect_equality)
 
@@ -348,7 +340,7 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
         u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
 
-    # s = {x1b}
+
     return locals()
 
 
@@ -356,14 +348,10 @@ def check_equality(x1, x1b, expect_equality):
     if isinstance(x1b, type) and isinstance(x1, type):
         logger.warning('Skipping type equality check for %s and %s' % (x1b, x1))
     else:
-        #
-        # if isinstance(x1, np.ndarray):
-        #     assert allclose(x1b, x1)
-        # else:
-        # print('x1: %s' % x1)
+
         eq1 = (x1b == x1)
         eq2 = (x1 == x1b)
-        # test object equality
+
         if expect_equality:  # pragma: no cover
             if not eq1:
                 m = 'Object equality (next == orig) not preserved'

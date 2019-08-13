@@ -478,6 +478,11 @@ def get_Iterator_name(V):
     return 'Iterator[%s]' % name_for_type_like(v)
 
 
+def get_Iterable_name(V):
+    v = get_Iterable_arg(V)
+    return 'Iterable[%s]' % name_for_type_like(v)
+
+
 def get_Sequence_name(V):
     v = get_Sequence_arg(V)
     return 'Sequence[%s]' % name_for_type_like(v)
@@ -535,6 +540,8 @@ def name_for_type_like(x):
         return get_List_name(x)
     elif is_Iterator(x):
         return get_Iterator_name(x)
+    elif is_Iterable(x):
+        return get_Iterable_name(x)
     elif is_Tuple(x):
         return get_Tuple_name(x)
     elif is_Set(x):
@@ -571,9 +578,12 @@ def name_for_type_like(x):
         params = ','.join(ps(k, v) for k, v in info.parameters_by_name.items())
         ret = name_for_type_like(info.returns)
         return f'Callable[[{params}],{ret}]'
+    elif x is typing.IO:
+        return str(x) # TODO: should get the attribute
     elif hasattr(x, '__name__'):
         # logger.info(f'not matching __name__ {type(x)} {x!r}')
         return x.__name__
+
     else:
 
         # logger.info(f'not matching {type(x)} {x!r}')
