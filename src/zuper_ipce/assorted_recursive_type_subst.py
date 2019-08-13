@@ -1,12 +1,14 @@
+import datetime
 from dataclasses import is_dataclass
-from typing import Dict, List, Optional, Tuple, ClassVar
+from decimal import Decimal
+from typing import ClassVar, List, Optional, Tuple, Type
+import numpy as np
 
-# from zuper_ipce.conv_ipce_from_typelike import (eval_field)
-# from zuper_ipce.conv_ipce_from_typelike import eval_just_string
-from zuper_typing.annotations_tricks import (get_Dict_args, get_FixedTuple_args, get_List_arg, get_Optional_arg,
-                                             get_Set_arg, get_Union_args, get_VarTuple_arg, is_Dict, is_FixedTuple,
-                                             is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Union,
-                                             is_VarTuple, make_Tuple, make_Union, is_ClassVar, get_ClassVar_arg)
+from zuper_typing.annotations_tricks import (get_ClassVar_arg, get_Dict_args, get_FixedTuple_args, get_List_arg,
+                                             get_Optional_arg, get_Set_arg, get_Type_arg, get_Union_args,
+                                             get_VarTuple_arg, is_Any, is_ClassVar, is_Dict, is_FixedTuple,
+                                             is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Type,
+                                             is_TypeVar, is_Union, is_VarTuple, make_Tuple, make_Union)
 from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
                                   is_CustomList, is_CustomSet, make_dict, make_list, make_set)
@@ -131,6 +133,21 @@ def recursive_type_subst(T, f, ignore=()):
         # logger.info(f'changed {T.__name__} into {debug_print(T2.__annotations__)}')
 
         return T2
+    elif (T in (int, bool, float, Decimal, datetime, bytes, str, type(None), type, np.ndarray)):
+        return f(T)
+    elif is_TypeVar(T):
+        return f(T)
+    elif is_Type(T):
+        V = get_Type_arg(T)
+        V2 = r(V)
+        if V == V2:
+            return T
+        return Type[V2]
+    elif is_Any(T):
+        return f(T)
 
+    elif isinstance(T, type) and 'Placeholder' in T.__name__:
+        return f(T)
     else:
+        raise NotImplementedError(T)
         return f(T)
