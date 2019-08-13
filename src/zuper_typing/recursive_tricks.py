@@ -207,7 +207,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             logger.warning(f'could not resolve {cls}')
             return cls
 
-    elif cls in (int, bool, float, Decimal, datetime, str, bytes, Number, type(None) ):
+    elif cls in (int, bool, float, Decimal, datetime, str, bytes, Number, type(None), object ):
         return cls
     elif is_Any(cls):
         return cls
