@@ -497,11 +497,6 @@ def test_zdpuAvHxsUsqnHV8G3HvNfwSKr18h2dbUf8Shx7zvBWCBP7aN_len309():
     check_case(fn)
 
 
-def test_zdpuAyYkH62zqpJqt8ge2shotXxZjSgZkHjYcfyiiv9n7gKgy_len310():
-    fn = 'test_objects/zdpuAyYkH62zqpJqt8ge2shotXxZjSgZkHjYcfyiiv9n7gKgy.ipce.cbor.gz'
-    check_case(fn)
-
-
 def test_zdpuAzU3EphgJpMRBizgFaZoxYnwbZJTntPKPqAYNvFfzqdsj_len310():
     fn = 'test_objects/zdpuAzU3EphgJpMRBizgFaZoxYnwbZJTntPKPqAYNvFfzqdsj.ipce.cbor.gz'
     check_case(fn)

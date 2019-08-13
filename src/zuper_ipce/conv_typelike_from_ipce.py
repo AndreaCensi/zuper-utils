@@ -374,6 +374,10 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
                 _Field.default = default_value
                 assert not isinstance(default_value, dataclasses.Field)
                 other_set_attr[pname] = default_value
+            else:
+                if not pname in required:
+                    msg = f'Field {pname!r} is not required but I did not find a default'
+                    raise Exception(msg)
             fields.append((pname, ptype, _Field))
         elif pname in classvars:
             v = classvars[pname]
