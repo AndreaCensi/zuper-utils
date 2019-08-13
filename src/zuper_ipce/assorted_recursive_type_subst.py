@@ -7,7 +7,7 @@ from zuper_typing.annotations_tricks import (get_Dict_args, get_FixedTuple_args,
                                              get_Set_arg, get_Union_args, get_VarTuple_arg, is_Dict, is_FixedTuple,
                                              is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Union,
                                              is_VarTuple, make_Tuple, make_Union)
-from zuper_typing.monkey_patching_typing import my_dataclass
+from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
                                   is_CustomList, is_CustomSet, make_dict, make_list, make_set)
 
@@ -80,7 +80,7 @@ def recursive_type_subst(T, f, ignore=()):
         K2, V2 = r(K), r(V)
         if (K, V) == (K2, V2):
             return T
-        return Dict[K, V]
+        return original_dict_getitem((K, V))
     elif is_CustomDict(T):
         K, V = get_CustomDict_args(T)
         K2, V2 = r(K), r(V)

@@ -197,8 +197,8 @@ def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest
         try:
             suggest_type = resolve_all(suggest_type, globals_)
 
-            if is_ClassVar(suggest_type):
-                continue
+            # if is_ClassVar(suggest_type):
+            #     continue
 
             if v is None:
                 if is_Optional(suggest_type):
