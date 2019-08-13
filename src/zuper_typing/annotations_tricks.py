@@ -122,6 +122,13 @@ def is_ForwardRef(x):
     else:
         return isinstance(x, typing.ForwardRef)
 
+def make_ForwardRef(n):
+
+    if PYTHON_36:  # pragma: no cover
+        return  typing._ForwardRef(n)
+    else:
+        return  typing.ForwardRef(n)
+
 
 def get_ForwardRef_arg(x) -> str:
     assert is_ForwardRef(x)
