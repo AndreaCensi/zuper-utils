@@ -450,6 +450,13 @@ def test_corner_list2():
     ipce_from_object(x, suggest_type=T)
 
 
+@raises(TypeError)
+def test_corner_list2b():
+    x = [1, 2, 3]
+    T = Dict[str, str]
+    object_from_ipce(x, {}, expect_type=T)
+
+
 def test_corner_tuple1():
     x = (1, 2, 3)
     T = Optional[Tuple[int, ...]]
