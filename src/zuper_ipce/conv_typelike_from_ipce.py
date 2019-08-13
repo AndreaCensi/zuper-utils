@@ -16,13 +16,13 @@ from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection
 from . import logger
 from .assorted_recursive_type_subst import recursive_type_subst
-from .constants import (ATT_PYTHON_NAME, EncounteredDict, GlobalsDict, ID_ATT, JSC_ADDITIONAL_PROPERTIES,
-                        JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT, JSC_DEFINITIONS,
-                        JSC_DESCRIPTION, JSC_INTEGER, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES,
-                        JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE,
-                        JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY,
-                        JSC_TITLE_SLICE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID,
-                        X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, CALLABLE_RETURN, CALLABLE_ORDERING)
+from .constants import (ATT_PYTHON_NAME, CALLABLE_ORDERING, CALLABLE_RETURN, EncounteredDict, GlobalsDict, ID_ATT,
+                        JSC_ADDITIONAL_PROPERTIES, JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT,
+                        JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES,
+                        JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME,
+                        JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TYPE, JSONSchema,
+                        ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID, X_CLASSATTS, X_CLASSVARS, X_ORDER,
+                        X_PYTHON_MODULE_ATT)
 from .pretty import pretty_dict
 from .structures import CannotFindSchemaReference
 from .types import TypeLike
@@ -366,19 +366,20 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             if pname in required:
                 _Field = field()
             else:
-                _Field = field() #default=dataclasses.MISSING)
+                _Field = field()  # default=dataclasses.MISSING)
                 ptype = Optional[ptype]
             _Field.name = pname
             if JSC_DEFAULT in v:
                 default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
                 _Field.default = default_value
+                assert not isinstance(default_value, dataclasses.Field)
                 other_set_attr[pname] = default_value
             fields.append((pname, ptype, _Field))
         elif pname in classvars:
             v = classvars[pname]
             ptype = f(v)
-            _Field =  field()
-            fields.append((pname, ClassVar[ptype],_Field))
+            _Field = field()
+            fields.append((pname, ClassVar[ptype], _Field))
         elif pname in classatts:  # pragma: no cover
             msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
             raise ValueError(msg)
@@ -416,8 +417,10 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             interpreted = f(cast(JSONSchema, v))
         else:
             interpreted = object_from_ipce(v, global_symbols)
+        assert not isinstance(interpreted, dataclasses.Field)
         setattr(T, pname, interpreted)
     for k, v in other_set_attr.items():
+        assert not isinstance(v, dataclasses.Field)
         setattr(T, k, v)
     if JSC_DESCRIPTION in res:
         setattr(T, '__doc__', res[JSC_DESCRIPTION])
@@ -438,6 +441,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     if not used:
         remember_created_class(T)
 
+    assert not 'varargs' in T.__dict__
     return SRE(T, used)
 
 

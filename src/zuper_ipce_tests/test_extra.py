@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar, Any
 
 import yaml
 from nose.tools import assert_equal
@@ -153,6 +153,18 @@ def test_type06():
     assert_type_roundtrip(A, {})
     assert_type_roundtrip(B, {})
 
+def test_another():
+    X = TypeVar('X')
+    @dataclass
+    class Entity4(Generic[X]):
+        guid: str
+
+
+        forked: 'Optional[Entity4[X]]' = None
+
+        parent: 'Optional[Entity4[Any]]' = None
+
+    assert_type_roundtrip(Entity4, {})
 
 if __name__ == '__main__':
-    test_type05()
+    test_another()

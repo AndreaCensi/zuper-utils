@@ -195,7 +195,6 @@ def ipce_from_object_dataclass_instance(ob, globals_, with_schema: bool, suggest
         v = getattr(ob, k)
 
         try:
-            # suggest_type = resolve_all(suggest_type, globals_)
 
             # if is_ClassVar(suggest_type):
             #     continue

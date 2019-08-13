@@ -1,7 +1,7 @@
 import datetime
 import inspect
 import traceback
-from dataclasses import is_dataclass
+from dataclasses import is_dataclass, Field
 from decimal import Decimal
 from typing import Any, Dict, Optional, cast
 
@@ -297,14 +297,23 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 # msg += '\n\n' + indent(traceback.format_exc(), '| ')
 
                 raise TypeError(msg) from e
-
+    # for k, v in attrs.items():
+    #     assert not isinstance(v, Field), (k, v)
     for k, T in anns.items():
-
         if is_ClassVar(T):
             continue
         if not k in mj:
             if hasattr(K, k):  # default - XXX
-                attrs[k] = getattr(K, k)
+                V = getattr(K, k)
+                if isinstance(V, Field):
+                    logger.error(yaml.dump(mj))
+                    from zuper_ipcl.debug_print_ import debug_print
+                    logger.error(f'dict: {debug_print(dict(K.__dict__))}')
+                    logger.error(f'anns: {debug_print(K.__annotations__)}')
+                    # V = V.default
+                    raise Exception()
+                # logger.info(f'setting default {V}')
+                attrs[k] = V
             elif is_Optional(T):
                 attrs[k] = None
                 pass
@@ -312,7 +321,8 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 msg = f'Cannot find field {k!r} in data for class {K}. (T = {T}) Know {sorted(mj)}'
                 msg += f'\n annotations: {anns}'
                 raise ValueError(msg)
-
+    for k, v in attrs.items():
+        assert not isinstance(v, Field), (k, v)
     try:
         return K(**attrs)
     except TypeError as e:  # pragma: no cover
@@ -326,7 +336,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 
         msg += f'because:\n{e}'  # XXX
         raise TypeError(msg) from e
-
+from . import logger
 
 def write_out_yaml(prefix, v):
     d = yaml.dump(v)
