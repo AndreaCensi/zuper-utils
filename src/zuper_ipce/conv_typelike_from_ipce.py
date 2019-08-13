@@ -451,16 +451,8 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
         assert not is_ForwardRef(M)
         if M is Placeholder:
             return T
-        elif hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
-            return T
-        # elif M == Placeholder:
+        # elif hasattr(M, '__name__') and M.__name__ == Placeholder.__name__:
         #     return T
-        # elif is_ForwardRef(M):
-        #     arg = get_ForwardRef_arg(M)
-        #     if arg == cls_name:
-        #         return T
-        #     else:
-        #         return M
         else:
             return M
 
