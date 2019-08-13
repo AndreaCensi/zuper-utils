@@ -86,3 +86,14 @@ def test_callable_3():
     T = Callable[[int], int]
 
     assert_type_roundtrip(T, {})
+
+
+
+def test_back():
+    T = Callable[[NamedArg(str, "A")], int]
+
+    assert is_Callable(T)
+
+    res = get_Callable_info(T)
+    T2 = res.as_callable()
+    
