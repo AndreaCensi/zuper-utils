@@ -1,8 +1,12 @@
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
+
+from nose.tools import raises
 
 from zuper_commons.text import pretty_dict
 from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
+from zuper_ipce.constants import JSONSchema
+from zuper_ipce.schema_caching import assert_canonical_schema
 from zuper_ipce_tests.test_utils import assert_equivalent_types, assert_type_roundtrip, make_ForwardRef
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import is_Dict
@@ -64,3 +68,9 @@ def test_recursive_fwd2():
     T = original_dict_getitem((str, str))
     assert is_Dict(T)
     recursive_type_subst(T, swap)
+
+
+@raises(ValueError)
+def test_schema1():
+    schema = cast(JSONSchema, {})
+    assert_canonical_schema(schema)
