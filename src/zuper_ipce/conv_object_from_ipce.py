@@ -59,7 +59,9 @@ def object_from_ipce_(mj: IPCE,
                       global_symbols,
                       encountered: Optional[dict] = None,
                       expect_type: Optional[type] = None) -> object:
-    encountered = encountered or {}
+
+    if encountered is None:
+        encountered = {}
 
     if is_Optional(expect_type):
         return object_from_ipcl_optional(expect_type, mj, global_symbols, encountered)

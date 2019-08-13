@@ -28,7 +28,8 @@ def get_default_attrs():
 
 
 def replace_typevars(cls, *, bindings, symbols, already=None):
-    already = already or {}
+    if already is None:
+        already = {}
 
     if cls is type:
         return type

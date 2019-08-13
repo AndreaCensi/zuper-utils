@@ -23,7 +23,8 @@ from .utils_text import get_sha256_base58
 
 def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
-    globals_ = globals_ or {}
+    if globals_ is None:
+        globals_ =  {}
     try:
         res = ipce_from_object_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     except TypeError as e:

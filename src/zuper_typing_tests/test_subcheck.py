@@ -1,13 +1,14 @@
-from dataclasses import dataclass
-from typing import Dict, Union, Any, Set, List, ClassVar, Optional, Tuple, Sequence, Iterator, TypeVar, Callable, Type
+from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Type, TypeVar, Union,
+                    )
 
 from nose.tools import assert_equal
 
-from zuper_typing.annotations_tricks import is_Tuple, is_Any, name_for_type_like, is_Callable, get_Callable_info, \
-    is_Sequence, is_Iterator
-from zuper_typing.my_dict import make_set
-from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing import Generic, dataclass
+from zuper_typing.annotations_tricks import (get_Callable_info, is_Any, is_Callable, is_Iterator, is_Sequence, is_Tuple,
+                                             name_for_type_like)
+from zuper_typing.my_dict import make_list, make_set
 from zuper_typing.recursive_tricks import replace_typevars
+from zuper_typing.subcheck import can_be_used_as2
 
 
 def test_corner_cases10():
@@ -268,28 +269,30 @@ def test_replace_typevars():
     Y = TypeVar('Y')
 
     # noinspection PyTypeHints
-    X2 = TypeVar('X') # note: needs this to make the test work
+    X2 = TypeVar('X')  # note: needs this to make the test work
     S = {X2: str, Y: int}
     tries = (
-        (X, {X2: str}, str),
-        (Any, {}, Any),
-        (List[X], {X2: str}, List[str]),
-        (Tuple[X], {X2: str}, Tuple[str]),
-        (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
-        (Optional[X], {X2: str}, Optional[str]),
-        (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
-        (ClassVar[X], {X2: str}, ClassVar[str]),
-        (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
-        (Sequence[X], {X2: str}, Sequence[str]),
-        (Iterator[X], {X2: str}, Iterator[str]),
-        (Set[X], S, Set[str]),
-        (Type[X], {X2: str}, Type[str]),
-        (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
-        (Iterator, S, Iterator[Any]),
-        (List, S, List[Any]),
-        (Sequence, S, Sequence[Any]),
+          (X, {X2: str}, str),
+          (Any, {}, Any),
+          (List[X], {X2: str}, List[str]),
+          (Tuple[X], {X2: str}, Tuple[str]),
+          (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
+          (Optional[X], {X2: str}, Optional[str]),
+          (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
+          (ClassVar[X], {X2: str}, ClassVar[str]),
+          (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
+          (Sequence[X], {X2: str}, Sequence[str]),
+          (Iterator[X], {X2: str}, Iterator[str]),
+          (Set[X], S, Set[str]),
+          (Type[X], {X2: str}, Type[str]),
+          (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
+          (Iterator, S, Iterator[Any]),
+          (List, S, List[Any]),
+          (make_list(bool), S, make_list(bool)),
+          (make_list(X), S, make_list(str)),
+          (Sequence, S, Sequence[Any]),
 
-    )
+          )
     for orig, subst, result in tries:
         yield try_, orig, subst, result
 
@@ -298,6 +301,25 @@ def try_(orig, subst, result):
     obtained = replace_typevars(orig, bindings=subst, symbols={})
     print(f'obtained {type(obtained)} {obtained!r}')
     assert_equal(name_for_type_like(obtained), name_for_type_like(result))
+
+
+def test_dataclass():
+    X = TypeVar('X')
+
+    @dataclass
+    class A(Generic[X]):
+        data: int
+        parent: 'Optional[A[X]]'
+
+
+    @dataclass
+    class B:
+        x: 'A[B]'
+
+
+
+    bindings = {X: int}
+    A2 = replace_typevars(A, bindings=bindings, symbols={})
 
 
 def test_callable1():

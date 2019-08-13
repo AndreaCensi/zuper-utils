@@ -342,8 +342,9 @@ def get_Set_arg(x):
 
 def get_List_arg(x):
     assert is_List(x), x
-    if x.__args__ is None:
-        return Any
+    if PYTHON_36: # pragma: no cover
+        if x.__args__ is None:
+            return Any
 
     t = x.__args__[0]
     if is_placeholder_typevar(t):
@@ -373,6 +374,7 @@ def get_Dict_args(T):
 
 def get_Iterator_arg(x):
     assert is_Iterator(x), x
+
     if x.__args__ is None:
         return Any
     t = x.__args__[0]
@@ -403,8 +405,9 @@ def get_Sequence_arg(x):
 
 def get_Type_arg(x):
     assert is_Type(x)
-    if x.__args__ is None:
-        return type
+    if PYTHON_36:  # pragma: no cover
+        if x.__args__ is None:
+            return type
     return x.__args__[0]
 
 

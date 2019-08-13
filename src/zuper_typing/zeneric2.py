@@ -255,11 +255,14 @@ class Fake:
 
 
 def resolve_types(T, locals_=None, refs: Tuple = (), nrefs: Optional[Dict[str, Any]] = None):
-    nrefs = nrefs or {}
+    if nrefs is None:
+        nrefs =  {}
     assert is_dataclass(T)
     # rl = RecLogger()
 
-    symbols = dict(locals_ or {})
+    if locals_ is None:
+        locals_ = {}
+    symbols = dict(locals_)
 
     for k, v in nrefs.items():
         symbols[k] = v
