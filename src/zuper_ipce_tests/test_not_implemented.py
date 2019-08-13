@@ -1,12 +1,13 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import List
 
 from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
+from zuper_typing import dataclass
 from zuper_typing_tests.test_utils import known_failure
 
-if not USE_REMEMBERED_CLASSES: # pragma: no cover
-    @known_failure
+if not USE_REMEMBERED_CLASSES:  # pragma: no cover
+
     def test_default_arguments():
         @dataclass
         class A1b:

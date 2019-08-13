@@ -21,13 +21,13 @@ from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_ListL
                                   is_ListLike, is_SetLike)
 from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from zuper_typing.recursive_tricks import get_name_without_brackets
-from .constants import (ALL_OF, ANY_OF, ATT_PYTHON_NAME, ID_ATT, JSC_ADDITIONAL_PROPERTIES, JSC_ARRAY, JSC_BOOL,
-                        JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_ITEMS, JSC_NULL, JSC_NUMBER, JSC_OBJECT,
-                        JSC_PROPERTIES, JSC_PROPERTY_NAMES, JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_CALLABLE,
-                        JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE,
-                        JSC_TITLE_TYPE, JSC_TYPE, JSONSchema, ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES,
-                        SCHEMA_CID, SCHEMA_ID, X_CLASSATTS, X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT,
-                        use_ipce_from_typelike_cache, CALLABLE_ORDERING, CALLABLE_RETURN)
+from .constants import (ALL_OF, ANY_OF, ATT_PYTHON_NAME, CALLABLE_ORDERING, CALLABLE_RETURN, ID_ATT,
+                        JSC_ADDITIONAL_PROPERTIES, JSC_ARRAY, JSC_BOOL, JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER,
+                        JSC_ITEMS, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES, JSC_PROPERTY_NAMES, JSC_REQUIRED,
+                        JSC_STRING, JSC_TITLE, JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME, JSC_TITLE_DECIMAL,
+                        JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TITLE_TYPE, JSC_TYPE, JSONSchema,
+                        ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_BYTES, SCHEMA_CID, SCHEMA_ID, X_CLASSATTS,
+                        X_CLASSVARS, X_ORDER, X_PYTHON_MODULE_ATT, use_ipce_from_typelike_cache)
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .pretty import pretty_dict
 from .schema_caching import TRE, get_ipce_from_typelike_cache, set_ipce_from_typelike_cache
@@ -107,7 +107,8 @@ def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
 
         tr: TRE = ipce_from_typelike_tr_(T, c)
 
-        set_ipce_from_typelike_cache(T, tr.used, tr.schema)
+        if use_ipce_from_typelike_cache:
+            set_ipce_from_typelike_cache(T, tr.used, tr.schema)
 
         return tr
 
@@ -486,7 +487,6 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
 
     res[ATT_PYTHON_NAME] = T.__qualname__
     res[X_PYTHON_MODULE_ATT] = T.__module__
-    # res[X_PYTHON_MODULE_ATT] = T.__qualname__
 
     res[SCHEMA_ATT] = SCHEMA_ID
 
@@ -590,7 +590,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         raise NotImplementedError(T)
 
 
-            else:
+            else:  # not classvar
 
                 if is_Optional(t):
                     t = get_Optional_arg(t)
@@ -599,19 +599,15 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                     optional = False
                 properties[name] = f(t)
 
-                # properties[name] = result.tre.schema
-
-                has_default = not isinstance(afield.default, dataclasses._MISSING_TYPE)
-                # original_order.append(name)
+                has_default = afield.default is not dataclasses.MISSING
 
                 if has_default:
-                    # logger.info(f'default for {name} is {afield.default}')
                     default = afield.default
-                    if optional and default is None:
-                        pass
-                    else:
-                        properties[name] = copy.copy(properties[name])
-                        properties[name]['default'] = ipce_from_object(default, c.globals_)
+                    schema = copy.copy(properties[name])
+                    schema['default'] = ipce_from_object(default, c.globals_)
+
+                    schema = sorted_dict_with_cbor_ordering(schema)
+                    properties[name] = schema
                 else:
                     if not optional:
                         required.append(name)

@@ -5,7 +5,8 @@ from nose.tools import assert_equal
 
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.pretty import pprint
-from zuper_typing.zeneric2 import dataclass
+from zuper_ipce_tests.test_utils import assert_type_roundtrip
+from zuper_typing import dataclass
 
 
 def test_type():
@@ -35,11 +36,17 @@ def test_type():
     print(C.__annotations__['another'])
     assert_equal(C.__annotations__['another'].__name__, 'Another[A]')
 
+    # cannot serialize because A is not a dataclass
+    #
+    # assert_type_roundtrip(Another, {})
+    # assert_type_roundtrip(MyClass, {})
+    # assert_type_roundtrip(C, {})
 
 def test_type02():
     X = TypeVar('X')
     V = TypeVar('V')
 
+    @dataclass
     class MyClass(Generic[X]):
         data0: X
 
@@ -53,7 +60,11 @@ def test_type02():
     assert C1.__annotations__['data0'] == V
 
 
+    assert_type_roundtrip(C0, {})
+    assert_type_roundtrip(C1, {})
+
 def test_type05():
+    @dataclass
     class A:
         pass
 
@@ -93,6 +104,7 @@ def test_type05():
     print(E.__annotations__['forked2'])
     assert_equal(E.__annotations__['forked2'].__args__[0].__name__, MyEntity[A].__name__)
 
+    assert_type_roundtrip(MyEntity, {})
 
 def test_type06():
     @dataclass
@@ -137,3 +149,10 @@ def test_type06():
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)
     # pprint('Annotations of E', **E.__annotations__)
     # assert_equal(E.__annotations__['forked'].__args__[0].__name__, Entity[A].__name__)
+
+    assert_type_roundtrip(A, {})
+    assert_type_roundtrip(B, {})
+
+
+if __name__ == '__main__':
+    test_type05()

@@ -1,6 +1,6 @@
 import json
 import traceback
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import  fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
 
@@ -22,7 +22,7 @@ from zuper_typing.annotations_tricks import *
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_DictLike, is_ListLike,
                                   is_SetLike)
 from zuper_typing_tests.test_utils import known_failure
-
+from zuper_typing import dataclass
 
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # assert T is not None
@@ -159,6 +159,7 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
                 if d1 != d2:
                     msg = f'Defaults for {k!r} are different:\n{d1}\n{d2}'
                     raise NotEquivalent(msg)
+
             for k in ann1:
                 t1 = ann1[k]
                 t2 = ann2[k]
@@ -242,6 +243,13 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
         elif is_Any(T1):
             if not is_Any(T2):
                 raise NotEquivalent((T1, T2))
+        elif is_TypeVar(T1):
+            if not is_TypeVar(T2):
+                raise NotEquivalent((T1, T2))
+            n1=  get_TypeVar_name(T1)
+            n2 = get_TypeVar_name(T2)
+            if n1 != n2:
+                raise NotEquivalent((n1, n2))
         elif T1 in (int, str, bool, Decimal, datetime, float, type):
             if T1 != T2:
                 raise NotEquivalent((T1, T2))
@@ -249,6 +257,7 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             raise NotImplementedError((T1, T2))
 
     except NotEquivalent as e:
+        logger.error(e)
         msg = f'Could not establish the two types to be equivalent.'
         msg += f'\n T1 = {id(T1)} {T1!r}'
         msg += f'\n T2 = {id(T2)} {T2!r}'

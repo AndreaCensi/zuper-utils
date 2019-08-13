@@ -1,6 +1,7 @@
 import typing
 from dataclasses import fields
 from numbers import Number
+from typing import ClassVar, Type
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -59,13 +60,13 @@ def test_serialize_generic_typevar():
         """ A generic class """
         x: X
 
-    M2 = assert_type_roundtrip(MN1, {})
+    assert_type_roundtrip(MN1, {})
 
     # noinspection PyDataclass
     f1 = fields(MN1)
     assert f1[0].type == X
     # there was a bug with modifying this
-    _ = MN1[int]
+    MN1int = MN1[int]
 
     # noinspection PyDataclass
     f1b = fields(MN1)
@@ -73,6 +74,7 @@ def test_serialize_generic_typevar():
     assert f1 == f1b
 
     # M2 = assert_type_roundtrip(M1, {})
+    assert_type_roundtrip(MN1int, {})
 
 
 def test_serialize_generic():
@@ -163,12 +165,6 @@ def test_serialize_generic_optional():
 
     m2a = M2int(x=2)
     m2b = M2int(x=3)
-    # print(m1a)
-    # print(m2a)
-    # print(type(m1a))
-    # print(type(m2a))
-    # print(type(m1a).__module__)
-    # print(type(m2a).__module__)
 
     assert_equal(sorted(m1a.__dict__), sorted(m2a.__dict__))
     assert m1a == m2a
@@ -260,14 +256,13 @@ def test_more2():
 
     assert_type_roundtrip(Entity42, {})  # boom
 
-    if True:  # pragma: no cover
-        E2I = Entity42[int]
-        assert_type_roundtrip(E2I, {})
+    E2I = Entity42[int]
+    assert_type_roundtrip(E2I, {})
 
-        x = E2I(parent=EI(data0=4))
-        # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-        assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity42': Entity42},
-                                works_without_schema=False)
+    x = E2I(parent=EI(data0=4))
+    # print(json.dumps(type_to_schema(type(x), {}), indent=2))
+    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity42': Entity42},
+                            works_without_schema=False)
 
 
 def test_more2b():
@@ -293,18 +288,21 @@ def test_more2b():
 
     assert_equal(Entity13.__doc__, None)
 
+    assert_type_roundtrip(Entity12, {})
+    assert_type_roundtrip(Entity13, {})
+
     EI = Entity12[int]
     # print(EI.__annotations__['parent'])
     E2I = Entity13[int]
+    assert_type_roundtrip(EI, {})
+    assert_type_roundtrip(E2I, {})
+
     parent2 = E2I.__annotations__['parent']
     print(parent2)
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     # print(type(x).__name__)
     assert_object_roundtrip(x, {'Entity12': Entity12, 'Entity13': Entity13}, works_without_schema=False)
-
-
-from typing import ClassVar, Type
 
 
 def test_isClassVar():
@@ -417,6 +415,12 @@ def test_entity():
         parent: "Optional[Entity43[X]]" = None
         forked: "Optional[Entity43[X]]" = None
 
+    # noinspection PyDataclass
+    fs = fields(Entity43)
+    f0 = fs[3]
+    assert f0.name == 'parent'
+    print(f0)
+    assert f0.default is None
     assert_equal(Entity43.__name__, 'Entity43[X]')
 
     qn = Entity43.__qualname__
@@ -562,6 +566,7 @@ def test_signing():
 
     s = Signed1[str](key=PublicKey1(key=b''), signature_data=b'xxx', data="message")
 
+    assert_type_roundtrip(Signed1, {})
     assert_type_roundtrip(Signed1[str], {})
     assert_object_roundtrip(s, {})
 
@@ -586,6 +591,8 @@ def test_derived1():
     assert_equal(Y.__doc__, """hello""")
     assert_type_roundtrip(Y, {})
 
+    assert_type_roundtrip(Signed3, {})
+
 
 def test_derived2_no_doc():
     X = TypeVar('X')
@@ -600,6 +607,8 @@ def test_derived2_no_doc():
         pass
 
     assert_type_roundtrip(Z, {})
+
+    assert_type_roundtrip(S, {})
 
 
 def test_derived2_subst():
@@ -650,10 +659,43 @@ def test_derived3_subst():
     class Signed3(Generic[X]):
         data: Optional[X]
 
+    print(fields(Signed3))
+    assert_type_roundtrip(Signed3, {})
+
     S = Signed3[int]
+    assert_type_roundtrip(S, {})
+
     x = S(data=2)
     assert_object_roundtrip(x, {})
 
 
+def test_entity_field():
+    @dataclass
+    class Entity44:
+        parent: "Optional[Entity44]" = None
+
+    assert_type_roundtrip(Entity44, {})
+
+
+def test_entity_field2():
+    @dataclass
+    class Entity45:
+        parent: "Optional[Entity45]"
+
+    assert_type_roundtrip(Entity45, {})
+
+
+def test_entity_field3():
+    X = TypeVar('X')
+
+    @dataclass
+    class Entity46(Generic[X]):
+        parent: "Optional[Entity46[X]]"
+
+    assert_type_roundtrip(Entity46, {})
+
+
 if __name__ == '__main__':
-    test_serialize_generic()
+    test_entity_field()
+    test_entity_field2()
+    test_entity_field3()

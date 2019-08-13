@@ -25,3 +25,11 @@ def test_spec3():
 def test_spec4():
     x = (1, 2)
     assert_canonical_ipce(x)
+
+
+
+
+
+def test_spec4ok():
+    x = [1, 2]
+    assert_canonical_ipce(x)

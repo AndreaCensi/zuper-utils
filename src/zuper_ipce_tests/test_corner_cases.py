@@ -1,15 +1,16 @@
-from zuper_typing import dataclass
 from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Type, TypeVar, Union
 
 import yaml
 from nose.tools import assert_equal, raises
 
+from zuper_ipce import logger
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce_tests.test_utils import (NotEquivalent, assert_equivalent_types, assert_object_roundtrip,
                                          assert_type_roundtrip)
+from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
                                              is_Type, name_for_type_like)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
@@ -261,9 +262,6 @@ def test_classvars():
     assert_object_roundtrip(a, {})
 
 
-from zuper_ipce import logger
-
-
 def test_corner_optional_with_default():
     @dataclass
     class MyCD:
@@ -424,7 +422,6 @@ def test_not_equal10():
 
 
 def test_type():
-
     X = TypeVar('X')
 
     @dataclass
@@ -435,3 +432,5 @@ def test_type():
     MyClassInt = MyClass[int]
     print(MyClassInt.__annotations__)
     assert_equal(MyClassInt.XT, int)
+
+    assert_type_roundtrip(MyClass, {})

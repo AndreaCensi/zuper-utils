@@ -14,9 +14,6 @@ def test_bool1():
     assert_type_roundtrip(M, {})
 
 
-
-
-
 def test_none1():
     assert_type_roundtrip(type(None), {})
 

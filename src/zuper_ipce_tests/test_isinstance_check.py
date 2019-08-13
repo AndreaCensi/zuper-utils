@@ -83,3 +83,4 @@ def test3():
     logger.info(type(C5_))
     logger.info(C5_.mro())
     assert issubclass(C5_, CB)
+

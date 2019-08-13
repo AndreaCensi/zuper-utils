@@ -366,7 +366,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             if pname in required:
                 _Field = field()
             else:
-                _Field = field(default=None)
+                _Field = field() #default=dataclasses.MISSING)
                 ptype = Optional[ptype]
             _Field.name = pname
             if JSC_DEFAULT in v:
@@ -377,7 +377,8 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         elif pname in classvars:
             v = classvars[pname]
             ptype = f(v)
-            fields.append((pname, ClassVar[ptype], field()))
+            _Field =  field()
+            fields.append((pname, ClassVar[ptype],_Field))
         elif pname in classatts:  # pragma: no cover
             msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
             raise ValueError(msg)
@@ -393,8 +394,8 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
 
     fields = sorted(fields, key=has_default, reverse=False)
     #
-    # for _, _, f in fields:
-    #     logger.info(f'{f.name} {has_default((0,0,f))}')
+    # for _, _, the_field in fields:
+    #     logger.info(f'- {the_field.name} {the_field}')
     unsafe_hash = True
     try:
         T = make_dataclass(cls_name, fields, bases=bases, namespace=None,

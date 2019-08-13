@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 from zuper_commons.text import pretty_dict
 from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
-from zuper_ipce_tests.test_utils import assert_equivalent_types
+from zuper_ipce_tests.test_utils import assert_equivalent_types, assert_type_roundtrip
 from zuper_typing import dataclass
 from zuper_typing.my_dict import make_dict, make_list, make_set
 
@@ -36,3 +36,5 @@ def test_rec1():
     logger.info(pretty_dict('T2', T2.__annotations__))
     logger.info(pretty_dict('T3', T3.__annotations__))
     assert_equivalent_types(A, T3, set())
+
+    assert_type_roundtrip(A, {})

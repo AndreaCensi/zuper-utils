@@ -164,7 +164,8 @@ def test_forward09():
 
     # assert_type_roundtrip(Cb, {}, expect_type_equal=False)
     # assert_type_roundtrip(C, {}, expect_type_equal=False)
-
+    assert_type_roundtrip(B, {})
+    assert_type_roundtrip(BA, {})
 
 if __name__ == '__main__':
     test_forward05b()

@@ -1,6 +1,6 @@
-from zuper_typing import dataclass
-from typing import Tuple, List
+from typing import List, Tuple
 
+from zuper_typing import dataclass
 from zuper_typing.my_dict import make_list
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
@@ -22,10 +22,10 @@ def test_tuples3():
     T = Tuple[str, int]
     assert_type_roundtrip(T, symbols)
 
+
 def test_tuples2():
     T = Tuple[str, ...]
     assert_type_roundtrip(T, symbols)
-
 
 
 def test_list1():
@@ -40,5 +40,3 @@ def test_list2():
 
     a = M(['a', 'b'])
     assert_object_roundtrip(a, symbols)
-
-

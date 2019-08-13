@@ -1,6 +1,6 @@
 import json
-from dataclasses import dataclass, field
-
+from dataclasses import  field
+from zuper_typing import dataclass
 import numpy as np
 from numpy.testing import assert_allclose
 
