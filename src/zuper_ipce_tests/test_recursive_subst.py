@@ -32,6 +32,7 @@ def test_rec1():
         f: make_dict(int, int)
         g: make_set(int)
         h: make_list(int)
+        h2: make_list(bool)
         i: Optional[int]
         l: Tuple[int, ...]
         m: original_dict_getitem((int, float))
