@@ -69,7 +69,7 @@ SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
 USE_REMEMBERED_CLASSES = False
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
 
-use_ipce_from_typelike_cache = True
+use_ipce_from_typelike_cache = False
 check_types = False
 
 CALLABLE_ORDERING = 'ordering'

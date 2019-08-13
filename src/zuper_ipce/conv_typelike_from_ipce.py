@@ -384,8 +384,8 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         elif pname in classvars:
             v = classvars[pname]
             ptype = f(v)
-            _Field = field()
-            fields.append((pname, ClassVar[ptype], _Field))
+            logger.info(f'ipce classvar: {pname} {ptype}')
+            fields.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
             msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
             raise ValueError(msg)
