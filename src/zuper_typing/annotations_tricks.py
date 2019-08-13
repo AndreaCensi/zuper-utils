@@ -270,7 +270,7 @@ def get_VarTuple_arg(x):
         return Any
     assert is_VarTuple(x), x
     ts = get_tuple_types(x)
-    if len(ts) == 0:
+    if len(ts) == 0: # pragma: no cover
         return Any
     return ts[0]
 
@@ -362,10 +362,11 @@ def get_Dict_args(T):
     #
     K, V = T.__args__
 
-    if is_placeholder_typevar(K):
-        K = Any
-    if is_placeholder_typevar(V):
-        V = Any
+    if PYTHON_36: # pragma: no cover
+        if is_placeholder_typevar(K):
+            K = Any
+        if is_placeholder_typevar(V):
+            V = Any
 
     return K, V
 

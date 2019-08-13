@@ -102,12 +102,6 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
         if x == r:
             return cls
         return typing.ClassVar[r]
-    elif is_Type(cls):
-        x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
-        if x == r:
-            return cls
-        return typing.Type[r]
     elif is_Iterator(cls):
         x = get_Iterator_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
@@ -128,12 +122,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
         if arg == arg2:
             return cls
         return typing.List[arg2]
-    elif is_Set(cls):
-        arg = get_Set_arg(cls)
-        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols)
-        if arg == arg2:
-            return cls
-        return typing.Set[arg2]
+    
     elif is_Optional(cls):
         x = get_Optional_arg(cls)
         x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)

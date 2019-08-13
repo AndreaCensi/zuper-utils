@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, List, Optional, Set, Tuple, Union, cast, Type, TypeVar, ClassVar
 
 from nose.tools import raises
 
@@ -15,6 +15,7 @@ from zuper_typing.my_dict import make_dict, make_list, make_set
 
 
 def test_rec1():
+    X = TypeVar('X')
     @dataclass
     class A:
         a: Dict[int, bool]
@@ -34,6 +35,10 @@ def test_rec1():
         l: Tuple[int, ...]
         m:  original_dict_getitem((int, float))
         n: original_dict_getitem((bool, float))
+        o: Type
+        p: Type[X]
+        q: ClassVar[int]
+        r: ClassVar[bool]
 
     def swap(x):
         if x is int:
