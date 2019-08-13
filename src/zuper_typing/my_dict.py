@@ -21,7 +21,7 @@ class CustomSet(set):
 class CustomList(list):
     __list_type__: ClassVar[type]
 
-    def __hash__(self):
+    def __hash__(self):  # pragma: no cover
         try:
             return self._cached_hash
         except AttributeError: # pragma: no cover
@@ -194,7 +194,7 @@ def make_list(V) -> type:
             res2 = isinstance(other, type) and issubclass(other, CustomList) and other.__list_type__ == V2
             return res2
 
-        def __hash__(cls):
+        def __hash__(cls): # pragma: no cover
             return 1  # XXX
             # logger.debug(f'here ___eq__ {self} {other} {issubclass(other, CustomList)} = {res}')
 
