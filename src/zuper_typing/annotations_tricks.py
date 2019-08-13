@@ -630,9 +630,10 @@ class CallableInfo:
     def as_callable(self) -> typing.Callable:
         args = []
         for k, v in self.parameters_by_name.items():
-            if is_MyNamedArg(v):
-                # try:
-                v = v.original
+            # if is_MyNamedArg(v):
+            #     # try:
+            #     v = v.original
+            # TODO: add MyNamedArg
             args.append(v)
         # noinspection PyTypeHints
         return typing.Callable[args, self.returns]

@@ -1,4 +1,4 @@
-from typing import ClassVar, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast
+from typing import ClassVar, Dict, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, Callable
 
 from nose.tools import raises
 
@@ -10,7 +10,7 @@ from zuper_ipce.schema_caching import assert_canonical_schema
 from zuper_ipce_tests.test_utils import NotEquivalent, assert_equivalent_types, assert_type_roundtrip, make_ForwardRef
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import get_ClassVar_arg, is_ClassVar, is_Dict, is_Type
-from zuper_typing.monkey_patching_typing import original_dict_getitem
+from zuper_typing.monkey_patching_typing import original_dict_getitem, MyNamedArg
 from zuper_typing.my_dict import make_dict, make_list, make_set
 
 
@@ -40,6 +40,10 @@ def test_rec1():
 
         q: ClassVar[int]
         r: ClassVar[bool]
+        s: Callable[[int], int]
+        s2: Callable[[bool], int]
+        t: Callable[[MyNamedArg(int, 'varname')], int]
+        t2: Callable[[MyNamedArg(int, 'varname')], int]
 
     def swap(x):
         if x is int:

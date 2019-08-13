@@ -1,14 +1,15 @@
 import datetime
 from dataclasses import is_dataclass
 from decimal import Decimal
-from typing import ClassVar, List, Optional, Tuple, Type
+from typing import ClassVar, List, Optional, Tuple, Type, Callable
 import numpy as np
 
 from zuper_typing.annotations_tricks import (get_ClassVar_arg, get_Dict_args, get_FixedTuple_args, get_List_arg,
                                              get_Optional_arg, get_Set_arg, get_Type_arg, get_Union_args,
                                              get_VarTuple_arg, is_Any, is_ClassVar, is_Dict, is_FixedTuple,
                                              is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Type,
-                                             is_TypeVar, is_Union, is_VarTuple, make_Tuple, make_Union)
+                                             is_TypeVar, is_Union, is_VarTuple, make_Tuple, make_Union, is_Callable,
+                                             get_Callable_info)
 from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
 from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
                                   is_CustomList, is_CustomSet, make_dict, make_list, make_set)
@@ -145,6 +146,19 @@ def recursive_type_subst(T, f, ignore=()):
         return Type[V2]
     elif is_Any(T):
         return f(T)
+    elif is_Callable(T):
+        info = get_Callable_info(T)
+        args = []
+        for k, v in info.parameters_by_name.items():
+            # if is_MyNamedArg(v):
+            #     # try:
+            #     v = v.original
+            # TODO: add MyNamedArg
+            args.append(f(v))
+        fret = f(info.returns)
+        args = list(args)
+        return Callable[args, fret]
+        # noinspection PyTypeHints
 
     elif isinstance(T, type) and 'Placeholder' in T.__name__:
         return f(T)

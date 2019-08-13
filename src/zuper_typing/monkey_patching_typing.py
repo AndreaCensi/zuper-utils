@@ -118,7 +118,7 @@ class Reg:
     already = {}
 
 
-def MyNamedArg(T, name):
+def MyNamedArg(T, name: str):
     key = f'{T} {name}'
     if key in Reg.already:
         return Reg.already[key]
