@@ -8,6 +8,7 @@ from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.ipce_spec import assert_sorted_dict_with_cbor_ordering
 from zuper_ipce_tests.test_utils import (NotEquivalent, assert_equivalent_types, assert_object_roundtrip,
                                          assert_type_roundtrip)
 from zuper_typing import dataclass
@@ -513,3 +514,8 @@ def test_corner_list_Any():
     x = [1, 2]
     T = Any
     ipce_from_object(x, {}, suggest_type=T)
+
+@raises(ValueError)
+def test_corner_ipce():
+    res = {'aa':1, 'a':2}
+    assert_sorted_dict_with_cbor_ordering(res)
