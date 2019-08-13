@@ -1,11 +1,17 @@
+from datetime import datetime
 import typing
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from decimal import Decimal
+from numbers import Number
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union, ForwardRef
 
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
                                              get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg,
                                              get_TypeVar_name, get_Type_arg, get_Union_args, get_tuple_types,
                                              is_Callable, is_ClassVar, is_ForwardRef, is_Iterator, is_List, is_NewType,
-                                             is_Optional, is_Sequence, is_Set, is_Tuple, is_Type, is_TypeVar, is_Union)
+                                             is_Optional, is_Sequence, is_Set, is_Tuple, is_Type, is_TypeVar, is_Union,
+                                             is_Any, is_VarTuple, get_VarTuple_arg, make_VarTuple, make_Tuple,
+                                             get_FixedTuple_args, is_FixedTuple)
+
 from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_SetLike_arg, is_CustomList, is_DictLike,
                                   is_SetLike, make_dict, make_list, make_set)
 
@@ -28,9 +34,10 @@ def get_default_attrs():
 
 
 def replace_typevars(cls, *, bindings, symbols, already=None):
+    from .logging import logger
     if already is None:
         already = {}
-
+    r = lambda _ : replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
     if cls is type:
         return type
 
@@ -39,6 +46,8 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
 
     elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
         return bindings[cls]
+    elif hasattr(cls, '__name__') and cls.__name__.startswith('Placeholder'):
+        return cls
     elif is_TypeVar(cls):
         name = get_TypeVar_name(cls)
 
@@ -95,8 +104,35 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
         return make_list(V)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, '__annotations__'):
-        from zuper_typing.zeneric2 import make_type
-        return make_type(cls, bindings)
+
+        if True:
+            from zuper_typing.zeneric2 import make_type
+            cls2 = make_type(cls, bindings)
+            from .logging import logger
+            logger.info(f'old cls: {cls.__annotations__}')
+            logger.info(f'new cls2: {cls2.__annotations__}')
+            return cls2
+        else: # pragma: no cover
+            already[id(cls)] = ForwardRef(cls.__name__)
+            annotations = dict(getattr(cls, '__annotations__', {}))
+            annotations2 = {}
+            nothing_changed = True
+            for k, v0 in list(annotations.items()):
+                v2 = r(v0)
+                nothing_changed &= (v0 == v2)
+                annotations2[k] = v2
+            if nothing_changed:
+                # logger.info(f'Union unchanged under {f.__name__}: {ts0} == {ts}')
+                return cls
+            from zuper_typing.monkey_patching_typing import my_dataclass
+            T2 = my_dataclass(type(cls.__name__, (), {
+                  '__annotations__': annotations2,
+                  '__module__':      cls.__module__,
+                  '__doc__':         getattr(cls, '__doc__', None),
+                  '__qualname__':    getattr(cls, '__qualname__')
+                  }))
+            return T2
+
     elif is_ClassVar(cls):
         x = get_ClassVar_arg(cls)
         r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
@@ -139,13 +175,21 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             return cls
         return typing.Union[ys]
     elif is_Tuple(cls):
-
-        xs = get_tuple_types(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
-                   for _ in xs)
-        if ys == xs:
-            return cls
-        return typing.Tuple[ys]
+        if is_VarTuple(cls):
+            X = get_VarTuple_arg(cls)
+            Y = r(X)
+            if X == Y:
+                return cls
+            return make_VarTuple(Y)
+        elif is_FixedTuple(cls):
+            xs = get_FixedTuple_args(cls)
+            ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
+                       for _ in xs)
+            if ys == xs:
+                return cls
+            return make_Tuple(*ys)
+        else: # pragma: no cover
+            assert False
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
 
@@ -157,8 +201,22 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
 
     elif is_ForwardRef(cls):
         T = get_ForwardRef_arg(cls)
-        return replace_typevars(T, bindings=bindings, already=already, symbols=symbols)
+        if T in symbols:
+            return r(symbols[T])
+        else:
+            logger.warning(f'could not resolve {cls}')
+            return cls
+
+    elif cls in (int, bool, float, Decimal, datetime, str, bytes, Number, type(None) ):
+        return cls
+    elif is_Any(cls):
+        return cls
+    elif isinstance(cls, type):
+
+        logger.warning(f'extraneous class {cls}')
+        return  cls
     else:
+        raise NotImplementedError(cls)
         # logger.debug(f'Nothing to do with {cls!r} {cls}')
         return cls
 

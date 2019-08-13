@@ -3,7 +3,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional, Seq
 
 from nose.tools import assert_equal
 
-from zuper_typing import Generic, dataclass
+from zuper_typing import dataclass,Generic
 from zuper_typing.annotations_tricks import (get_Callable_info, is_Any, is_Callable, is_Iterator, is_Sequence, is_Tuple,
                                              name_for_type_like)
 from zuper_typing.my_dict import make_list, make_set
@@ -305,21 +305,14 @@ def try_(orig, subst, result):
     assert_equal(name_for_type_like(obtained), name_for_type_like(result))
 
 
-def test_dataclass():
-    X = TypeVar('X')
-
+def test_dataclass2():
     @dataclass
-    class A(Generic[X]):
+    class A:
         data: int
-        parent: 'Optional[A[X]]'
+        parent: 'A'
 
-
-    @dataclass
-    class B:
-        x: 'A[B]'
-
-
-
+    assert A.__annotations__['parent'] is A
+    X = TypeVar('X')
     bindings = {X: int}
     A2 = replace_typevars(A, bindings=bindings, symbols={})
 

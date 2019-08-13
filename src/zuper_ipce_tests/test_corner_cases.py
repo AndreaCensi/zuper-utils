@@ -518,3 +518,13 @@ def test_corner_list_Any():
 def test_corner_ipce():
     res = {'aa': 1, 'a': 2}
     assert_sorted_dict_with_cbor_ordering(res)
+
+
+
+def test_corner_same_default_value():
+    @dataclass
+    class SameDefault:
+        a: int = 2
+
+    c = SameDefault(2)
+    assert_object_roundtrip(c, {})
