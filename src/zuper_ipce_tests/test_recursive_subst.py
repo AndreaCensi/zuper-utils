@@ -5,6 +5,8 @@ from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
 from zuper_ipce_tests.test_utils import assert_equivalent_types, assert_type_roundtrip, make_ForwardRef
 from zuper_typing import dataclass
+from zuper_typing.annotations_tricks import is_Dict
+from zuper_typing.monkey_patching_typing import original_dict_getitem
 from zuper_typing.my_dict import make_dict, make_list, make_set
 
 
@@ -50,4 +52,13 @@ def test_recursive_fwd():
         return x
 
     T = make_ForwardRef('n')
+    recursive_type_subst(T, swap)
+
+
+def test_recursive_fwd2():
+    def swap(x):
+        return x
+
+    T = original_dict_getitem((str, str))
+    assert is_Dict(T)
     recursive_type_subst(T, swap)
