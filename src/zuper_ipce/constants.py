@@ -85,7 +85,7 @@ import os
 circle_job = os.environ.get('CIRCLE_JOB', None)
 logger.info(f'Circle JOB: {circle_job!r}')
 
-if circle_job == 'test-3.7-no-cache':
+if circle_job == 'test-3.7-no-cache': # pragma: no cover
     use_ipce_from_typelike_cache = False
     logger.warning('Disabling cache (IPCL:use_ipce_from_typelike_cache) due to circle_job.')
 

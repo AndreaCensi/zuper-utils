@@ -22,6 +22,6 @@ import os
 circle_job = os.environ.get('CIRCLE_JOB', None)
 logger.info(f'Circle JOB: {circle_job!r}')
 
-if circle_job == 'test-3.7-no-cache':
+if circle_job == 'test-3.7-no-cache': # pragma: no cover
     cache_enabled = False
     logger.warning('Disabling cache (zuper_typing:cache_enabled) due to circle_job.')
