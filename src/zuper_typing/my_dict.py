@@ -249,6 +249,9 @@ def make_dict(K, V) -> type:
 
     setattr(res, 'EMPTY', res({}))
     Caches.make_dict_cache[key] = res
+
+    import zuper_typing.my_dict
+    zuper_typing.my_dict.__dict__[res.__name__] =res
     return res
 
 

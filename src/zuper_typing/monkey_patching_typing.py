@@ -358,7 +358,17 @@ def debug_print_str(x: str, prefix: str):
         s = "\n".join(colored)
         return s
     ps = ' ' + prefix if prefix else ''
-    return x.__repr__() + ps
+
+    lines = x.split('\n')
+    if len(lines) > 1:
+
+        lines[0] = lines[0] + ps
+        lines2 = ['%'+_+'%' for _ in lines]
+        r = "\n".join(lines2)
+        return r
+    else:
+        return "`" + x + '`'
+    # return x.__repr__() + ps
 
 
 def debug_print_date(x: datetime, prefix=None):
