@@ -7,11 +7,12 @@ from dataclasses import Field, _FIELDS, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
 from typing import Any, List, Optional, Tuple, Type, TypeVar, cast
-from zuper_typing import dataclass
+
 import numpy as np
 
+from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_name_K_V,
-                                             get_FixedTuple_args, get_Optional_arg,
+                                             get_FixedTuple_args, get_ForwardRef_arg, get_Optional_arg,
                                              get_Sequence_arg, get_Set_name_V, get_Tuple_name, get_TypeVar_name,
                                              get_Type_arg, get_Union_args, get_VarTuple_arg, is_Any, is_Callable,
                                              is_ClassVar, is_FixedTuple, is_ForwardRef, is_Optional, is_Sequence,
@@ -43,9 +44,6 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
     schema = tr.schema
     assert_canonical_ipce(schema)
     return schema
-
-
-
 
 
 @dataclass
@@ -426,19 +424,18 @@ def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
         yield from get_mentioned_names(v, c2)
     elif is_TypeVar(T):
         yield get_TypeVar_name(T)
-    elif is_TupleLike(T):
-        if is_FixedTuple(T):
-            for t in get_FixedTuple_args(T):
-                yield from get_mentioned_names(t, c2)
-        else:
-            t = get_VarTuple_arg(T)
-            yield from get_mentioned_names(t, c2)
 
+    elif is_FixedTuple(T):
+        for t in get_FixedTuple_args(T):
+            yield from get_mentioned_names(t, c2)
+    elif is_VarTuple(T):
+        t = get_VarTuple_arg(T)
+        yield from get_mentioned_names(t, c2)
     elif is_ListLike(T):
         t = get_ListLike_arg(T)
         yield from get_mentioned_names(t, c2)
 
-    if is_DictLike(T):
+    elif is_DictLike(T):
         K, V = get_DictLike_args(T)
         yield from get_mentioned_names(K, c2)
         yield from get_mentioned_names(V, c2)
@@ -447,7 +444,7 @@ def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
         yield from get_mentioned_names(t, c2)
 
     elif is_ForwardRef(T):
-        pass
+        return get_ForwardRef_arg(T)
 
     elif is_Optional(T):
 
@@ -623,7 +620,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
             raise TypeError(msg) from e
 
     if required:  # empty is error
-        res[JSC_REQUIRED] =sorted(required)
+        res[JSC_REQUIRED] = sorted(required)
     if classvars:
         res[X_CLASSVARS] = classvars
     if classatts:
