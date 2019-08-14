@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Set
+from typing import Any, ClassVar, Dict, List, Set, Tuple, TypeVar, Optional
 
 from nose.tools import assert_equal, raises
 
@@ -78,6 +78,7 @@ def test_cover_equiv1():
 
     assert_equivalent_types(bool, Eq2, set())
 
+
 @raises(NotEquivalent)
 def test_cover_equiv2():
     @dataclass
@@ -89,3 +90,73 @@ def test_cover_equiv2():
         a: int
 
     assert_equivalent_types(Eq4, Eq3, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv03():
+    assert_equivalent_types(ClassVar[int], bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv04():
+    assert_equivalent_types(Dict[int, bool], bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv05():
+    assert_equivalent_types(List[int], bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv06():
+    assert_equivalent_types(Any, bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv07():
+    assert_equivalent_types(Set[int], bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv08():
+    X = TypeVar('X')
+    assert_equivalent_types(X, bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv09():
+    X = TypeVar('X')
+    Y = TypeVar('Y')
+    assert_equivalent_types(X, Y, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv10():
+    X = Tuple[int, bool]
+    assert_equivalent_types(X, bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv11():
+    X = Tuple[int, ...]
+    assert_equivalent_types(X, bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv12():
+    X = Tuple[int, bool]
+    Y = Tuple[int, str]
+    assert_equivalent_types(X, Y, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv13():
+    X = Tuple[int, ...]
+    Y = Tuple[bool, ...]
+    assert_equivalent_types(X, Y, set())
+
+@raises(NotEquivalent)
+def test_cover_equiv14():
+    X = Optional[int]
+    Y = Optional[bool]
+    assert_equivalent_types(X, Y, set())

@@ -131,9 +131,10 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             ann1 = getattr(T1, '__annotations__', {})
             ann2 = getattr(T2, '__annotations__', {})
 
-            if list(ann1) != list(ann2):
-                msg = f'Different fields: {list(fields1)} != {list(fields2)}'
-                raise NotEquivalent(msg)
+            # redundant with above
+            # if list(ann1) != list(ann2):
+            #     msg = f'Different fields: {list(fields1)} != {list(fields2)}'
+            #     raise NotEquivalent(msg)
 
             for k in fields1:
                 t1 = fields1[k].type
