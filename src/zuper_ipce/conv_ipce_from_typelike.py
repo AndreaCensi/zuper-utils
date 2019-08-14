@@ -537,6 +537,18 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     names = list(fields_)
     ordered = sorted(names)
 
+    def T_has_attribute(n):
+        if hasattr(T, n):
+            # special case
+            the_att = getattr(T, n)
+            if isinstance(the_att, Field):
+                # actually attribute not there
+                return False
+            else:
+                return True
+        else:
+            return False
+
     for name in ordered:
         afield = fields_[name]
 
@@ -569,33 +581,25 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         # classatts[name] = ipce_from_object(u, c.globals_)
                         # raise NotImplementedError(T)
                         classvars[name] = f(u)
-                        if hasattr(T, name):
+                        if T_has_attribute(name):
                             # special case
                             the_att = getattr(T, name)
-                            assert not isinstance(the_att, Field), the_att
                             if isinstance(the_att, type):
                                 classatts[name] = f(the_att)
                             else:
                                 classatts[name] = ipce_from_object(the_att, c.globals_)
-                        else:
-                            raise NotImplementedError(T)
+
                 else:
                     # logger.info(f'ClassVar {tt} is not Type, going through f')
                     classvars[name] = f(tt)
-                    if hasattr(T, name):
+                    if T_has_attribute(name):
                         # special case
                         the_att = getattr(T, name)
-                        if  isinstance(the_att, Field):
-                            # actually attribute not there
-                            pass
-                        else:
-                            if isinstance(the_att, type):
-                                classatts[name] = f(the_att)
-                            else:
-                                classatts[name] = ipce_from_object(the_att, c.globals_)
-                    # else:
-                    #     raise NotImplementedError(T)
 
+                        if isinstance(the_att, type):
+                            classatts[name] = f(the_att)
+                        else:
+                            classatts[name] = ipce_from_object(the_att, c.globals_)
 
             else:  # not classvar
                 schema = f(t)

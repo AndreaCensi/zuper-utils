@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from typing import List, Set
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, raises
 
+from zuper_ipce_tests.test_utils import NotEquivalent, assert_equivalent_types
 from zuper_typing.annotations_tricks import is_Dict, is_List, is_Set
 from zuper_typing.monkey_patching_typing import original_dict_getitem
 from zuper_typing.my_dict import make_dict, make_list, make_set
@@ -57,3 +59,33 @@ def test_eq_set2():
     assert is_Set(b), type(b)
     assert not is_Set(a), a
     assert a == b
+
+
+@raises(NotEquivalent)
+def test_cover_equiv0():
+    @dataclass
+    class Eq1:
+        pass
+
+    assert_equivalent_types(Eq1, bool, set())
+
+
+@raises(NotEquivalent)
+def test_cover_equiv1():
+    @dataclass
+    class Eq2:
+        pass
+
+    assert_equivalent_types(bool, Eq2, set())
+
+@raises(NotEquivalent)
+def test_cover_equiv2():
+    @dataclass
+    class Eq3:
+        pass
+
+    @dataclass
+    class Eq4:
+        a: int
+
+    assert_equivalent_types(Eq4, Eq3, set())

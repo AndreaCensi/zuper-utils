@@ -209,6 +209,7 @@ def test_more():
 
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
+
 @known_failure
 def test_more_direct():
     """ parent should be declared as Optional[X] rather than X"""
@@ -448,6 +449,7 @@ def test_entity():
     logger.info('\n\nIgnore above\n\n')
 
     assert_type_roundtrip(Entity43_int, {})
+
 
 @known_failure
 def test_entity0():
@@ -696,6 +698,30 @@ def test_entity_field3():
         parent: "Optional[Entity46[X]]"
 
     assert_type_roundtrip(Entity46, {})
+
+
+def test_classvar_not_type1():
+    @dataclass
+    class Entity47:
+        parent: ClassVar[int] = 2
+
+    assert_type_roundtrip(Entity47, {})
+
+
+def test_classvar_not_type2():
+    @dataclass
+    class Entity48:
+        parent: ClassVar[int]
+
+    assert_type_roundtrip(Entity48, {})
+
+
+def test_classvar_type_not_typvar():
+    @dataclass
+    class Entity49:
+        parent: ClassVar[Type[int]]
+
+    assert_type_roundtrip(Entity49, {})
 
 
 if __name__ == '__main__':

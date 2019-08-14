@@ -2,7 +2,7 @@ import typing
 from datetime import datetime
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Dict, ForwardRef, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_FixedTuple_args,
                                              get_ForwardRef_arg, get_Iterator_arg, get_List_arg, get_Optional_arg,
@@ -112,7 +112,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             # logger.info(f'new cls2: {cls2.__annotations__}')
             return cls2
         else:  # pragma: no cover
-            already[id(cls)] = ForwardRef(cls.__name__)
+            already[id(cls)] = make_ForwardRef(cls.__name__)
             annotations = dict(getattr(cls, '__annotations__', {}))
             annotations2 = {}
             nothing_changed = True

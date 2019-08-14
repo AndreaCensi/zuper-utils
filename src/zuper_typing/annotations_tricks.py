@@ -38,7 +38,7 @@ def get_Union_args(x):
 
 
 def make_Union(*a):
-    if a: # and a[-1] is type(None):
+    if a:  # and a[-1] is type(None):
         T0 = type(None)
         if T0 in a:
             others = tuple(_ for _ in a if _ is not T0)
@@ -122,12 +122,12 @@ def is_ForwardRef(x):
     else:
         return isinstance(x, typing.ForwardRef)
 
-def make_ForwardRef(n):
 
+def make_ForwardRef(n):
     if PYTHON_36:  # pragma: no cover
-        return  typing._ForwardRef(n)
+        return typing._ForwardRef(n)
     else:
-        return  typing.ForwardRef(n)
+        return typing.ForwardRef(n)
 
 
 def get_ForwardRef_arg(x) -> str:
@@ -342,7 +342,7 @@ def get_Set_arg(x):
 
 def get_List_arg(x):
     assert is_List(x), x
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         if x.__args__ is None:
             return Any
 
@@ -363,7 +363,7 @@ def get_Dict_args(T):
     #
     K, V = T.__args__
 
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         if is_placeholder_typevar(K):
             K = Any
         if is_placeholder_typevar(V):
@@ -522,7 +522,7 @@ def get_Tuple_name(V):
 def get_tuple_types(V):
     if V is tuple:
         return Any, ...
-    if PYTHON_36: # pragma: no cover
+    if PYTHON_36:  # pragma: no cover
         if V.__args__ is None:
             return Any, ...
     args = V.__args__  # XXX
@@ -590,7 +590,7 @@ def name_for_type_like(x):
         ret = name_for_type_like(info.returns)
         return f'Callable[[{params}],{ret}]'
     elif x is typing.IO:
-        return str(x) # TODO: should get the attribute
+        return str(x)  # TODO: should get the attribute
     elif hasattr(x, '__name__'):
         # logger.info(f'not matching __name__ {type(x)} {x!r}')
         return x.__name__
