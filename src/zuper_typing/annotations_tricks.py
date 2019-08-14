@@ -122,12 +122,19 @@ def is_ForwardRef(x):
     else:
         return isinstance(x, typing.ForwardRef)
 
-
+class CacheFor:
+    cache = {}
 def make_ForwardRef(n):
+    if n in CacheFor.cache:
+        return CacheFor.cache[n]
+
     if PYTHON_36:  # pragma: no cover
-        return typing._ForwardRef(n)
+        res = typing._ForwardRef(n)
     else:
-        return typing.ForwardRef(n)
+        res = typing.ForwardRef(n)
+
+    CacheFor.cache[n] = res
+    return res
 
 
 def get_ForwardRef_arg(x) -> str:

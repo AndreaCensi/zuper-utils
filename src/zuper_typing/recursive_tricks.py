@@ -32,16 +32,16 @@ def get_default_attrs():
                 Dict=Dict)
 
 
-def replace_typevars(cls, *, bindings, symbols, already=None):
+def replace_typevars(cls, *, bindings, symbols):
     from .logging import logger
-    if already is None:
-        already = {}
-    r = lambda _: replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
+    # if already is None:
+    #     already = {}
+    r = lambda _: replace_typevars(_, bindings=bindings, symbols=symbols)
     if cls is type:
         return type
 
-    if id(cls) in already:
-        return already[id(cls)]
+    if hasattr(cls, '__name__') and cls.__name__ in symbols:
+        return symbols[cls.__name__]
 
     elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
         return bindings[cls]
@@ -76,43 +76,45 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
 
     elif is_Type(cls):
         x = get_Type_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
+        r = r(x)
         if x == r:
             return cls
         return Type[r]
         # return type
     elif is_DictLike(cls):
         K0, V0 = get_DictLike_args(cls)
-        K = replace_typevars(K0, bindings=bindings, already=already, symbols=symbols)
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols)
+        K = r(K0)
+        V = r(V0)
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
         if (K0, V0) == (K, V):
             return cls
         return make_dict(K, V)
     elif is_SetLike(cls):
         V0 = get_SetLike_arg(cls)
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols)
+        V = r(V0)
         if V0 == V:
             return cls
         return make_set(V)
     elif is_CustomList(cls):
         V0 = get_CustomList_arg(cls)
-        V = replace_typevars(V0, bindings=bindings, already=already, symbols=symbols)
+        V = r(V0)
         if V0 == V:
             return cls
         return make_list(V)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, '__annotations__'):
+        # logger.debug(f'replace in {id(cls)} {cls}  (symbols: {symbols})')
+        # already[id(cls)] = make_ForwardRef(cls.__name__)
 
         if True:
             from zuper_typing.zeneric2 import make_type
-            cls2 = make_type(cls, bindings)
+            cls2 = make_type(cls, bindings=bindings, symbols=symbols)
             from .logging import logger
             # logger.info(f'old cls: {cls.__annotations__}')
             # logger.info(f'new cls2: {cls2.__annotations__}')
             return cls2
         else:  # pragma: no cover
-            already[id(cls)] = make_ForwardRef(cls.__name__)
+
             annotations = dict(getattr(cls, '__annotations__', {}))
             annotations2 = {}
             nothing_changed = True
@@ -134,19 +136,19 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
 
     elif is_ClassVar(cls):
         x = get_ClassVar_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
+        r = r(x)
         if x == r:
             return cls
         return typing.ClassVar[r]
     elif is_Iterator(cls):
         x = get_Iterator_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
+        r = r(x)
         if x == r:
             return cls
         return typing.Iterator[r]
     elif is_Sequence(cls):
         x = get_Sequence_arg(cls)
-        r = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
+        r = r(x)
         if x == r:
             return cls
 
@@ -154,22 +156,21 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
 
     elif is_List(cls):
         arg = get_List_arg(cls)
-        arg2 = replace_typevars(arg, bindings=bindings, already=already, symbols=symbols)
+        arg2 = r(arg)
         if arg == arg2:
             return cls
         return typing.List[arg2]
 
     elif is_Optional(cls):
         x = get_Optional_arg(cls)
-        x2 = replace_typevars(x, bindings=bindings, already=already, symbols=symbols)
+        x2 = r(x)
         if x == x2:
             return cls
         return typing.Optional[x2]
 
     elif is_Union(cls):
         xs = get_Union_args(cls)
-        ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
-                   for _ in xs)
+        ys = tuple(r(_) for _ in xs)
         if ys == xs:
             return cls
         return typing.Union[ys]
@@ -182,7 +183,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             return make_VarTuple(Y)
         elif is_FixedTuple(cls):
             xs = get_FixedTuple_args(cls)
-            ys = tuple(replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
+            ys = tuple(r(_)
                        for _ in xs)
             if ys == xs:
                 return cls
@@ -192,10 +193,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
 
-        def f(_):
-            return replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
-
-        cinfo2 = cinfo.replace(f)
+        cinfo2 = cinfo.replace(r)
         return cinfo2.as_callable()
 
     elif is_ForwardRef(cls):

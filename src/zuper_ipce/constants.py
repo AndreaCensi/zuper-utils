@@ -73,6 +73,7 @@ SCHEMA_CID = cast(JSONSchema, {
 USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
 use_ipce_from_typelike_cache = True
+
 check_types = False
 
 CALLABLE_ORDERING = 'ordering'
@@ -87,8 +88,7 @@ logger.info(f'Circle JOB: {circle_job!r}')
 if circle_job == 'test-3.7-no-cache':
     use_ipce_from_typelike_cache = False
     logger.warning('Disabling cache (IPCL:use_ipce_from_typelike_cache) due to circle_job.')
-    check_types = False
-    logger.warning('Disabling cache (IPCL:check_types) due to circle_job.')
+
     USE_REMEMBERED_CLASSES = False
     logger.warning('Disabling cache (IPCL:USE_REMEMBERED_CLASSES) due to circle_job.')
 

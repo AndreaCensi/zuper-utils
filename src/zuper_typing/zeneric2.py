@@ -318,7 +318,11 @@ def resolve_types(T, locals_=None, refs: Tuple = (), nrefs: Optional[Dict[str, A
 #     B = Dict[TypeVar, Any]
 
 
-def make_type(cls: type, bindings) -> type:
+def make_type(cls: type, bindings, symbols=None) -> type:
+    if symbols is None:
+        symbols = {}
+    symbols = dict(symbols)
+
     assert not is_NewType(cls)
     # logger.info(f'make_type ({cls}) {bindings}')
     # print(f'make_type for {cls.__name__}')
@@ -337,13 +341,14 @@ def make_type(cls: type, bindings) -> type:
     generic_att2 = getattr(cls, GENERIC_ATT2, ())
     assert isinstance(generic_att2, tuple)
 
-    symbols = {}
+
+    recur = lambda _: replace_typevars(_, bindings=bindings, symbols=symbols)
 
     annotations = getattr(cls, '__annotations__', {})
     name_without = get_name_without_brackets(cls.__name__)
 
     def param_name(x):
-        x2 = replace_typevars(x, bindings=bindings, symbols=symbols)
+        x2 = recur(x)
         return name_for_type_like(x2)
 
     if generic_att2:
@@ -363,7 +368,7 @@ def make_type(cls: type, bindings) -> type:
     symbols[cls.__name__] = cls2  # also MyClass[X] should resolve to the same
     MakeTypeCache.cache[cache_key] = cls2
 
-    #
+
 
     class Fake2:
         def __getitem__(self, item):
@@ -385,9 +390,7 @@ def make_type(cls: type, bindings) -> type:
 
     # first of all, replace the bindings in the generic_att
 
-    generic_att2_new = tuple(
-          replace_typevars(_, bindings=bindings, symbols=symbols) for
-          _ in generic_att2)
+    generic_att2_new = tuple( recur(_) for _ in generic_att2)
 
     # logger.debug(
     #     f"creating derived class {name2} with abstract method need() because
@@ -403,7 +406,7 @@ def make_type(cls: type, bindings) -> type:
 
     # logger.info(f'annotations ({annotations}) ')
     for k, v0 in annotations.items():
-        v = replace_typevars(v0, bindings=bindings, symbols=symbols)
+        v = recur(v0)
 
         # print(f'{v0!r} -> {v!r}')
         if is_ClassVar(v):
@@ -411,13 +414,13 @@ def make_type(cls: type, bindings) -> type:
 
             if is_Type(s):
                 st = get_Type_arg(s)
-                concrete = replace_typevars(st, bindings=bindings, symbols=symbols)
+                concrete = recur(st)
                 # logger.info(f'is_Type ({s}) -> {concrete}')
                 # concrete = st
                 new_annotations[k] = ClassVar[type]
                 setattr(cls2, k, concrete)
             else:
-                s2 = replace_typevars(s, bindings=bindings, symbols=symbols)
+                s2 = recur(s)
                 new_annotations[k] = ClassVar[s2]
         else:
 
