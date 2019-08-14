@@ -757,10 +757,17 @@ def test_post_init_preserved():
     a = Concrete(1)
     assert a.x == C
 
+def test_post_init_preserved2():
+
+    X = TypeVar('X')
+    @dataclass
+    class Entity61(Generic[X]):
+        x: int
+
+
+    Concrete = Entity61[int]
+
     if enable_type_checking:
-        print(Entity60.__post_init__)
-        print(Concrete.__post_init__)
-        assert Entity60.__post_init__ != Concrete.__post_init__
         try:
             Concrete('a')
         except ValueError:

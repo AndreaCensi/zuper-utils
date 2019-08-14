@@ -439,8 +439,10 @@ def make_type(cls: type, bindings, symbols=None) -> type:
             # logger.info(f'__post_init__ sees {new_annotations}')
             for k, v in new_annotations.items():
                 if is_ClassVar(v): continue
-                if isinstance(v, type): # TODO: only do if check_types
+                # logger.info(f' k = {k} v = {v}')
+                if isinstance(v, type):
                     val = getattr(self, k)
+                    # logger.info(f' k = {k} v = {v} val = {val}')
                     try:
                         if type(val).__name__ != v.__name__ and not isinstance(val, v):  # pragma: no cover
                             msg = f'Expected field "{k}" to be a "{v.__name__}" ' \
