@@ -1,3 +1,4 @@
+rednose
 oyaml
 pybase64
 jsonschema

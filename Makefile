@@ -8,7 +8,7 @@ parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
 
 xunitmp=--with-xunitmp --xunitmp-file=test-results/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
-
+extra=--rednose --immediate
 
 all: test
 
@@ -17,17 +17,17 @@ all: test
 test:
 	rm -f .coverage
 	rm -rf cover
-	nosetests $(coverage) $(xunitmp) src  -v
+	nosetests $(extra) $(coverage) $(xunitmp) src  -v
 
 test-parallel:
 	rm -f .coverage
 	rm -rf cover
-	nosetests $(coverage) src  -v  $(parallel)
+	nosetests $(extra) $(coverage) src  -v  $(parallel)
 
 test-parallel-failed:
 	rm -f .coverage
 	rm -rf cover
-	nosetests   $(coverage) src  -v  $(parallel)
+	nosetests  $(extra)  $(coverage) src  -v  $(parallel)
 
 test-parallel-circle:
 	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $(parallel)
@@ -36,7 +36,7 @@ test-parallel-circle:
 test-failed:
 	rm -f .coverage
 	rm -rf cover
-	nosetests --with-id --failed $(coverage) src  -v
+	nosetests $(extra)  --with-id --failed $(coverage) src  -v
 
 
 
