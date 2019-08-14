@@ -1,10 +1,10 @@
-from typing import Generic, Optional, TypeVar, Any
+from typing import Any, Generic, Optional, TypeVar
 
-import yaml
 from nose.tools import assert_equal
 
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.pretty import pprint
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_ipce_tests.test_utils import assert_type_roundtrip
 from zuper_typing import dataclass
 
@@ -143,7 +143,7 @@ def test_type06():
     assert_equal(C.__name__, 'VersionChainWithAuthors[Values]')
 
     assert_equal(C.__annotations__['signed_proposal'].__name__, 'Signed[EntityUpdateProposal[Values]]')
-    print(yaml.dump(ipce_from_typelike(C, {}, {})))
+    print(oyaml_dump(ipce_from_typelike(C, {}, {})))
     #
     # assert_equal(E.__name__, 'Entity[A]')
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)

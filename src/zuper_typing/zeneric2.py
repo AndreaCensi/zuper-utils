@@ -6,7 +6,8 @@ from typing import Any, ClassVar, Dict, Tuple
 
 from .annotations_tricks import (get_ClassVar_arg, get_Type_arg, is_ClassVar, is_NewType, is_Type,
                                  name_for_type_like)
-from .constants import BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, MakeTypeCache, PYTHON_36, cache_enabled
+from .constants import (BINDINGS_ATT, DEPENDS_ATT, GENERIC_ATT2, MakeTypeCache, PYTHON_36, cache_enabled,
+                        enable_type_checking)
 from .logging import logger
 from .recursive_tricks import NoConstructorImplemented, get_name_without_brackets, replace_typevars
 from .subcheck import can_be_used_as2
@@ -144,7 +145,6 @@ class ZenericFix:
 class StructuralTyping(type):
 
     def __subclasscheck__(self, subclass) -> bool:
-
         can = can_be_used_as2(subclass, self, {})
         # logger.info(
         #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass}
@@ -169,31 +169,31 @@ class StructuralTyping(type):
         return res.result
 
 
-class MyABC(ABCMeta, StructuralTyping):
+class MyABC( StructuralTyping, ABCMeta):
     #
-    def __subclasscheck__(self, subclass) -> bool:
+    # def __subclasscheck__(self, subclass) -> bool:
+    #
+    #     can = can_be_used_as2(subclass, self, {})
+    #     # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {
+    #     # id(subclass)}: {can}')
+    #     return can.result
 
-        can = can_be_used_as2(subclass, self, {})
-        # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {
-        # id(subclass)}: {can}')
-        return can.result
-
-    def __instancecheck__(self, instance) -> bool:
-        i = super().__instancecheck__(instance)
-        if i:
-            return True
-
-        # loadable  - To remove
-        if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'): # pragma: no cover
-            T = getattr(instance, 'T')
-            logger.info(f'Comparing {self} and type {type(instance)} {T}')
-            can = can_be_used_as2(T, self, {})
-            if can.result:
-                return True
-
-        res = can_be_used_as2(type(instance), self, {})
-
-        return res.result
+    # def __instancecheck__(self, instance) -> bool:
+    #     i = super().__instancecheck__(instance)
+    #     if i:
+    #         return True
+    #
+    #     # loadable  - To remove
+    #     if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'): # pragma: no cover
+    #         T = getattr(instance, 'T')
+    #         logger.info(f'Comparing {self} and type {type(instance)} {T}')
+    #         can = can_be_used_as2(T, self, {})
+    #         if can.result:
+    #             return True
+    #
+    #     res = can_be_used_as2(type(instance), self, {})
+    #
+    #     return res.results
 
     def __new__(mcls, name_orig, bases, namespace, **kwargs):
         # logger.info(f'----\nCreating name: {name}')
@@ -202,11 +202,6 @@ class MyABC(ABCMeta, StructuralTyping):
         # if bases:
         #     logger.info('bases[0]: %s' % str(bases[0].__dict__))
 
-        # logger.info(name)
-        # logger.info(bases)
-
-        # logger.info(kwargs)
-        # logger.info(mcls.__dict__)
         if GENERIC_ATT2 in namespace:
             spec = namespace[GENERIC_ATT2]
         # elif 'types_' in namespace:
@@ -432,32 +427,34 @@ def make_type(cls: type, bindings) -> type:
     # pprint('  new annotations', **new_annotations)
     original__post_init__ = getattr(cls, '__post_init__', None)
 
-    def __post_init__(self):
+    if enable_type_checking:
+        def __post_init__(self):
+            logger.info(f'__post_init__ sees {new_annotations}')
+            for k, v in new_annotations.items():
+                if is_ClassVar(v): continue
+                if isinstance(v, type): # TODO: only do if check_types
+                    val = getattr(self, k)
+                    try:
+                        if type(val).__name__ != v.__name__ and not isinstance(val, v):  # pragma: no cover
+                            msg = f'Expected field "{k}" to be a "{v.__name__}" ' \
+                                  f'but found {type(val).__name__}'
+                            # warnings.warn(msg, stacklevel=3)
+                            raise ValueError(msg)
+                    except TypeError as e:  # pragma: no cover
+                        msg = f'Cannot judge annotation of {k} (supposedly {v}.'
 
-        for k, v in new_annotations.items():
-            if is_ClassVar(v): continue
-            if isinstance(v, type):
-                val = getattr(self, k)
-                try:
-                    if type(val).__name__ != v.__name__ and not isinstance(val, v):  # pragma: no cover
-                        msg = f'Expected field "{k}" to be a "{v.__name__}"' \
-                              f'but found {type(val).__name__}'
-                        warnings.warn(msg, stacklevel=3)
-                        # raise ValueError(msg)
-                except TypeError as e:  # pragma: no cover
-                    msg = f'Cannot judge annotation of {k} (supposedly {v}.'
+                        if sys.version_info[:2] == (3, 6):
+                            # FIXME: warn
+                            continue
+                        logger.error(msg)
+                        raise TypeError(msg) from e
 
-                    if sys.version_info[:2] == (3, 6):
-                        # FIXME: warn
-                        continue
-                    logger.error(msg)
-                    raise TypeError(msg) from e
+            if original__post_init__ is not None:
+                original__post_init__(self)
 
-        if original__post_init__ is not None:
-            original__post_init__(self)
+        # important: do it before dataclass
+        setattr(cls2, '__post_init__', __post_init__)
 
-    setattr(cls2, '__post_init__', __post_init__)
-    # important: do it before dataclass
     cls2.__annotations__ = new_annotations
 
     # logger.info('new annotations: %s' % new_annotations)
@@ -496,8 +493,7 @@ def make_type(cls: type, bindings) -> type:
 
     setattr(cls2, GENERIC_ATT2, generic_att2_new)
 
-    setattr(cls2, '__post_init__', __post_init__)
-
+    # raise Exception()
     # rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
     # rl.p(f'     dataclass {is_dataclass(cls2)}')
     #

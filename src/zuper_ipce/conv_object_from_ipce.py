@@ -1,15 +1,15 @@
 import datetime
 import inspect
 import traceback
-from dataclasses import is_dataclass, Field
+from dataclasses import Field, is_dataclass
 from decimal import Decimal
 from typing import Any, Dict, Optional, cast
 
 import numpy as np
-import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
 from zuper_commons.text import indent, pretty_dict
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import (get_FixedTuple_args, get_Optional_arg, get_Union_args, get_VarTuple_arg,
                                              is_Any, is_ClassVar, is_FixedTuple, is_Optional, is_TupleLike, is_Union,
                                              is_VarTuple)
@@ -59,7 +59,6 @@ def object_from_ipce_(mj: IPCE,
                       global_symbols,
                       encountered: Optional[dict] = None,
                       expect_type: Optional[type] = None) -> object:
-
     if encountered is None:
         encountered = {}
 
@@ -276,7 +275,7 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 msg = f'Trying to instantiate abstract class for field "{k}" of class {K}'
                 msg += f'\n annotation = {anns[k]}'
                 msg += f'\n expect_type = {expect_type}'
-                msg += f'\n\n%s' % indent(yaml.dump(mj), ' > ')
+                msg += f'\n\n%s' % indent(oyaml_dump(mj), ' > ')
                 raise TypeError(msg)
 
             if k in hints:
@@ -306,12 +305,12 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
             if hasattr(K, k):  # default - XXX
                 V = getattr(K, k)
                 if isinstance(V, Field):
-                    logger.error(yaml.dump(mj))
+                    logger.error(oyaml_dump(mj))
                     from zuper_ipcl.debug_print_ import debug_print
                     logger.error(f'dict: {debug_print(dict(K.__dict__))}')
                     logger.error(f'anns: {debug_print(K.__annotations__)}')
                     # V = V.default
-                    raise Exception((k,V))
+                    raise Exception((k, V))
                 # logger.info(f'setting default {V}')
                 attrs[k] = V
             # elif is_Optional(T):
@@ -336,10 +335,13 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 
         msg += f'because:\n{e}'  # XXX
         raise TypeError(msg) from e
+
+
 from . import logger
 
+
 def write_out_yaml(prefix, v):
-    d = yaml.dump(v)
+    d = oyaml_dump(v)
     fn = f'errors/{prefix}.yaml'
     write_ustring_to_utf8_file(d, fn)
     return fn
@@ -369,10 +371,10 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
         except (TypeError, NotImplementedError) as e:  # pragma: no cover
             msg = f'Cannot deserialize element at index "{k}".'
             msg += f'\n\n D = {D}'
-            msg += '\n\n' + indent(yaml.dump(mj), '> ')
+            msg += '\n\n' + indent(oyaml_dump(mj), '> ')
             msg += f'\n\n Expected V = {expect_type_V}'
 
-            msg += f'\n\n v = {yaml.dump(v)}'
+            msg += f'\n\n v = {oyaml_dump(v)}'
             raise TypeError(msg) from e
     if isinstance(K, type) and issubclass(K, str):
         ob.update(attrs)

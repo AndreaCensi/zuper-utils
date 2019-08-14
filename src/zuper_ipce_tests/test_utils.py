@@ -6,7 +6,6 @@ from decimal import Decimal
 
 import cbor2
 import cbor2 as cbor
-import yaml
 from nose.tools import assert_equal
 
 from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
@@ -18,6 +17,7 @@ from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.types import TypeLike
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import *
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_DictLike, is_ListLike,
@@ -293,7 +293,7 @@ def save_object(x: object, ipce: object):
         # write_ustring_to_utf8_file(yaml.dump(y1), fn)
         fn = os.path.join(dn, digest + '.object.ansi')
         s = debug_print(x)  # '\n\n as ipce: \n\n' + debug_print(ipce) \
-        s += '\n\n as YAML: \n\n' + yaml.dump(ipce)
+        s += '\n\n as YAML: \n\n' + oyaml_dump(ipce)
         write_ustring_to_utf8_file(s, fn)
 
 
@@ -331,8 +331,8 @@ def assert_object_roundtrip(x1, use_globals, expect_equality=True, works_without
     check_equality(x1, x1b, expect_equality)
 
     if y1 != x1bj:  # pragma: no cover
-        msg = pretty_dict('Round trip not obtained', dict(x1bj_json=yaml.dump(x1bj),
-                                                          y1_json=yaml.dump(y1)))
+        msg = pretty_dict('Round trip not obtained', dict(x1bj_json=oyaml_dump(x1bj),
+                                                          y1_json=oyaml_dump(y1)))
         # assert_equal(y1, x1bj, msg=msg)
         if 'propertyNames' in y1['$schema']:
             assert_equal(y1['$schema']['propertyNames'], x1bj['$schema']['propertyNames'], msg=msg)

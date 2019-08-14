@@ -1,9 +1,8 @@
 from typing import Any, Set
 
-import yaml
-
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import is_Set
 from zuper_typing.my_dict import make_set
@@ -82,14 +81,14 @@ def test_set_any2():
     a = A(v)
 
     ipce_v = ipce_from_object(v, {})
-    print(yaml.dump(ipce_v))
+    print(oyaml_dump(ipce_v))
 
     schema = ipce_v['$schema']
     T = typelike_from_ipce(schema, {}, {})
     print(T)
 
     ipce = ipce_from_object(a, {})
-    print(yaml.dump(ipce))
+    print(oyaml_dump(ipce))
 
     assert_object_roundtrip(a, {})
 

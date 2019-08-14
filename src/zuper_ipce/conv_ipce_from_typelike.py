@@ -464,6 +464,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
 
+    # noinspection PyDataclass
     c = replace(c, globals_=dict(c.globals_),
                 processing=dict(c.processing),
                 context=c.context + (T.__name__,))
@@ -605,10 +606,13 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
 
                 if has_default:
                     default = afield.default
-                    schema = copy.copy(schema)
-                    schema['default'] = ipce_from_object(default, c.globals_)
+                    # schema = copy.copy(schema)
 
-                    schema = sorted_dict_with_cbor_ordering(schema)
+                    options = [schema]
+                    schema_union_of_one = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
+                    schema_union_of_one['default'] = ipce_from_object(default, c.globals_)
+                    schema_union_of_one = sorted_dict_with_cbor_ordering(schema_union_of_one)
+                    schema = schema_union_of_one
 
                 else:
                     required.append(name)

@@ -1,14 +1,13 @@
 from dataclasses import field
 from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast
 
-import yaml
-
 from zuper_commons.logs import setup_logging
 from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.structures import CannotFindSchemaReference
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import is_Any
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.my_dict import make_dict
@@ -73,7 +72,7 @@ def test_ser1():
 
     Person_schema = ipce_from_typelike(Person, {})
 
-    print(yaml.dump(Person_schema))
+    print(oyaml_dump(Person_schema))
 
     Address2 = typelike_from_ipce(Person_schema['properties']['address'], {}, {})
     assert_equal(Address2.__doc__, Address.__doc__)

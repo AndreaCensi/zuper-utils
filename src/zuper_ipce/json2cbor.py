@@ -6,7 +6,7 @@ import traceback
 from io import BufferedReader
 from json import JSONDecodeError
 from typing import Iterator
-
+from .utils_text import oyaml_dump
 import base58
 import cbor2
 import yaml
@@ -52,7 +52,7 @@ def cbor2yaml_main():
     fo = open('/dev/stdout', 'wb')
     fi = open('/dev/stdin', 'rb')
     for j in read_cbor_objects(fi):
-        ob = yaml.dump(j)
+        ob = oyaml_dump(j)
         ob = ob.encode('utf-8')
         fo.write(ob)
         fo.write(b'\n')

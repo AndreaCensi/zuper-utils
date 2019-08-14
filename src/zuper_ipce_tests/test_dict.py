@@ -7,6 +7,7 @@ from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.pretty import pprint
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.my_dict import (get_DictLike_args, make_dict, make_list, make_set)
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -107,8 +108,8 @@ def test_dict_int_str4():
 
     ipce = ipce_from_object(c)
     c2 = object_from_ipce(ipce, {})
-    import yaml
-    logger.info(f'ipce: {yaml.dump(ipce)}')
+
+    logger.info(f'ipce: {oyaml_dump(ipce)}')
     logger.info(f'c2: {debug_print(c2)}')
 
     K2, V2 = get_DictLike_args(type(c2))

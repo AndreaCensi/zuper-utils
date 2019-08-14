@@ -1,6 +1,5 @@
 from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
 
-import yaml
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import logger
@@ -9,6 +8,7 @@ from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.ipce_spec import assert_sorted_dict_with_cbor_ordering
+from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import (NotEquivalent, assert_equivalent_types, assert_object_roundtrip,
                                          assert_type_roundtrip)
 from zuper_typing import dataclass
@@ -140,7 +140,7 @@ def test_default2():
     ipce1 = ipce_from_typelike(C, {})
     C2 = typelike_from_ipce(ipce1, {}, {})
     # print(debug_print(C))
-    print(yaml.dump(ipce1))
+    print(oyaml_dump(ipce1))
     assert ipce1['properties']['a']['default'] == False
     # print(debug_print(C2))
     ipce2 = ipce_from_typelike(C2, {})
@@ -154,7 +154,7 @@ def test_type1():
 
 def test_parsing():
     schema_bool = """{$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}"""
-    ipce = yaml.load(schema_bool)
+    ipce = oyaml_load(schema_bool)
     T0 = typelike_from_ipce(ipce, {}, {})
     assert T0 is bool, T0
     T0 = object_from_ipce(ipce, {})
@@ -174,7 +174,7 @@ $schema:
   __qualname__: misc
 a: true
     """
-    ipce = yaml.load(a)
+    ipce = oyaml_load(a)
 
     T = typelike_from_ipce(ipce['$schema'], {}, {})
     print(T)
@@ -275,7 +275,7 @@ def test_corner_optional_with_default():
     assert_object_roundtrip(a, {})
 
     ipce = ipce_from_typelike(MyCD, {})
-    logger.info('yaml:\n\n' + yaml.dump(ipce))
+    logger.info('yaml:\n\n' + oyaml_dump(ipce))
     assert ipce['properties']['a']['default'] == True
     assert 'required' not in ipce
 
@@ -291,7 +291,7 @@ def test_corner_optional_with_default2():
     assert_object_roundtrip(a, {})
 
     ipce = ipce_from_typelike(MyCD2, {})
-    logger.info('yaml:\n\n' + yaml.dump(ipce))
+    logger.info('yaml:\n\n' + oyaml_dump(ipce))
     assert ipce['properties']['a']['default'] == True
     assert 'required' not in ipce
 
@@ -518,7 +518,6 @@ def test_corner_list_Any():
 def test_corner_ipce():
     res = {'aa': 1, 'a': 2}
     assert_sorted_dict_with_cbor_ordering(res)
-
 
 
 def test_corner_same_default_value():

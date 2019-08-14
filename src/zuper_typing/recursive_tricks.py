@@ -217,7 +217,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
     else:
         raise NotImplementedError(cls)
         # logger.debug(f'Nothing to do with {cls!r} {cls}')
-        return cls
+        # return cls
 
 
 B = Dict[Any, Any]  # bug in Python 3.6

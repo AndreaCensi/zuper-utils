@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 
 from zuper_commons.types import check_isinstance
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import (is_Any, is_ForwardRef, make_Tuple, make_Union,
                                              make_VarTuple)
 from zuper_typing.constants import PYTHON_36
@@ -373,13 +374,13 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             else:
                 if not pname in required:
                     msg = f'Field {pname!r} is not required but I did not find a default'
-                    msg += '\n\n' + yaml.dump(res)
+                    msg += '\n\n' + oyaml_dump(res)
                     raise Exception(msg)
             fields.append((pname, ptype, _Field))
         elif pname in classvars:
             v = classvars[pname]
             ptype = f(v)
-            logger.info(f'ipce classvar: {pname} {ptype}')
+            # logger.info(f'ipce classvar: {pname} {ptype}')
             fields.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
             msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'

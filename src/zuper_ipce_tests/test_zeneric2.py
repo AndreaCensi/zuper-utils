@@ -10,6 +10,7 @@ from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.logging import logger
 from zuper_ipce.pretty import pprint
+from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import Generic, dataclass
 from zuper_typing.annotations_tricks import get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type
@@ -137,7 +138,7 @@ def test_serialize_generic_optional():
     m1a = M1int(x=2)
     m1b = M1int(x=3)
     s = ipce_from_typelike(MR1, {})
-    print('M1 schema: \n' + yaml.dump(s, indent=3))
+    print('M1 schema: \n' + oyaml_dump(s))
 
     M2 = typelike_from_ipce(s, {}, {})
     assert 'xo' in MR1.__annotations__, MR1.__annotations__
@@ -194,7 +195,7 @@ def test_more():
     assert not isinstance(Entity0.__annotations__['parent'], str)
     # raise Exception()
     schema = ipce_from_typelike(Entity0, {}, {})
-    print(yaml.dump(schema))
+    print(oyaml_dump(schema))
     T = typelike_from_ipce(schema, {}, {})
     print(T.__annotations__)
 
@@ -214,7 +215,7 @@ def test_more():
 def test_more_direct():
     """ parent should be declared as Optional[X] rather than X"""
     # language=yaml
-    schema = yaml.load("""
+    schema = oyaml_load("""
 $id: http://invalid.json-schema.org/Entity0[X]#
 $schema: http://json-schema.org/draft-07/schema#
 __module__: zuper_json.zeneric2
@@ -335,7 +336,7 @@ def test_more3_simpler():
         a: int
 
     ipce = ipce_from_typelike(MyClass, {})
-    print(yaml.dump(ipce))
+    print(oyaml_dump(ipce))
     assert_type_roundtrip(MyClass, {})
     #
     # # type_to_schema(MyClass, {})
@@ -352,7 +353,7 @@ def test_more3b_simpler():
         XT: ClassVar[Type[X]]
 
     ipce = ipce_from_typelike(MyClass, {})
-    print(yaml.dump(ipce))
+    print(oyaml_dump(ipce))
     assert_type_roundtrip(MyClass, {})
     #
     # # type_to_schema(MyClass, {})
@@ -431,7 +432,7 @@ def test_entity():
 
     T = ipce_from_typelike(Entity43, {}, {})
     C = typelike_from_ipce(T, {}, {})
-    print(yaml.dump(T))
+    print(oyaml_dump(T))
     print(C.__annotations__)
 
     # logger.info(f'SchemaCache: {pretty_dict("", SchemaCache.key2schema)}')
@@ -455,7 +456,7 @@ def test_entity():
 def test_entity0():
     """ Wrong type as in test_entity. parent should be defined as Optional[Entity2[X]]"""
     # language=yaml
-    schema = yaml.load("""
+    schema = oyaml_load("""
 $id: http://invalid.json-schema.org/Entity2[X]#
 $schema: http://json-schema.org/draft-07/schema#
 definitions:
@@ -585,7 +586,7 @@ def test_derived1():
 
     S = Signed3[int]
 
-    logger.info(fields(S))
+    # logger.info(fields(S))
 
     class Y(S):
         """hello"""
@@ -645,7 +646,7 @@ def test_derived2_subst():
     pprint(**Y.__annotations__)
 
     schema = ipce_from_typelike(Y, {}, {})
-    print(yaml.dump(schema))
+    print(oyaml_dump(schema))
     TY = typelike_from_ipce(schema, {}, {})
 
     pprint('annotations', **TY.__annotations__)
@@ -722,6 +723,72 @@ def test_classvar_type_not_typvar():
         parent: ClassVar[Type[int]]
 
     assert_type_roundtrip(Entity49, {})
+
+
+# XXX: __post_init__ only used for make_type(cls, bindings), rather than for dataclass
+# def test_post_init_preserved():
+#     C = 42
+#
+#     @dataclass
+#     class Entity60:
+#         x: int
+#
+#         def __post_init__(self):
+#             self.x = C
+#
+#     a = Entity60('a')
+#     print(Entity60.__post_init__)
+#     a = Entity60(1)
+#     assert a.x == C
+
+def test_post_init_preserved():
+    C = 42
+
+    X = TypeVar('X')
+
+    @dataclass
+    class Entity60(Generic[X]):
+        x: int
+
+        def __post_init__(self):
+            self.x = C
+
+    Concrete = Entity60[int]
+    a = Concrete(1)
+    assert a.x == C
+
+    if enable_type_checking:
+        print(Entity60.__post_init__)
+        print(Concrete.__post_init__)
+        assert Entity60.__post_init__ != Concrete.__post_init__
+        try:
+            Concrete('a')
+        except ValueError:
+            pass
+        else:  # pragma: no cover
+            raise Exception()
+    else:
+        Concrete('a')
+
+
+f = known_failure if enable_type_checking else (lambda x: x)
+
+
+@f
+def test_type_checking():
+    @dataclass
+    class Entity61:
+        x: int
+
+    if enable_type_checking:
+        try:
+            Entity61('a')
+        except ValueError:
+            pass
+        else:  # pragma: no cover
+            raise Exception()
+    else:
+        Entity61('a')
 
 
 if __name__ == '__main__':

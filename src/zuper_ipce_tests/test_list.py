@@ -1,11 +1,11 @@
-from zuper_typing import dataclass
 from typing import Any, List, Optional, Tuple
 
-import yaml
 from nose.tools import raises
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.utils_text import oyaml_load
+from zuper_typing import dataclass
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
@@ -104,7 +104,7 @@ $schema:
   type: object
 
 """
-    ipce = yaml.load(a)
+    ipce = oyaml_load(a)
     r = typelike_from_ipce(ipce, {}, {})
     print(r)
 

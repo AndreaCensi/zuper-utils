@@ -1,10 +1,10 @@
 from typing import Dict, Generic, List, Optional, Set, Tuple, TypeVar, Union
 
-import yaml
 from nose.tools import assert_equal
 
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.zeneric2 import resolve_types
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -121,6 +121,7 @@ def test_forward08():
 
 from zuper_ipce import logger
 
+
 def test_forward09():
     X = TypeVar('X')
 
@@ -128,6 +129,7 @@ def test_forward09():
     class B(Generic[X]):
         # b: Optional[X]
         b: X
+
     @dataclass
     class A:
         pass
@@ -136,7 +138,7 @@ def test_forward09():
     assert_equal(BA.__doc__, None)
 
     s = ipce_from_typelike(BA, {})
-    print(yaml.dump(s))
+    print(oyaml_dump(s))
 
     @dataclass
     class C:
@@ -153,7 +155,7 @@ def test_forward09():
     assert 'forward09' in C.__annotations__['b'].__qualname__
 
     ipce_Cb = ipce_from_typelike(Cb, {})
-    logger.info('ipce_CB: \n' + yaml.dump(ipce_Cb) )
+    logger.info('ipce_CB: \n' + oyaml_dump(ipce_Cb))
     assert ipce_Cb['__qualname__'] == 'test_forward09.<locals>.B[C]'
     assert ipce_Cb['properties']['b']['__qualname__'] == 'test_forward09.<locals>.C'
 
@@ -166,6 +168,7 @@ def test_forward09():
     # assert_type_roundtrip(C, {}, expect_type_equal=False)
     assert_type_roundtrip(B, {})
     assert_type_roundtrip(BA, {})
+
 
 if __name__ == '__main__':
     test_forward05b()
