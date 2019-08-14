@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional, cast
 
 import numpy as np
+import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
 from zuper_commons.text import indent, pretty_dict
@@ -340,8 +341,25 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
 from . import logger
 
 
+def ignore_aliases(self, data):
+    if data is None:
+        return True
+    if isinstance(data, tuple) and data == ():
+        return True
+    if isinstance(data, list) and len(data) == 0:
+        return True
+    if isinstance(data, (bool, int, float)):
+        return True
+    if isinstance(data, str) and len(data) < 10:
+        return True
+    safe = ['additionalProperties', 'properties', '__module__']
+    if isinstance(data, str) and data in safe:
+        return True
+
 def write_out_yaml(prefix, v):
-    d = oyaml_dump(v)
+    yaml.Dumper.ignore_aliases = ignore_aliases
+    # d = oyaml_dump(v)
+    d = yaml.dump(v)
     fn = f'errors/{prefix}.yaml'
     write_ustring_to_utf8_file(d, fn)
     return fn

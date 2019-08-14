@@ -24,7 +24,6 @@ from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLi
                                   is_SetLike)
 from zuper_typing_tests.test_utils import known_failure
 
-
 def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
     # assert T is not None
     # rl = RecLogger()

@@ -429,7 +429,11 @@ def make_type(cls: type, bindings) -> type:
 
     if enable_type_checking:
         def __post_init__(self):
-            logger.info(f'__post_init__ sees {new_annotations}')
+            # do it first
+            if original__post_init__ is not None:
+                original__post_init__(self)
+
+            # logger.info(f'__post_init__ sees {new_annotations}')
             for k, v in new_annotations.items():
                 if is_ClassVar(v): continue
                 if isinstance(v, type): # TODO: only do if check_types
@@ -449,8 +453,6 @@ def make_type(cls: type, bindings) -> type:
                         logger.error(msg)
                         raise TypeError(msg) from e
 
-            if original__post_init__ is not None:
-                original__post_init__(self)
 
         # important: do it before dataclass
         setattr(cls2, '__post_init__', __post_init__)

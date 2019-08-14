@@ -32,7 +32,8 @@ setup(name='zuper-utils',
           ]
       },
       install_requires=[
-          'pybase64',
+        'oyaml',  
+	'pybase64',
           'PyYAML',
           'validate_email',
           'mypy_extensions',

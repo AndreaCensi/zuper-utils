@@ -8,7 +8,7 @@ _SpecialForm = Any
 
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = '$schema'
-HINTS_ATT='$hints'
+HINTS_ATT = '$hints'
 ANY_OF = 'anyOf'
 ALL_OF = 'allOf'
 ID_ATT = '$id'
@@ -58,13 +58,17 @@ JSC_TITLE_CID = 'cid'
 # JSC_TITLE_LIST = 'List'
 JSC_FORMAT_CID = 'cid'
 
-SCHEMA_BYTES = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
-                                 JSC_TITLE: JSC_TITLE_BYTES,
-                                 SCHEMA_ATT: SCHEMA_ID})
-SCHEMA_CID = cast(JSONSchema, {JSC_TYPE: JSC_STRING,
-                               JSC_TITLE: JSC_TITLE_CID,
-                               JSC_FORMAT: JSC_FORMAT_CID,
-                               SCHEMA_ATT: SCHEMA_ID})
+SCHEMA_BYTES = cast(JSONSchema, {
+      JSC_TYPE:   JSC_STRING,
+      JSC_TITLE:  JSC_TITLE_BYTES,
+      SCHEMA_ATT: SCHEMA_ID
+      })
+SCHEMA_CID = cast(JSONSchema, {
+      JSC_TYPE:   JSC_STRING,
+      JSC_TITLE:  JSC_TITLE_CID,
+      JSC_FORMAT: JSC_FORMAT_CID,
+      SCHEMA_ATT: SCHEMA_ID
+      })
 
 USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
@@ -74,3 +78,14 @@ check_types = False
 
 CALLABLE_ORDERING = 'ordering'
 CALLABLE_RETURN = 'return'
+
+from .logging import logger
+import os
+
+circle_job = os.environ.get('CIRCLE_JOB', None)
+logger.info(f'Circle JOB: {circle_job!r}')
+
+if circle_job == 'test-3.7-no-cache':
+    use_ipce_from_typelike_cache = False
+    check_types = False
+    USE_REMEMBERED_CLASSES = False
