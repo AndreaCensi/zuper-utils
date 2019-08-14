@@ -89,3 +89,4 @@ if circle_job == 'test-3.7-no-cache':
     use_ipce_from_typelike_cache = False
     check_types = False
     USE_REMEMBERED_CLASSES = False
+    logger.warning('Disabling caches due to circle_job.')

@@ -1,5 +1,11 @@
 [run]
 
+disable_warnings =
+    module-not-measured
+    no-data-collected
+    module-not-imported
+
+
 source = duckietown_world
 
 concurrency = multiprocessing
