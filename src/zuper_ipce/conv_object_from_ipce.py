@@ -3,7 +3,7 @@ import inspect
 import traceback
 from dataclasses import Field, is_dataclass
 from decimal import Decimal
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, cast, List
 
 import numpy as np
 import yaml
@@ -15,7 +15,7 @@ from zuper_typing.annotations_tricks import (get_FixedTuple_args, get_Optional_a
                                              is_Any, is_ClassVar, is_FixedTuple, is_Optional, is_TupleLike, is_Union,
                                              is_VarTuple)
 from zuper_typing.my_dict import (get_DictLike_args, get_ListLike_arg, get_SetLike_arg, is_DictLike, is_ListLike,
-                                  is_SetLike, make_dict, make_set)
+                                  is_SetLike, make_dict, make_set, make_list)
 from .constants import (HINTS_ATT, JSC_TITLE, JSC_TITLE_TYPE, JSONSchema, SCHEMA_ATT, SCHEMA_ID)
 from .numpy_encoding import numpy_array_from_ipce
 from .structures import FakeValues
@@ -177,21 +177,16 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
         if is_Any(expect_type):
             suggest = None
             seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
-            return seq
+            T = make_list(Any)
+            return T(seq)
         elif is_TupleLike(expect_type):
             # noinspection PyTypeChecker
             return object_from_ipce_tuple(expect_type, mj, global_symbols, encountered)
         elif is_ListLike(expect_type):
             suggest = get_ListLike_arg(expect_type)
             seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
-            return seq
-        # elif is_Optional(expect_type):
-        #     K = get_Optional_arg(expect_type)
-        #
-        #     return object_from_ipce(mj,
-        #                             global_symbols,
-        #                             encountered,
-        #                             expect_type=K)
+            T = make_list(suggest)
+            return T(seq)
 
         else:
             msg = f'The object is a list, but expected {expect_type}.\nOb: {mj}'
@@ -199,7 +194,8 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
     else:
         suggest = None
         seq = [object_from_ipce(_, global_symbols, encountered, expect_type=suggest) for _ in mj]
-        return seq
+        T = make_list(Any)
+        return T(seq)
 
 
 def object_from_ipcl_optional(expect_type, mj, global_symbols, encountered) -> IPCE:
