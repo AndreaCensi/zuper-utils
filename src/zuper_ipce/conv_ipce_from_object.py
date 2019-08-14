@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import fields, is_dataclass
 from decimal import Decimal
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple
 
 import cbor2
 import numpy as np
@@ -17,14 +17,14 @@ from zuper_typing.my_dict import (get_CustomDict_args, get_DictLike_args, get_Li
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .structures import FakeValues
-from .types import IPCE
+from .types import IPCE, TypeLike
 from .utils_text import get_sha256_base58
 
 
 def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_schema=True) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
     if globals_ is None:
-        globals_ =  {}
+        globals_ = {}
     try:
         res = ipce_from_object_(ob, globals_, suggest_type=suggest_type, with_schema=with_schema)
     except TypeError as e:
@@ -39,15 +39,24 @@ def ipce_from_object(ob, globals_: GlobalsDict = None, suggest_type=None, with_s
     return res
 
 
+def is_unconstrained(t: Optional[TypeLike]):
+    return (t is None) or is_Any(t) or (t is object)
+
+
 def ipce_from_object_(ob,
                       globals_: GlobalsDict,
                       with_schema: bool,
-                      suggest_type: Type = None,
+                      suggest_type: Optional[TypeLike] = None,
                       ) -> IPCE:
+    unconstrained = is_unconstrained(suggest_type)
     if ob is None:
-        return ob
+        if unconstrained or (suggest_type is type(None)) or is_Optional(suggest_type):
+            return ob
+        else:
+            raise TypeError(f'ob is None but suggest_type is {suggest_type}')
 
     if is_Optional(suggest_type):
+        assert ob is not None  # from before
         T = get_Optional_arg(suggest_type)
         return ipce_from_object_(ob, globals_, with_schema, suggest_type=T)
     if is_Union(suggest_type):

@@ -360,15 +360,9 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     other_set_attr = {}
     for pname in names:
         if pname in properties:
-
             v = properties[pname]
             ptype = f(v)
-            # logger.info(f'got for pname {pname} {v} -> ptype {ptype}')
-            if pname in required:
-                _Field = field()
-            else:
-                _Field = field()  # default=dataclasses.MISSING)
-                ptype = Optional[ptype]
+            _Field = field()
             _Field.name = pname
             if JSC_DEFAULT in v:
                 default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)

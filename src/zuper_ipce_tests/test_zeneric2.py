@@ -16,6 +16,7 @@ from zuper_typing.annotations_tricks import get_ClassVar_arg, get_Type_arg, is_C
 from zuper_typing.constants import enable_type_checking
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import resolve_types
+from zuper_typing_tests.test_utils import known_failure
 
 
 def test_basic():
@@ -208,8 +209,9 @@ def test_more():
 
     assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
 
-
+@known_failure
 def test_more_direct():
+    """ parent should be declared as Optional[X] rather than X"""
     # language=yaml
     schema = yaml.load("""
 $id: http://invalid.json-schema.org/Entity0[X]#
@@ -224,7 +226,7 @@ properties:
   parent: {$ref: 'http://invalid.json-schema.org/Entity0[X]#', default: null}
 required: [data0]
 title: Entity0[X]
-type: object    
+type: object
 
     """, Loader=yaml.SafeLoader)
     T = typelike_from_ipce(schema, {}, {})
@@ -447,8 +449,9 @@ def test_entity():
 
     assert_type_roundtrip(Entity43_int, {})
 
-
+@known_failure
 def test_entity0():
+    """ Wrong type as in test_entity. parent should be defined as Optional[Entity2[X]]"""
     # language=yaml
     schema = yaml.load("""
 $id: http://invalid.json-schema.org/Entity2[X]#

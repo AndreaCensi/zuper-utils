@@ -1,17 +1,16 @@
-from datetime import datetime
 import typing
+from datetime import datetime
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union, ForwardRef
+from typing import Any, Dict, ForwardRef, List, Optional, Set, Tuple, Type, Union
 
-from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_ForwardRef_arg, get_Iterator_arg,
-                                             get_List_arg, get_Optional_arg, get_Sequence_arg, get_Set_arg,
-                                             get_TypeVar_name, get_Type_arg, get_Union_args, get_tuple_types,
-                                             is_Callable, is_ClassVar, is_ForwardRef, is_Iterator, is_List, is_NewType,
-                                             is_Optional, is_Sequence, is_Set, is_Tuple, is_Type, is_TypeVar, is_Union,
-                                             is_Any, is_VarTuple, get_VarTuple_arg, make_VarTuple, make_Tuple,
-                                             get_FixedTuple_args, is_FixedTuple)
-
+from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_FixedTuple_args,
+                                             get_ForwardRef_arg, get_Iterator_arg, get_List_arg, get_Optional_arg,
+                                             get_Sequence_arg, get_TypeVar_name, get_Type_arg, get_Union_args,
+                                             get_VarTuple_arg, is_Any, is_Callable, is_ClassVar, is_FixedTuple,
+                                             is_ForwardRef, is_Iterator, is_List, is_NewType, is_Optional, is_Sequence,
+                                             is_Tuple, is_Type, is_TypeVar, is_Union, is_VarTuple, make_Tuple,
+                                             make_VarTuple)
 from zuper_typing.my_dict import (get_CustomList_arg, get_DictLike_args, get_SetLike_arg, is_CustomList, is_DictLike,
                                   is_SetLike, make_dict, make_list, make_set)
 
@@ -37,7 +36,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
     from .logging import logger
     if already is None:
         already = {}
-    r = lambda _ : replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
+    r = lambda _: replace_typevars(_, bindings=bindings, already=already, symbols=symbols)
     if cls is type:
         return type
 
@@ -112,7 +111,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             # logger.info(f'old cls: {cls.__annotations__}')
             # logger.info(f'new cls2: {cls2.__annotations__}')
             return cls2
-        else: # pragma: no cover
+        else:  # pragma: no cover
             already[id(cls)] = ForwardRef(cls.__name__)
             annotations = dict(getattr(cls, '__annotations__', {}))
             annotations2 = {}
@@ -188,7 +187,7 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             if ys == xs:
                 return cls
             return make_Tuple(*ys)
-        else: # pragma: no cover
+        else:  # pragma: no cover
             assert False
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
@@ -207,14 +206,14 @@ def replace_typevars(cls, *, bindings, symbols, already=None):
             logger.warning(f'could not resolve {cls}')
             return cls
 
-    elif cls in (int, bool, float, Decimal, datetime, str, bytes, Number, type(None), object ):
+    elif cls in (int, bool, float, Decimal, datetime, str, bytes, Number, type(None), object):
         return cls
     elif is_Any(cls):
         return cls
     elif isinstance(cls, type):
 
         logger.warning(f'extraneous class {cls}')
-        return  cls
+        return cls
     else:
         raise NotImplementedError(cls)
         # logger.debug(f'Nothing to do with {cls!r} {cls}')

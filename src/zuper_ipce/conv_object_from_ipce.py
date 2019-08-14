@@ -314,9 +314,9 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                     raise Exception((k,V))
                 # logger.info(f'setting default {V}')
                 attrs[k] = V
-            elif is_Optional(T):
-                attrs[k] = None
-                pass
+            # elif is_Optional(T):
+            #     attrs[k] = None
+            #     pass
             else:
                 msg = f'Cannot find field {k!r} in data for class {K}. (T = {T}) Know {sorted(mj)}'
                 msg += f'\n annotations: {anns}'

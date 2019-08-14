@@ -7,7 +7,7 @@ from dataclasses import Field, _FIELDS, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
 from typing import Any, List, Optional, Tuple, Type, TypeVar, cast
-
+from zuper_typing import dataclass
 import numpy as np
 
 from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_name_K_V,
@@ -45,7 +45,7 @@ def ipce_from_typelike(T: Any, globals0: dict, processing: ProcessingDict = None
     return schema
 
 
-from dataclasses import dataclass
+
 
 
 @dataclass
