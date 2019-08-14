@@ -364,7 +364,8 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             ptype = f(v)
             _Field = field()
             _Field.name = pname
-            if JSC_DEFAULT in v:
+            has_default = JSC_DEFAULT in v
+            if has_default:
                 default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
                 _Field.default = default_value
                 assert not isinstance(default_value, dataclasses.Field)
