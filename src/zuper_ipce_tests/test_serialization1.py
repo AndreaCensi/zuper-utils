@@ -344,7 +344,7 @@ def test_forward_ref2():
     @dataclass
     class MyClass:
         # noinspection PyUnresolvedReferences
-        f: ForwardRef('unknown')
+        f: make_ForwardRef('unknown')
 
     ipce_from_typelike(MyClass, {})
 
