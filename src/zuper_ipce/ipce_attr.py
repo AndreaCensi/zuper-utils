@@ -10,5 +10,5 @@ def make_key(x):
     k2c = getattr(x, '__set_type__', None)
     k2d = getattr(x, '__list_type__', None)
     k3 = id(x)
-    k = (k0, k1, k2, k2b, k2c, k2d, k3)
+    k = (k3, k0, k1, k2, k2b, k2c, k2d)
     return k
