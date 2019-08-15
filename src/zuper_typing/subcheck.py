@@ -21,6 +21,9 @@ class CanBeUsed:
         return self.result
 
 
+verbose = False
+
+
 def can_be_used_as2(T1, T2, matches: Dict[str, type],
                     assumptions0: Tuple[Tuple[Any, Any], ...] = ()) -> CanBeUsed:
     if (T1, T2) in assumptions0:
@@ -128,9 +131,12 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
             T1 = list(getattr(T1, BINDINGS_ATT).values())[0]
 
         if not is_dataclass(T1):
-            msg = f'Expecting dataclass to match to {T2}, got something that is not a ' \
-                  f'dataclass: {T1}'
-            msg += f'  union: {is_Union(T1)}'
+            if verbose:
+                msg = f'Expecting dataclass to match to {T2}, got something that is not a ' \
+                      f'dataclass: {T1}'
+                msg += f'  union: {is_Union(T1)}'
+            else:
+                msg = 'not dataclass'
             return CanBeUsed(False, msg, matches)
         # h1 = get_type_hints(T1)
         # h2 = get_type_hints(T2)
@@ -140,19 +146,23 @@ def can_be_used_as2(T1, T2, matches: Dict[str, type],
 
         for k, v2 in h2.items():
             if not k in h1:
-                # msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does ' \
-                #     f'' \
-                #     f'not have it. '
-                msg = k
+                if verbose:
+                    msg = f'Type {T2}\n  requires field "{k}" \n  of type {v2} \n  but {T1} does ' \
+                          f'' \
+                          f'not have it. '
+                else:
+                    msg = k
                 return CanBeUsed(False, msg, matches)
             v1 = h1[k]
             can = can_be_used_as2(v1, v2, matches, assumptions)
             if not can.result:
-                msg = f'Type {T2}\n  requires field "{k}"\n  of type\n       {v2} \n  but' + \
-                      f' {T1}\n  has annotated it as\n       {v1}\n  which cannot be used. '
-                msg += '\n\n' + f'assumption: {assumptions}'
-                msg += '\n\n' + indent(can.why, '> ')
-
+                if verbose:
+                    msg = f'Type {T2}\n  requires field "{k}"\n  of type\n       {v2} \n  but' + \
+                          f' {T1}\n  has annotated it as\n       {v1}\n  which cannot be used. '
+                    msg += '\n\n' + f'assumption: {assumptions}'
+                    msg += '\n\n' + indent(can.why, '> ')
+                else:
+                    msg = ''
                 return CanBeUsed(False, msg, matches)
 
         return CanBeUsed(True, 'dataclass', matches)

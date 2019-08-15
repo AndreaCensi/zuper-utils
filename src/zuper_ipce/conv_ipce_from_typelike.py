@@ -639,8 +639,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
 
     res = sorted_dict_with_cbor_ordering(res)
 
-    if my_ref in used:
-        used.pop(my_ref)
+    if T.__name__ in used:
+        used.pop(T.__name__)
     return TRE(res, used)
 
 

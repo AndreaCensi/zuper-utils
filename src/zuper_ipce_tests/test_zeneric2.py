@@ -13,8 +13,10 @@ from zuper_ipce.pretty import pprint
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import Generic, dataclass
-from zuper_typing.annotations_tricks import get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type
+from zuper_typing.annotations_tricks import (get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type,
+                                             make_ForwardRef)
 from zuper_typing.constants import enable_type_checking
+from zuper_typing.monkey_patching_typing import debug_print_str
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.zeneric2 import resolve_types
 from zuper_typing_tests.test_utils import known_failure
@@ -757,24 +759,24 @@ def test_post_init_preserved():
     a = Concrete(1)
     assert a.x == C
 
-def test_post_init_preserved2():
 
+def test_post_init_preserved2():
     X = TypeVar('X')
+
     @dataclass
     class Entity61(Generic[X]):
         x: int
 
-
     Concrete = Entity61[int]
 
-    if enable_type_checking:
+    if enable_type_checking:  # pragma: no cover
         try:
             Concrete('a')
         except ValueError:
             pass
         else:  # pragma: no cover
             raise Exception()
-    else:
+    else:  # pragma: no cover
         Concrete('a')
 
 
@@ -784,18 +786,26 @@ f = known_failure if enable_type_checking else (lambda x: x)
 @f
 def test_type_checking():
     @dataclass
-    class Entity61:
+    class Entity62:
         x: int
 
-    if enable_type_checking:
+    if enable_type_checking:  # pragma: no cover
         try:
-            Entity61('a')
+            Entity62('a')
         except ValueError:
             pass
         else:  # pragma: no cover
             raise Exception()
-    else:
-        Entity61('a')
+    else:  # pragma: no cover
+        Entity62('a')
+
+
+def test_same_forward():
+    assert make_ForwardRef('one') is make_ForwardRef('one')
+
+
+def test_debug_print_str_multiple_lines():
+    a = debug_print_str('a\nb', 'prefix')
 
 
 if __name__ == '__main__':
