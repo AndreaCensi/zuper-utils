@@ -17,21 +17,20 @@ def test_pretty1():
         i: str
         j: str
 
-    g = 'Traceback'
-    h = '-----BEGIN ciao'
-    i = 'zd...'
-    j = 'Qm...'
+    g = "Traceback"
+    h = "-----BEGIN ciao"
+    i = "zd..."
+    j = "Qm..."
     print(Animal)
-    a = Animal(1, True, 0.1, datetime.now(), 'a', b'a', g, h, i, j)
+    a = Animal(1, True, 0.1, datetime.now(), "a", b"a", g, h, i, j)
     print(a.__repr__())
     print(a.__str__())
 
 
 def test_pretty2():
-    X = TypeVar('X', bound=Dict[str, str])
+    X = TypeVar("X", bound=Dict[str, str])
     print(X)
-    Y = TypeVar('Y', contravariant=True)
+    Y = TypeVar("Y", contravariant=True)
     print(Y)
-    Z = TypeVar('Z', covariant=True)
+    Z = TypeVar("Z", covariant=True)
     print(Z)
-

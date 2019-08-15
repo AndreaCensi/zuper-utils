@@ -19,8 +19,8 @@ class Case:
 
 
 def find_objects(load: bool = True) -> Iterator[Case]:  # pragma: no cover
-    d = 'test_objects'
-    filenames = locate_files(d, '*.ipce.cbor.gz', normalize=False)
+    d = "test_objects"
+    filenames = locate_files(d, "*.ipce.cbor.gz", normalize=False)
 
     def file_length(_):
         return os.stat(_).st_size
@@ -32,9 +32,9 @@ def find_objects(load: bool = True) -> Iterator[Case]:  # pragma: no cover
             ipce = cbor2.loads(data)
         else:
             ipce = None
-        digest, _, _ = os.path.basename(f).partition('.')
+        digest, _, _ = os.path.basename(f).partition(".")
         n = file_length(f)
-        digest += f'_len{n}'
+        digest += f"_len{n}"
         yield Case(f, ipce=ipce, digest=digest)
 
 
@@ -45,6 +45,7 @@ def find_objects(load: bool = True) -> Iterator[Case]:  # pragma: no cover
 #         ob = object_from_ipce(case.ipce, {})
 #         ipce2 = ipce_from_object(ob)
 
+
 def check_case(fn: str):
     from zuper_ipce import logger
     import traceback
@@ -52,7 +53,7 @@ def check_case(fn: str):
     try:
         if not os.path.exists(fn):  # pragma: no cover
             raise SkipTest(f"File {fn} not found")
-        print('check_case ' + fn)
+        print("check_case " + fn)
         ipce_gz = read_bytes_from_file(fn)
         ipce_cbor = gzip.decompress(ipce_gz)
         ipce = cbor2.loads(ipce_cbor)
@@ -69,9 +70,11 @@ def check_case(fn: str):
 
 
 def main():  # pragma: no cover
-    print("""
+    print(
+        """
 from .test_from_testobjs import check_case
-    """)
+    """
+    )
     for case in find_objects(load=False):
         s = f"""
 def test_{case.digest}():
@@ -81,5 +84,5 @@ def test_{case.digest}():
         print(s)
 
 
-if __name__ == '__main__':  # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     main()

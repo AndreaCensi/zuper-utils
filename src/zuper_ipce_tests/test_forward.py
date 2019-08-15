@@ -20,7 +20,7 @@ def test_forward1_ok_no_locals_if_using_name():
     @dataclass
     class C:
         a: int
-        b: Optional['C'] = None
+        b: Optional["C"] = None
 
     e = C(12, C(1))
     assert_object_roundtrip(e, {})
@@ -30,7 +30,7 @@ def test_forward1():
     @dataclass
     class C:
         a: int
-        b: Optional['C'] = None
+        b: Optional["C"] = None
 
     e = C(12, C(1))
     assert_object_roundtrip(e, {"C": C})
@@ -40,7 +40,7 @@ def test_forward2():
     @dataclass
     class C:
         a: int
-        b: 'Optional[C]' = None
+        b: "Optional[C]" = None
 
     # noinspection PyTypeChecker
     e = C(12, C(1))
@@ -51,7 +51,7 @@ def test_forward3():
     @dataclass
     class C:
         a: int
-        b: 'Optional[C]'
+        b: "Optional[C]"
 
     e = C(12, C(1, None))
     assert_object_roundtrip(e, {"C": C})
@@ -61,7 +61,7 @@ def test_forward04():
     @dataclass
     class C:
         a: int
-        b: 'Dict[str, C]'
+        b: "Dict[str, C]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -70,7 +70,7 @@ def test_forward05():
     @dataclass
     class C:
         a: int
-        b: 'List[C]'
+        b: "List[C]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -79,7 +79,7 @@ def test_forward05b():
     @dataclass
     class C:
         a: int
-        b: 'Set[C]'
+        b: "Set[C]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -88,7 +88,7 @@ def test_forward06():
     @dataclass
     class C:
         a: int
-        b: 'Union[C, int]'
+        b: "Union[C, int]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -97,7 +97,7 @@ def test_forward07():
     @dataclass
     class C:
         a: int
-        b: 'Tuple[C, int]'
+        b: "Tuple[C, int]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -106,7 +106,7 @@ def test_forward08():
     @dataclass
     class C:
         a: int
-        b: 'Tuple[C, ...]'
+        b: "Tuple[C, ...]"
 
     assert_type_roundtrip(C, {}, expect_type_equal=False)
 
@@ -123,7 +123,7 @@ from zuper_ipce import logger
 
 
 def test_forward09():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class B(Generic[X]):
@@ -143,26 +143,26 @@ def test_forward09():
     @dataclass
     class C:
         a: int
-        b: 'B[C]'
+        b: "B[C]"
 
         __depends__ = (B,)
 
     resolve_types(C, refs=(B,))
-    print('\n\n\n\n')
-    Cb = C.__annotations__['b']
-    print('Cb: ' + Cb.__qualname__)
-    assert 'forward09' in C.__qualname__
-    assert 'forward09' in C.__annotations__['b'].__qualname__
+    print("\n\n\n\n")
+    Cb = C.__annotations__["b"]
+    print("Cb: " + Cb.__qualname__)
+    assert "forward09" in C.__qualname__
+    assert "forward09" in C.__annotations__["b"].__qualname__
 
     ipce_Cb = ipce_from_typelike(Cb, {})
-    logger.info('ipce_CB: \n' + oyaml_dump(ipce_Cb))
-    assert ipce_Cb['__qualname__'] == 'test_forward09.<locals>.B[C]'
-    assert ipce_Cb['properties']['b']['__qualname__'] == 'test_forward09.<locals>.C'
+    logger.info("ipce_CB: \n" + oyaml_dump(ipce_Cb))
+    assert ipce_Cb["__qualname__"] == "test_forward09.<locals>.B[C]"
+    assert ipce_Cb["properties"]["b"]["__qualname__"] == "test_forward09.<locals>.C"
 
     Cb2 = typelike_from_ipce(ipce_Cb, {}, {})
-    Cb2_C = Cb2.__annotations__['b']
+    Cb2_C = Cb2.__annotations__["b"]
     print(Cb2_C)
-    assert_equal(Cb2_C.__qualname__, 'test_forward09.<locals>.C')
+    assert_equal(Cb2_C.__qualname__, "test_forward09.<locals>.C")
 
     # assert_type_roundtrip(Cb, {}, expect_type_equal=False)
     # assert_type_roundtrip(C, {}, expect_type_equal=False)
@@ -170,5 +170,5 @@ def test_forward09():
     assert_type_roundtrip(BA, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_forward05b()

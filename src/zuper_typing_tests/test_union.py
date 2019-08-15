@@ -2,7 +2,13 @@ from typing import Optional, Union
 
 from nose.tools import raises
 
-from zuper_typing.annotations_tricks import get_Optional_arg, get_Union_args, is_Optional, is_Union, make_Union
+from zuper_typing.annotations_tricks import (
+    get_Optional_arg,
+    get_Union_args,
+    is_Optional,
+    is_Union,
+    make_Union,
+)
 
 
 def test_making_union():

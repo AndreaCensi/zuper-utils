@@ -12,21 +12,24 @@ import cbor2
 import yaml
 
 from . import logger
-from .json_utils import decode_bytes_before_json_deserialization, encode_bytes_before_json_serialization
+from .json_utils import (
+    decode_bytes_before_json_deserialization,
+    encode_bytes_before_json_serialization,
+)
 
 __all__ = [
-    'read_cbor_or_json_objects',
-    'json2cbor_main',
-    'cbor2json_main',
-    'cbor2yaml_main',
-    'read_next_cbor',
-    'read_next_either_json_or_cbor',
+    "read_cbor_or_json_objects",
+    "json2cbor_main",
+    "cbor2json_main",
+    "cbor2yaml_main",
+    "read_next_cbor",
+    "read_next_either_json_or_cbor",
 ]
 
 
 def json2cbor_main():
-    fo = open('/dev/stdout', 'wb', buffering=0)
-    fi = open('/dev/stdin', 'rb', buffering=0)
+    fo = open("/dev/stdout", "wb", buffering=0)
+    fi = open("/dev/stdin", "rb", buffering=0)
     # noinspection PyTypeChecker
     fi = BufferedReader(fi, buffer_size=1)
     for j in read_cbor_or_json_objects(fi):
@@ -36,26 +39,26 @@ def json2cbor_main():
 
 
 def cbor2json_main():
-    fo = open('/dev/stdout', 'wb', buffering=0)
-    fi = open('/dev/stdin', 'rb', buffering=0)
+    fo = open("/dev/stdout", "wb", buffering=0)
+    fi = open("/dev/stdin", "rb", buffering=0)
 
     for j in read_cbor_objects(fi):
         j = encode_bytes_before_json_serialization(j)
         ob = json.dumps(j)
-        ob = ob.encode('utf-8')
+        ob = ob.encode("utf-8")
         fo.write(ob)
-        fo.write(b'\n')
+        fo.write(b"\n")
         fo.flush()
 
 
 def cbor2yaml_main():
-    fo = open('/dev/stdout', 'wb')
-    fi = open('/dev/stdin', 'rb')
+    fo = open("/dev/stdout", "wb")
+    fi = open("/dev/stdin", "rb")
     for j in read_cbor_objects(fi):
         ob = oyaml_dump(j)
-        ob = ob.encode('utf-8')
+        ob = ob.encode("utf-8")
         fo.write(ob)
-        fo.write(b'\n')
+        fo.write(b"\n")
         fo.flush()
 
 
@@ -98,43 +101,43 @@ def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None) -> d
         if readyr:
             break
         elif readyx:
-            logger.warning('Exceptional condition on input channel %s' % readyx)
+            logger.warning("Exceptional condition on input channel %s" % readyx)
         else:
             delta = time.time() - t0
             if (timeout is not None) and (delta > timeout):
-                msg = 'Timeout after %.1f s.' % delta
+                msg = "Timeout after %.1f s." % delta
                 logger.error(msg)
                 raise TimeoutError(msg)
             else:
-                msg = 'I have been waiting %.1f s.' % delta
+                msg = "I have been waiting %.1f s." % delta
                 if timeout is None:
-                    msg += ' I will wait indefinitely.'
+                    msg += " I will wait indefinitely."
                 else:
-                    msg += ' Timeout will occurr at %.1f s.' % timeout
+                    msg += " Timeout will occurr at %.1f s." % timeout
                 if waiting_for:
-                    msg += ' ' + waiting_for
+                    msg += " " + waiting_for
                 logger.warning(msg)
 
     first = f.peek(1)[:1]
     if len(first) == 0:
-        msg = 'Detected EOF on %s.' % f
+        msg = "Detected EOF on %s." % f
         if waiting_for:
-            msg += ' ' + waiting_for
+            msg += " " + waiting_for
         raise StopIteration(msg)
 
     # logger.debug(f'first char is {first}')
-    if first in [b' ', b'\n', b'{']:
+    if first in [b" ", b"\n", b"{"]:
         line = f.readline()
         line = line.strip()
         if not line:
-            msg = 'Read empty line. Re-trying.'
+            msg = "Read empty line. Re-trying."
             logger.warning(msg)
             return read_next_either_json_or_cbor(f)
         # logger.debug(f'line is {line!r}')
         try:
             j = json.loads(line)
         except JSONDecodeError:
-            msg = f'Could not decode line {line!r}: {traceback.format_exc()}'
+            msg = f"Could not decode line {line!r}: {traceback.format_exc()}"
             logger.error(msg)
             return read_next_either_json_or_cbor(f)
         j = decode_bytes_before_json_deserialization(j)
@@ -161,10 +164,11 @@ def tag_hook(decoder, tag, shareable_index=None):
     # mh = cid.multihash
     # val = base58.b58encode(mh).decode('ascii')
 
-    val = base58.b58encode(d).decode('ascii')
-    val = 'z' + val[1:]
+    val = base58.b58encode(d).decode("ascii")
+    val = "z" + val[1:]
 
-    return {'/': val}
+    return {"/": val}
+
 
 def wait_for_data(f, timeout=None, waiting_for: str = None):
     """ Raises StopIteration if it is EOF.
@@ -182,21 +186,21 @@ def wait_for_data(f, timeout=None, waiting_for: str = None):
         if readyr:
             break
         elif readyx:
-            logger.warning('Exceptional condition on input channel %s' % readyx)
+            logger.warning("Exceptional condition on input channel %s" % readyx)
         else:
             delta = time.time() - t0
             if (timeout is not None) and (delta > timeout):
-                msg = 'Timeout after %.1f s.' % delta
+                msg = "Timeout after %.1f s." % delta
                 logger.error(msg)
                 raise TimeoutError(msg)
             else:
-                msg = 'I have been waiting %.1f s.' % delta
+                msg = "I have been waiting %.1f s." % delta
                 if timeout is None:
-                    msg += ' I will wait indefinitely.'
+                    msg += " I will wait indefinitely."
                 else:
-                    msg += ' Timeout will occurr at %.1f s.' % timeout
+                    msg += " Timeout will occurr at %.1f s." % timeout
                 if waiting_for:
-                    msg += ' ' + waiting_for
+                    msg += " " + waiting_for
                 logger.warning(msg)
 
 

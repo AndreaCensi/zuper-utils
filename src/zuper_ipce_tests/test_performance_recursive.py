@@ -10,7 +10,7 @@ from zuper_typing import dataclass
 @dataclass
 class Tree:
     data: int
-    branches: 'List[Tree]'
+    branches: "List[Tree]"
 
 
 def create_tree(nlevels, branching, x) -> Tree:
@@ -19,9 +19,12 @@ def create_tree(nlevels, branching, x) -> Tree:
     else:
         branches = []
         for i in range(branching):
-            branches.append(create_tree(nlevels - 1, branching, x * (branching + 1) + i + 1))
+            branches.append(
+                create_tree(nlevels - 1, branching, x * (branching + 1) + i + 1)
+            )
 
     return Tree(x, branches)
+
 
 #
 # @dataclass
@@ -44,7 +47,7 @@ def create_tree(nlevels, branching, x) -> Tree:
 @dataclass
 class Chain:
     data: Any
-    next_link: 'Optional[Chain]' = None
+    next_link: "Optional[Chain]" = None
 
 
 def create_chain(nlevels, x):
@@ -68,7 +71,8 @@ def test_recursive_ipce():
     t = create_tree(n, 2, 0)
     # print(debug_print(t))
     # ipce: IPCE = ipce_from_object(t, {})
-    assert_object_roundtrip(t,{})
+    assert_object_roundtrip(t, {})
+
 
 #
 # async def test_recursive_chain_2():
@@ -102,6 +106,6 @@ def test_recursive_ipce():
 #     print(yaml.dump(ipcl))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup_logging()
     test_recursive_chain_ipce()

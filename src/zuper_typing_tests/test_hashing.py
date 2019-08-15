@@ -11,7 +11,7 @@ def test_hash1():
 
     p1 = Parametric1(0, 1)
     assert p1.__hash__ is not None
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass(unsafe_hash=True)
     class Parametric2(Generic[X]):

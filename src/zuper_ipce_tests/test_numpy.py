@@ -1,5 +1,5 @@
 import json
-from dataclasses import  field
+from dataclasses import field
 from zuper_typing import dataclass
 import numpy as np
 from numpy.testing import assert_allclose
@@ -19,7 +19,7 @@ from .test_utils import assert_type_roundtrip, assert_object_roundtrip
 def test_numpy_01():
     @dataclass
     class C:
-        data: np.ndarray = field(metadata=dict(contract='array[HxWx3](uint8)'))
+        data: np.ndarray = field(metadata=dict(contract="array[HxWx3](uint8)"))
 
     assert_type_roundtrip(C, {})
 
@@ -27,7 +27,7 @@ def test_numpy_01():
 def test_numpy_02():
     @dataclass
     class C:
-        data: np.ndarray = field(metadata=dict(contract='array[HxWx3](uint8)'))
+        data: np.ndarray = field(metadata=dict(contract="array[HxWx3](uint8)"))
         #
         # def __eq__(self, other):
         #     if not isinstance(other, C):

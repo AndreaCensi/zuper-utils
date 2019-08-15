@@ -1,7 +1,14 @@
 from typing import List, Set
 
 from zuper_typing.annotations_tricks import get_Set_arg, is_Any, is_List, is_Set
-from zuper_typing.my_dict import (get_ListLike_arg, get_SetLike_arg, is_ListLike, is_SetLike, make_dict, make_set)
+from zuper_typing.my_dict import (
+    get_ListLike_arg,
+    get_SetLike_arg,
+    is_ListLike,
+    is_SetLike,
+    make_dict,
+    make_set,
+)
 
 
 def test_dict_hash():

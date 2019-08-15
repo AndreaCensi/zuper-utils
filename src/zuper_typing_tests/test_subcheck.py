@@ -1,11 +1,31 @@
-from typing import (Any, Callable, ClassVar, Dict, Iterator, List, Optional, Sequence, Set, Tuple, Type, TypeVar, Union,
-                    )
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from nose.tools import assert_equal
 
-from zuper_typing import dataclass,Generic
-from zuper_typing.annotations_tricks import (get_Callable_info, is_Any, is_Callable, is_Iterator, is_Sequence, is_Tuple,
-                                             name_for_type_like)
+from zuper_typing import dataclass, Generic
+from zuper_typing.annotations_tricks import (
+    get_Callable_info,
+    is_Any,
+    is_Callable,
+    is_Iterator,
+    is_Sequence,
+    is_Tuple,
+    name_for_type_like,
+)
 from zuper_typing.my_dict import make_list, make_set
 from zuper_typing.recursive_tricks import replace_typevars
 from zuper_typing.subcheck import can_be_used_as2
@@ -186,38 +206,38 @@ def test_corner_cases26():
 
 def test_match_List1():
     L1 = List[str]
-    X = TypeVar('X')
+    X = TypeVar("X")
     L2 = List[X]
     res = can_be_used_as2(L1, L2, {})
     print(L1, L2, res)
     assert res, res
-    assert res.matches['X'] is str, res
+    assert res.matches["X"] is str, res
 
 
 def test_match_List2():
     L1 = List[Any]
-    X = TypeVar('X')
+    X = TypeVar("X")
     L2 = List[X]
     res = can_be_used_as2(L1, L2, {})
     assert res, res
-    assert is_Any(res.matches['X']), res
+    assert is_Any(res.matches["X"]), res
 
 
 def test_match_List3():
     """ We want that match(X, Any) does not match X at all. """
     L1 = List[Any]
-    X = TypeVar('X')
+    X = TypeVar("X")
     L2 = List[X]
     res = can_be_used_as2(L2, L1, {})
     assert res, res
 
-    assert not 'X' in res.matches, res
+    assert not "X" in res.matches, res
     # assert is_Any(res.matches['X']), res
 
 
 def test_match_TypeVar0():
     L1 = Tuple[str]
-    L2 = TypeVar('L2')
+    L2 = TypeVar("L2")
     res = can_be_used_as2(L1, L2, {})
     print(res)
 
@@ -226,10 +246,10 @@ def test_match_TypeVar0():
 
 def test_match_TypeVar0b():
     L1 = str
-    L2 = TypeVar('L2')
+    L2 = TypeVar("L2")
     res = can_be_used_as2(L1, L2, {})
     print(res)
-    assert res.matches['L2'] is L1, res
+    assert res.matches["L2"] is L1, res
 
     assert res, res
 
@@ -243,65 +263,64 @@ def test_match_MySet1():
 
 def test_match_Tuple0():
     L1 = Tuple[str]
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     L2 = Tuple[X]
     res = can_be_used_as2(L1, L2, {})
     print(res)
-    assert res.matches['X'] is str, res
+    assert res.matches["X"] is str, res
     assert res, res
 
 
 def test_match_Tuple1():
     L1 = Tuple[str, int]
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
     L2 = Tuple[X, Y]
     res = can_be_used_as2(L1, L2, {})
     print(res)
-    assert res.matches['X'] is str, res
-    assert res.matches['Y'] is int, res
+    assert res.matches["X"] is str, res
+    assert res.matches["Y"] is int, res
     assert res, res
 
 
 def test_replace_typevars():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
 
     # noinspection PyTypeHints
-    X2 = TypeVar('X')  # note: needs this to make the test work
+    X2 = TypeVar("X")  # note: needs this to make the test work
     S = {X2: str, Y: int}
     tries = (
-          (X, {X2: str}, str),
-          (Any, {}, Any),
-          (List[X], {X2: str}, List[str]),
-          (Tuple[X], {X2: str}, Tuple[str]),
-          (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
-          (Optional[X], {X2: str}, Optional[str]),
-          (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
-          (ClassVar[X], {X2: str}, ClassVar[str]),
-          (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
-          (Sequence[X], {X2: str}, Sequence[str]),
-          (Iterator[X], {X2: str}, Iterator[str]),
-          (Set[X], S, Set[str]),
-          (Type[X], {X2: str}, Type[str]),
-          (Type[int], {X2: str}, Type[int]),
-          (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
-          (ClassVar[int], {X2: str}, ClassVar[int]),
-          (Iterator, S, Iterator[Any]),
-          (List, S, List[Any]),
-          (make_list(bool), S, make_list(bool)),
-          (make_list(X), S, make_list(str)),
-          (Sequence, S, Sequence[Any]),
-
-          )
+        (X, {X2: str}, str),
+        (Any, {}, Any),
+        (List[X], {X2: str}, List[str]),
+        (Tuple[X], {X2: str}, Tuple[str]),
+        (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
+        (Optional[X], {X2: str}, Optional[str]),
+        (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
+        (ClassVar[X], {X2: str}, ClassVar[str]),
+        (Dict[X, Y], {X2: str, Y: int}, Dict[str, int]),
+        (Sequence[X], {X2: str}, Sequence[str]),
+        (Iterator[X], {X2: str}, Iterator[str]),
+        (Set[X], S, Set[str]),
+        (Type[X], {X2: str}, Type[str]),
+        (Type[int], {X2: str}, Type[int]),
+        (ClassVar[List[X]], {X2: str}, ClassVar[List[str]]),
+        (ClassVar[int], {X2: str}, ClassVar[int]),
+        (Iterator, S, Iterator[Any]),
+        (List, S, List[Any]),
+        (make_list(bool), S, make_list(bool)),
+        (make_list(X), S, make_list(str)),
+        (Sequence, S, Sequence[Any]),
+    )
     for orig, subst, result in tries:
         yield try_, orig, subst, result
 
 
 def try_(orig, subst, result):
     obtained = replace_typevars(orig, bindings=subst, symbols={})
-    print(f'obtained {type(obtained)} {obtained!r}')
+    print(f"obtained {type(obtained)} {obtained!r}")
     assert_equal(name_for_type_like(obtained), name_for_type_like(result))
 
 
@@ -309,10 +328,10 @@ def test_dataclass2():
     @dataclass
     class A:
         data: int
-        parent: 'A'
+        parent: "A"
 
-    assert A.__annotations__['parent'] is A
-    X = TypeVar('X')
+    assert A.__annotations__["parent"] is A
+    X = TypeVar("X")
     bindings = {X: int}
     A2 = replace_typevars(A, bindings=bindings, symbols={})
 
@@ -323,21 +342,21 @@ def test_callable1():
     cinfo = get_Callable_info(T)
     print(cinfo)
 
-    assert cinfo.parameters_by_name == {'__0': int}
+    assert cinfo.parameters_by_name == {"__0": int}
     assert cinfo.parameters_by_position == (int,)
 
     assert cinfo.returns is str
 
 
 def test_callable2():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
     T = Callable[[X], Y]
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
     print(cinfo)
 
-    assert cinfo.parameters_by_name == {'__0': X}
+    assert cinfo.parameters_by_name == {"__0": X}
     assert cinfo.parameters_by_position == (X,)
 
     assert cinfo.returns == Y
@@ -348,7 +367,7 @@ def test_callable2():
         return subs.get(x, x)
 
     cinfo2 = cinfo.replace(f)
-    assert cinfo2.parameters_by_name == {'__0': str}, cinfo2
+    assert cinfo2.parameters_by_name == {"__0": str}, cinfo2
     assert cinfo2.parameters_by_position == (str,), cinfo2
 
     assert cinfo2.returns == int, cinfo2

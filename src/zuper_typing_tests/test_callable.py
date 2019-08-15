@@ -57,18 +57,19 @@ def test_detection_4():
 
 
 def test_NamedArg_eq():
-    a = NamedArg(int, 'A')
-    b = NamedArg(int, 'A')
+    a = NamedArg(int, "A")
+    b = NamedArg(int, "A")
 
     assert_equal(a, b)
 
-    A = Callable[[NamedArg(int, 'A')], int]
-    B = Callable[[NamedArg(int, 'A')], int]
+    A = Callable[[NamedArg(int, "A")], int]
+    B = Callable[[NamedArg(int, "A")], int]
 
     assert_equal(A, B)
 
 
 # @raises(TypeError)
+
 
 def test_callable_1():
     T = Callable[[], int]
@@ -88,7 +89,6 @@ def test_callable_3():
     assert_type_roundtrip(T, {})
 
 
-
 def test_back():
     T = Callable[[NamedArg(str, "A")], int]
 
@@ -96,4 +96,3 @@ def test_back():
 
     res = get_Callable_info(T)
     T2 = res.as_callable()
-

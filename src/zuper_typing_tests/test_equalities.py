@@ -119,14 +119,14 @@ def test_cover_equiv07():
 
 @raises(NotEquivalent)
 def test_cover_equiv08():
-    X = TypeVar('X')
+    X = TypeVar("X")
     assert_equivalent_types(X, bool, set())
 
 
 @raises(NotEquivalent)
 def test_cover_equiv09():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
     assert_equivalent_types(X, Y, set())
 
 
@@ -154,6 +154,7 @@ def test_cover_equiv13():
     X = Tuple[int, ...]
     Y = Tuple[bool, ...]
     assert_equivalent_types(X, Y, set())
+
 
 @raises(NotEquivalent)
 def test_cover_equiv14():

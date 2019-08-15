@@ -11,7 +11,7 @@ def assert_canonical_schema(x: JSONSchema):
     assert isinstance(x, dict)
     if SCHEMA_ATT in x:
         assert x[SCHEMA_ATT] in [SCHEMA_ID]
-    elif '$ref' in x:
+    elif "$ref" in x:
         pass
     else:
         raise ValueError(x)
@@ -29,8 +29,8 @@ class TRE:
     def __post_init__(self):
         try:
             assert_canonical_schema(self.schema)
-        except ValueError as e: # pragma: no cover
-            msg = f'Invalid schema: {self.schema}'
+        except ValueError as e:  # pragma: no cover
+            msg = f"Invalid schema: {self.schema}"
             raise ValueError(msg) from e
 
 

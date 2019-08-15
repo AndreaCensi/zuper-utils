@@ -3,7 +3,8 @@ import json
 from zuper_typing import dataclass
 
 from zuper_typing.logging import logger
-logger.info('')
+
+logger.info("")
 
 from typing import Type, NewType, Dict, Any, Tuple
 
@@ -29,7 +30,7 @@ def test_type2():
 
 @relies_on_missing_features
 def test_newtype():
-    T = NewType('T', str)
+    T = NewType("T", str)
     assert_type_roundtrip(T, symbols)
 
 
@@ -92,6 +93,7 @@ def test_defaults1():
     print(dataclasses.fields(T2))
 
     assert_type_roundtrip(DummyImageSourceConfig, {})
+
 
 def test_type_slice():
     assert_object_roundtrip(slice, {})

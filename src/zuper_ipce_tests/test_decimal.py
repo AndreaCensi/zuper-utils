@@ -11,11 +11,11 @@ def test_decimal1():
 
     e = MyClass(Decimal(1.0))
     assert_object_roundtrip(e, {})
-    e = MyClass(Decimal('0.3'))
+    e = MyClass(Decimal("0.3"))
     assert_object_roundtrip(e, {})
 
 
 def test_decimal2():
-    f = Decimal('3.14')
+    f = Decimal("3.14")
 
     assert_object_roundtrip(f, {})

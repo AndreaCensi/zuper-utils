@@ -18,13 +18,13 @@ def known_failure(f, forbid: Tuple[type, ...] = ()):  # pragma: no cover
 
             if forbid:
                 if isinstance(e, forbid):
-                    msg = f'Known failure test is not supposed to raise {type(e).__name__}'
+                    msg = f"Known failure test is not supposed to raise {type(e).__name__}"
                     fail(msg)
 
             raise SkipTest("Known failure test failed: " + str(e))
         fail("test passed but marked as work in progress")
 
-    return attr('known_failure')(run_test)
+    return attr("known_failure")(run_test)
 
 
 def relies_on_missing_features(f):
@@ -38,4 +38,4 @@ def relies_on_missing_features(f):
             raise SkipTest(msg) from e
         fail("test passed but marked as work in progress")
 
-    return attr('relies_on_missing_features')(run_test)
+    return attr("relies_on_missing_features")(run_test)

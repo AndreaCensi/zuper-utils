@@ -5,20 +5,22 @@ from .types import IPCE
 
 
 def ipce_from_numpy_array(x: np.ndarray) -> IPCE:
-    res = {'shape': list(x.shape), 'dtype': x.dtype.name, 'data': x.tobytes()}
-    from  .ipce_spec import sorted_dict_with_cbor_ordering
+    res = {"shape": list(x.shape), "dtype": x.dtype.name, "data": x.tobytes()}
+    from .ipce_spec import sorted_dict_with_cbor_ordering
+
     res = sorted_dict_with_cbor_ordering(res)
     return res
 
 
 def numpy_array_from_ipce(d: IPCE) -> np.ndarray:
-    shape = tuple(d['shape'])
-    dtype = d['dtype']
-    data: bytes = d['data']
+    shape = tuple(d["shape"])
+    dtype = d["dtype"]
+    data: bytes = d["data"]
     check_isinstance(data, bytes)
     a = np.frombuffer(data, dtype=dtype)
     res = a.reshape(shape)
     return res
+
 
 #
 #

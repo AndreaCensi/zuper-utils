@@ -12,7 +12,7 @@ def test_tuples1():
     class M:
         a: Tuple[int, str]
 
-    a = M((1, '32'))
+    a = M((1, "32"))
 
     assert_object_roundtrip(a, {})
     assert_type_roundtrip(M, {})
@@ -38,5 +38,5 @@ def test_list2():
     class M:
         a: List[str]
 
-    a = M(['a', 'b'])
+    a = M(["a", "b"])
     assert_object_roundtrip(a, symbols)

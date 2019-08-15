@@ -13,8 +13,14 @@ from zuper_ipce.pretty import pprint
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import Generic, dataclass
-from zuper_typing.annotations_tricks import (get_ClassVar_arg, get_Type_arg, is_ClassVar, is_ForwardRef, is_Type,
-                                             make_ForwardRef)
+from zuper_typing.annotations_tricks import (
+    get_ClassVar_arg,
+    get_Type_arg,
+    is_ClassVar,
+    is_ForwardRef,
+    is_Type,
+    make_ForwardRef,
+)
 from zuper_typing.constants import enable_type_checking
 from zuper_typing.monkey_patching_typing import debug_print_str
 from zuper_typing.subcheck import can_be_used_as2
@@ -23,14 +29,14 @@ from zuper_typing_tests.test_utils import known_failure
 
 
 def test_basic():
-    U = TypeVar('U')
+    U = TypeVar("U")
 
     T = Generic[U]
 
     print(T.mro())
 
-    assert_equal(T.__name__, 'Generic[U]')
-    print('inheriting C(T)')
+    assert_equal(T.__name__, "Generic[U]")
+    print("inheriting C(T)")
 
     @dataclass
     class C(T):
@@ -38,16 +44,16 @@ def test_basic():
 
     print(C.mro())
 
-    assert_equal(C.__name__, 'C[U]')
-    print('subscribing C[int]')
+    assert_equal(C.__name__, "C[U]")
+    print("subscribing C[int]")
     D = C[int]
 
-    assert_equal(D.__name__, 'C[int]')
+    assert_equal(D.__name__, "C[int]")
 
 
 @raises(TypeError)
 def test_dataclass_can_preserve_init():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class M(Generic[X]):
@@ -57,11 +63,12 @@ def test_dataclass_can_preserve_init():
 
 
 def test_serialize_generic_typevar():
-    X = typing.TypeVar('X', bound=Number)
+    X = typing.TypeVar("X", bound=Number)
 
     @dataclass
     class MN1(Generic[X]):
         """ A generic class """
+
         x: X
 
     assert_type_roundtrip(MN1, {})
@@ -82,11 +89,12 @@ def test_serialize_generic_typevar():
 
 
 def test_serialize_generic():
-    X = typing.TypeVar('X', bound=Number)
+    X = typing.TypeVar("X", bound=Number)
 
     @dataclass
     class MP1(Generic[X]):
         """ A generic class """
+
         x: X
 
     M1int = MP1[int]
@@ -127,11 +135,12 @@ def test_serialize_generic_optional():
     # class Animal:
     #     pass
 
-    X = typing.TypeVar('X', bound=Number)
+    X = typing.TypeVar("X", bound=Number)
 
     @dataclass
     class MR1(Generic[X]):
         """ A generic class """
+
         x: X
         xo: Optional[X] = None
 
@@ -140,11 +149,11 @@ def test_serialize_generic_optional():
     m1a = M1int(x=2)
     m1b = M1int(x=3)
     s = ipce_from_typelike(MR1, {})
-    print('M1 schema: \n' + oyaml_dump(s))
+    print("M1 schema: \n" + oyaml_dump(s))
 
     M2 = typelike_from_ipce(s, {}, {})
-    assert 'xo' in MR1.__annotations__, MR1.__annotations__
-    assert 'xo' in M2.__annotations__, M2.__annotations__
+    assert "xo" in MR1.__annotations__, MR1.__annotations__
+    assert "xo" in M2.__annotations__, M2.__annotations__
 
     assert_equal(sorted(MR1.__annotations__), sorted(M2.__annotations__))
 
@@ -183,7 +192,7 @@ from typing import Optional, TypeVar
 
 
 def test_more():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Entity0(Generic[X]):
@@ -193,8 +202,8 @@ def test_more():
 
     resolve_types(Entity0)
 
-    print(Entity0.__annotations__['parent'].__repr__())
-    assert not isinstance(Entity0.__annotations__['parent'], str)
+    print(Entity0.__annotations__["parent"].__repr__())
+    assert not isinstance(Entity0.__annotations__["parent"], str)
     # raise Exception()
     schema = ipce_from_typelike(Entity0, {}, {})
     print(oyaml_dump(schema))
@@ -205,7 +214,7 @@ def test_more():
 
     EI = Entity0[int]
 
-    assert_equal(EI.__annotations__['parent'].__args__[0].__name__, 'Entity0[int]')
+    assert_equal(EI.__annotations__["parent"].__args__[0].__name__, "Entity0[int]")
     assert_type_roundtrip(EI, {})
 
     x = EI(data0=3, parent=EI(data0=4))
@@ -217,7 +226,8 @@ def test_more():
 def test_more_direct():
     """ parent should be declared as Optional[X] rather than X"""
     # language=yaml
-    schema = oyaml_load("""
+    schema = oyaml_load(
+        """
 $id: http://invalid.json-schema.org/Entity0[X]#
 $schema: http://json-schema.org/draft-07/schema#
 __module__: zuper_json.zeneric2
@@ -232,14 +242,16 @@ required: [data0]
 title: Entity0[X]
 type: object
 
-    """, Loader=yaml.SafeLoader)
+    """,
+        Loader=yaml.SafeLoader,
+    )
     T = typelike_from_ipce(schema, {}, {})
     print(T.__annotations__)
 
 
 def test_more2():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
 
     @dataclass
     class Entity11(Generic[X]):
@@ -267,13 +279,14 @@ def test_more2():
 
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
-    assert_object_roundtrip(x, {'Entity11': Entity11, 'Entity42': Entity42},
-                            works_without_schema=False)
+    assert_object_roundtrip(
+        x, {"Entity11": Entity11, "Entity42": Entity42}, works_without_schema=False
+    )
 
 
 def test_more2b():
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
 
     class E0(Generic[X]):
         pass
@@ -303,16 +316,18 @@ def test_more2b():
     assert_type_roundtrip(EI, {})
     assert_type_roundtrip(E2I, {})
 
-    parent2 = E2I.__annotations__['parent']
+    parent2 = E2I.__annotations__["parent"]
     print(parent2)
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     # print(type(x).__name__)
-    assert_object_roundtrip(x, {'Entity12': Entity12, 'Entity13': Entity13}, works_without_schema=False)
+    assert_object_roundtrip(
+        x, {"Entity12": Entity12, "Entity13": Entity13}, works_without_schema=False
+    )
 
 
 def test_isClassVar():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     A = ClassVar[Type[X]]
     assert is_ClassVar(A)
@@ -320,7 +335,7 @@ def test_isClassVar():
 
 
 def test_isType():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     A = Type[X]
     # print(type(A))
@@ -330,7 +345,7 @@ def test_isType():
 
 
 def test_more3_simpler():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class MyClass(Generic[X]):
@@ -348,7 +363,7 @@ def test_more3_simpler():
 
 
 def test_more3b_simpler():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class MyClass(Generic[X]):
@@ -367,8 +382,8 @@ def test_more3b_simpler():
 def test_more3():
     # class Base:
     #     pass
-    X = TypeVar('X')
-    Y = TypeVar('Y')
+    X = TypeVar("X")
+    Y = TypeVar("Y")
 
     @dataclass
     class MyClass(Generic[X, Y]):
@@ -386,9 +401,9 @@ def test_more3():
     C = MyClass[int, str]
     assert_type_roundtrip(C, {})
     # print(f'Annotations for C: {C.__annotations__}')
-    assert_equal(C.__annotations__['XT'], ClassVar[type])
+    assert_equal(C.__annotations__["XT"], ClassVar[type])
     assert_equal(C.XT, int)
-    assert_equal(C.__annotations__['YT'], ClassVar[type])
+    assert_equal(C.__annotations__["YT"], ClassVar[type])
     assert_equal(C.YT, str)
 
     schema = ipce_from_typelike(C, {})
@@ -403,7 +418,7 @@ def test_more3():
 
 
 def test_entity():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     # SchemaCache.key2schema = {}
     @dataclass
@@ -424,13 +439,13 @@ def test_entity():
     # noinspection PyDataclass
     fs = fields(Entity43)
     f0 = fs[3]
-    assert f0.name == 'parent'
+    assert f0.name == "parent"
     print(f0)
     assert f0.default is None
-    assert_equal(Entity43.__name__, 'Entity43[X]')
+    assert_equal(Entity43.__name__, "Entity43[X]")
 
     qn = Entity43.__qualname__
-    assert 'Entity43[X]' in qn, qn
+    assert "Entity43[X]" in qn, qn
 
     T = ipce_from_typelike(Entity43, {}, {})
     C = typelike_from_ipce(T, {}, {})
@@ -444,12 +459,12 @@ def test_entity():
     assert_type_roundtrip(Entity43, {})
     Entity43_int = Entity43[int]
 
-    assert_equal(Entity43_int.__name__, 'Entity43[int]')
+    assert_equal(Entity43_int.__name__, "Entity43[int]")
 
     qn = Entity43_int.__qualname__
-    assert 'Entity43[int]' in qn, qn
+    assert "Entity43[int]" in qn, qn
 
-    logger.info('\n\nIgnore above\n\n')
+    logger.info("\n\nIgnore above\n\n")
 
     assert_type_roundtrip(Entity43_int, {})
 
@@ -458,7 +473,8 @@ def test_entity():
 def test_entity0():
     """ Wrong type as in test_entity. parent should be defined as Optional[Entity2[X]]"""
     # language=yaml
-    schema = oyaml_load("""
+    schema = oyaml_load(
+        """
 $id: http://invalid.json-schema.org/Entity2[X]#
 $schema: http://json-schema.org/draft-07/schema#
 definitions:
@@ -471,11 +487,13 @@ __qualname__: QUAL
 __module__: module
 title: Entity2[X]
 type: object    
-    """, Loader=yaml.SafeLoader)
+    """,
+        Loader=yaml.SafeLoader,
+    )
     C = typelike_from_ipce(schema, {}, {})
     print(C.__annotations__)
 
-    assert not is_ForwardRef(C.__annotations__['parent'].__args__[0])
+    assert not is_ForwardRef(C.__annotations__["parent"].__args__[0])
 
 
 def test_classvar1():
@@ -491,7 +509,7 @@ def test_classvar1():
 
 
 def test_classvar2():
-    X = TypeVar('X', bound=int)
+    X = TypeVar("X", bound=int)
 
     @dataclass
     class CG(Generic[X]):
@@ -516,7 +534,7 @@ def test_check_bound1():
     assert not can_be_used_as2(int, Animal, {}).result
     assert not issubclass(int, Animal)
 
-    X = TypeVar('X', bound=Animal)
+    X = TypeVar("X", bound=Animal)
 
     @dataclass
     class CG(Generic[X]):
@@ -536,7 +554,7 @@ def test_check_bound2():
 
     assert not can_be_used_as2(Not, Animal, {}).result
 
-    X = TypeVar('X', bound=Animal)
+    X = TypeVar("X", bound=Animal)
 
     @dataclass
     class CG(Generic[X]):
@@ -550,6 +568,7 @@ def test_check_bound2():
 
 
 if enable_type_checking:
+
     @raises(ValueError, TypeError)  # typerror in 3.6
     def test_check_value():
         @dataclass
@@ -560,7 +579,7 @@ if enable_type_checking:
 
 
 def test_signing():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class PublicKey1:
@@ -572,7 +591,7 @@ def test_signing():
         signature_data: bytes
         data: X
 
-    s = Signed1[str](key=PublicKey1(key=b''), signature_data=b'xxx', data="message")
+    s = Signed1[str](key=PublicKey1(key=b""), signature_data=b"xxx", data="message")
 
     assert_type_roundtrip(Signed1, {})
     assert_type_roundtrip(Signed1[str], {})
@@ -580,7 +599,7 @@ def test_signing():
 
 
 def test_derived1():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Signed3(Generic[X]):
@@ -592,6 +611,7 @@ def test_derived1():
 
     class Y(S):
         """hello"""
+
         pass
 
     # assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
@@ -603,7 +623,7 @@ def test_derived1():
 
 
 def test_derived2_no_doc():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Signed3(Generic[X]):
@@ -620,7 +640,7 @@ def test_derived2_no_doc():
 
 
 def test_derived2_subst():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     # print(dir(Generic))
     # print(dir(typing.GenericMeta))
@@ -628,7 +648,7 @@ def test_derived2_subst():
     @dataclass
     class Signed3(Generic[X]):
         data: X
-        parent: Optional['Signed3[X]'] = None
+        parent: Optional["Signed3[X]"] = None
 
     _ = Signed3[int]
     # resolve_types(Signed3, locals())
@@ -651,8 +671,8 @@ def test_derived2_subst():
     print(oyaml_dump(schema))
     TY = typelike_from_ipce(schema, {}, {})
 
-    pprint('annotations', **TY.__annotations__)
-    P = TY.__annotations__['parent']
+    pprint("annotations", **TY.__annotations__)
+    P = TY.__annotations__["parent"]
     assert not is_ForwardRef(P)
 
     # raise Exception()
@@ -661,7 +681,7 @@ def test_derived2_subst():
 
 
 def test_derived3_subst():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Signed3(Generic[X]):
@@ -694,7 +714,7 @@ def test_entity_field2():
 
 
 def test_entity_field3():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Entity46(Generic[X]):
@@ -743,10 +763,11 @@ def test_classvar_type_not_typvar():
 #     a = Entity60(1)
 #     assert a.x == C
 
+
 def test_post_init_preserved():
     C = 42
 
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Entity60(Generic[X]):
@@ -761,7 +782,7 @@ def test_post_init_preserved():
 
 
 def test_post_init_preserved2():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class Entity61(Generic[X]):
@@ -771,13 +792,13 @@ def test_post_init_preserved2():
 
     if enable_type_checking:  # pragma: no cover
         try:
-            Concrete('a')
+            Concrete("a")
         except ValueError:
             pass
         else:  # pragma: no cover
             raise Exception()
     else:  # pragma: no cover
-        Concrete('a')
+        Concrete("a")
 
 
 f = known_failure if enable_type_checking else (lambda x: x)
@@ -791,24 +812,24 @@ def test_type_checking():
 
     if enable_type_checking:  # pragma: no cover
         try:
-            Entity62('a')
+            Entity62("a")
         except ValueError:
             pass
         else:  # pragma: no cover
             raise Exception()
     else:  # pragma: no cover
-        Entity62('a')
+        Entity62("a")
 
 
 def test_same_forward():
-    assert make_ForwardRef('one') is make_ForwardRef('one')
+    assert make_ForwardRef("one") is make_ForwardRef("one")
 
 
 def test_debug_print_str_multiple_lines():
-    a = debug_print_str('a\nb', 'prefix')
+    a = debug_print_str("a\nb", "prefix")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_entity_field()
     test_entity_field2()
     test_entity_field3()

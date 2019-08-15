@@ -13,7 +13,7 @@ from zuper_typing.constants import BINDINGS_ATT
 from zuper_ipce_tests.test_utils import assert_object_roundtrip
 from zuper_typing.recursive_tricks import NoConstructorImplemented
 
-X = TypeVar('X')
+X = TypeVar("X")
 
 
 @raises(TypeError)
@@ -37,11 +37,11 @@ def test_boxed2():
     C = BoxedZ[int]
     # print(pretty_dict('BoxedZ[int]', C.__dict__))
 
-    assert_equal(C.__annotations__, {'inside': int})
+    assert_equal(C.__annotations__, {"inside": int})
 
     n1 = C(inside=13)
 
-    assert_object_roundtrip(n1, {'BoxedZ': BoxedZ})
+    assert_object_roundtrip(n1, {"BoxedZ": BoxedZ})
 
 
 @raises(TypeError)
@@ -74,15 +74,19 @@ def test_boxed_can_dataclass():
     class CannotInstantiateYet(Generic[X]):
         inside: X
 
-    print('name: %s %s' % (CannotInstantiateYet.__name__, CannotInstantiateYet))
-    assert 'CannotInstantiateYet' in CannotInstantiateYet.__name__, CannotInstantiateYet.__name__
+    print("name: %s %s" % (CannotInstantiateYet.__name__, CannotInstantiateYet))
+    assert (
+        "CannotInstantiateYet" in CannotInstantiateYet.__name__
+    ), CannotInstantiateYet.__name__
 
     assert is_dataclass(CannotInstantiateYet)
-    print('calling')
+    print("calling")
     CanBeInstantiated = CannotInstantiateYet[str]
 
-    assert 'CannotInstantiateYet[str]' in CanBeInstantiated.__name__, CanBeInstantiated.__name__
-    print('CanBeInstantiated: %s %s' % (CanBeInstantiated.__name__, CanBeInstantiated))
+    assert (
+        "CannotInstantiateYet[str]" in CanBeInstantiated.__name__
+    ), CanBeInstantiated.__name__
+    print("CanBeInstantiated: %s %s" % (CanBeInstantiated.__name__, CanBeInstantiated))
 
     print(CanBeInstantiated.__init__)
 
@@ -107,12 +111,12 @@ class Animal(metaclass=ABCMeta):
 
 class Dog(Animal):
     def verse(self):
-        return 'wof'
+        return "wof"
 
 
 @raises(NoConstructorImplemented)
 def test_parametric_zeneric():
-    A = TypeVar('A', bound=Animal)
+    A = TypeVar("A", bound=Animal)
 
     class Parametric(Generic[A]):
         inside: A
@@ -128,14 +132,14 @@ def test_parametric_zeneric():
 
     fido = Dog()
     PDog = Parametric[Dog]
-    assert 'inside' not in PDog.__dict__, PDog.__dict__
-    assert 'AT' in PDog.__dict__, PDog.__dict__
+    assert "inside" not in PDog.__dict__, PDog.__dict__
+    assert "AT" in PDog.__dict__, PDog.__dict__
     PDog(inside=fido)
     # p.check_knows_type(Dog)
 
 
 def test_parametric_zeneric_dataclass():
-    A = TypeVar('A', bound=Animal)
+    A = TypeVar("A", bound=Animal)
 
     @dataclass
     class Parametric(Generic[A]):
@@ -147,13 +151,13 @@ def test_parametric_zeneric_dataclass():
             a: A = type(self).AT()
             a.verse()
 
-            assert (self.AT is getattr(T, BINDINGS_ATT)[A])
-            assert (self.AT is Specific), (self.AT, id(self.AT), Specific, id(Specific))
+            assert self.AT is getattr(T, BINDINGS_ATT)[A]
+            assert self.AT is Specific, (self.AT, id(self.AT), Specific, id(Specific))
 
     fido = Dog()
     PDog = Parametric[Dog]
-    assert 'inside' not in PDog.__dict__, PDog.__dict__
-    assert 'AT' in PDog.__dict__, PDog.__dict__
+    assert "inside" not in PDog.__dict__, PDog.__dict__
+    assert "AT" in PDog.__dict__, PDog.__dict__
     p = PDog(inside=fido)
     p.check_knows_type(Dog)
 
@@ -174,6 +178,6 @@ def test_parametric_zeneric_dataclass():
 #     _do_parametric(dataclass)
 #     print('ok test_parametric_zeneric_dataclass')
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_parametric_zeneric_dataclass()
     test_parametric_zeneric()

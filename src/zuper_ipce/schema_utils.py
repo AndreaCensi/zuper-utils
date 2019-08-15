@@ -23,7 +23,7 @@ from .constants import JSONSchema, REF_ATT
 
 def make_url(x: str):
     assert isinstance(x, str), x
-    return f'http://invalid.json-schema.org/{x}#'
+    return f"http://invalid.json-schema.org/{x}#"
 
 
 def make_ref(x: str) -> JSONSchema:

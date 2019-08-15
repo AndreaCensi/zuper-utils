@@ -5,19 +5,19 @@ from zuper_ipce.ipce_spec import assert_canonical_ipce
 
 @raises(ValueError)
 def test_spec1():
-    x = {'/': ''}
+    x = {"/": ""}
     assert_canonical_ipce(x)
 
 
 @raises(ValueError)
 def test_spec2():
-    x = {'$links': {}}
+    x = {"$links": {}}
     assert_canonical_ipce(x)
 
 
 @raises(ValueError)
 def test_spec3():
-    x = {'$self': {}}
+    x = {"$self": {}}
     assert_canonical_ipce(x)
 
 
@@ -25,9 +25,6 @@ def test_spec3():
 def test_spec4():
     x = (1, 2)
     assert_canonical_ipce(x)
-
-
-
 
 
 def test_spec4ok():

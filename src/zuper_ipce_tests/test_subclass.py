@@ -28,7 +28,7 @@ def test_subclass1():
 
 
 def test_subclass2_generic():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class A(Generic[X]):
@@ -45,7 +45,7 @@ def test_subclass2_generic():
 
 
 def test_subclass3_generic():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class S3A(Generic[X]):
@@ -58,7 +58,7 @@ def test_subclass3_generic():
     S3B = S3B0[int]
     b = S3B(1, True)
 
-    assert S3B0.__name__ == 'S3B0[X]', S3B0.__name__
+    assert S3B0.__name__ == "S3B0[X]", S3B0.__name__
 
     assert_type_roundtrip(S3B0, {})
 
@@ -67,5 +67,5 @@ def test_subclass3_generic():
     assert_object_roundtrip(b, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_subclass3_generic()

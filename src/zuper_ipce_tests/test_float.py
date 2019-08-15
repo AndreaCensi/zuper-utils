@@ -11,6 +11,7 @@ def test_float_1():
     e = MyClass(1.0)
     assert_object_roundtrip(e, {})
 
+
 def test_float_2():
     @dataclass
     class MyClass:
@@ -19,4 +20,4 @@ def test_float_2():
     T2 = assert_type_roundtrip(MyClass, {})
 
     print(T2)
-    assert T2.__annotations__['f'] is float
+    assert T2.__annotations__["f"] is float

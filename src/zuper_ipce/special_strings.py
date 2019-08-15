@@ -8,7 +8,7 @@ def valid_email(s):
     is_valid = validate_email.validate_email(s)
 
     if not is_valid:
-        msg = f'Invalid email address {s!r}'
+        msg = f"Invalid email address {s!r}"
         raise ValueError(msg)
 
 
@@ -21,7 +21,6 @@ json_formats: Dict[str, Callable[[str], None]] = {
     "uri-reference": None,
     "json-pointer": None,
     "uri-template": None,
-
     # others:
     "domain": None,
     "multihash": None,
@@ -43,30 +42,30 @@ def make_special(name, sformat):
 
 
 __all__ = [
-    'URL',
-    'DateTimeString',
-    'Email',
-    'IP4',
-    'IP6',
-    'URI',
-    'URIReference',
-    'JSONPointer',
-    'URITemplate',
-    'Domain',
-    'Multihash',
+    "URL",
+    "DateTimeString",
+    "Email",
+    "IP4",
+    "IP6",
+    "URI",
+    "URIReference",
+    "JSONPointer",
+    "URITemplate",
+    "Domain",
+    "Multihash",
     # 'IPDELink',
 ]
 
-URL = make_special('URL', 'uri')
-DateTimeString = make_special('DateTimeString', 'date-time')
-Email = make_special('Email', 'email')
-IP4 = make_special('IP4', 'ipv4')
-IP6 = make_special('IP6', 'ipv6')
-URI = make_special('URI', 'uri')
-URIReference = make_special('URIReference', 'uri')
-JSONPointer = make_special('JSONPointer', 'json-pointer')
-URITemplate = make_special('URITemplate', 'uri-template')
-Domain = make_special('Domain', 'domain')
-Multihash = make_special('Multihash', 'multihash')
+URL = make_special("URL", "uri")
+DateTimeString = make_special("DateTimeString", "date-time")
+Email = make_special("Email", "email")
+IP4 = make_special("IP4", "ipv4")
+IP6 = make_special("IP6", "ipv6")
+URI = make_special("URI", "uri")
+URIReference = make_special("URIReference", "uri")
+JSONPointer = make_special("JSONPointer", "json-pointer")
+URITemplate = make_special("URITemplate", "uri-template")
+Domain = make_special("Domain", "domain")
+Multihash = make_special("Multihash", "multihash")
 
-IPDELink = NewType('IPDELink', str)
+IPDELink = NewType("IPDELink", str)

@@ -3,28 +3,82 @@ import datetime
 from dataclasses import dataclass, field, make_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Callable, ClassVar, Dict, Generic, List, Optional, Tuple, TypeVar, cast
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    cast,
+)
 
 import numpy as np
 import yaml
 
 from zuper_commons.types import check_isinstance
 from zuper_ipce.utils_text import oyaml_dump
-from zuper_typing.annotations_tricks import (is_Any, is_ForwardRef, make_Tuple, make_Union,
-                                             make_VarTuple)
+from zuper_typing.annotations_tricks import (
+    is_Any,
+    is_ForwardRef,
+    make_Tuple,
+    make_Union,
+    make_VarTuple,
+)
 from zuper_typing.constants import PYTHON_36
-from zuper_typing.monkey_patching_typing import MyNamedArg, get_remembered_class, remember_created_class
+from zuper_typing.monkey_patching_typing import (
+    MyNamedArg,
+    get_remembered_class,
+    remember_created_class,
+)
 from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection
 from . import logger
 from .assorted_recursive_type_subst import recursive_type_subst
-from .constants import (ATT_PYTHON_NAME, CALLABLE_ORDERING, CALLABLE_RETURN, EncounteredDict, GlobalsDict, ID_ATT,
-                        JSC_ADDITIONAL_PROPERTIES, JSC_ALLOF, JSC_ANYOF, JSC_ARRAY, JSC_BOOL, JSC_DEFAULT,
-                        JSC_DEFINITIONS, JSC_DESCRIPTION, JSC_INTEGER, JSC_NULL, JSC_NUMBER, JSC_OBJECT, JSC_PROPERTIES,
-                        JSC_REQUIRED, JSC_STRING, JSC_TITLE, JSC_TITLE_BYTES, JSC_TITLE_CALLABLE, JSC_TITLE_DATETIME,
-                        JSC_TITLE_DECIMAL, JSC_TITLE_FLOAT, JSC_TITLE_NUMPY, JSC_TITLE_SLICE, JSC_TYPE, JSONSchema,
-                        ProcessingDict, REF_ATT, SCHEMA_ATT, SCHEMA_ID, X_CLASSATTS, X_CLASSVARS, X_ORDER,
-                        X_PYTHON_MODULE_ATT)
+from .constants import (
+    ATT_PYTHON_NAME,
+    CALLABLE_ORDERING,
+    CALLABLE_RETURN,
+    EncounteredDict,
+    GlobalsDict,
+    ID_ATT,
+    JSC_ADDITIONAL_PROPERTIES,
+    JSC_ALLOF,
+    JSC_ANYOF,
+    JSC_ARRAY,
+    JSC_BOOL,
+    JSC_DEFAULT,
+    JSC_DEFINITIONS,
+    JSC_DESCRIPTION,
+    JSC_INTEGER,
+    JSC_NULL,
+    JSC_NUMBER,
+    JSC_OBJECT,
+    JSC_PROPERTIES,
+    JSC_REQUIRED,
+    JSC_STRING,
+    JSC_TITLE,
+    JSC_TITLE_BYTES,
+    JSC_TITLE_CALLABLE,
+    JSC_TITLE_DATETIME,
+    JSC_TITLE_DECIMAL,
+    JSC_TITLE_FLOAT,
+    JSC_TITLE_NUMPY,
+    JSC_TITLE_SLICE,
+    JSC_TYPE,
+    JSONSchema,
+    ProcessingDict,
+    REF_ATT,
+    SCHEMA_ATT,
+    SCHEMA_ID,
+    X_CLASSATTS,
+    X_CLASSVARS,
+    X_ORDER,
+    X_PYTHON_MODULE_ATT,
+)
 from .pretty import pretty_dict
 from .structures import CannotFindSchemaReference
 from .types import TypeLike
@@ -36,22 +90,22 @@ class SRE:
     used: Dict[str, Any] = dataclasses.field(default_factory=dict)
 
 
-def typelike_from_ipce(schema0: JSONSchema,
-                       global_symbols: Dict,
-                       encountered: Dict) -> TypeLike:
+def typelike_from_ipce(
+    schema0: JSONSchema, global_symbols: Dict, encountered: Dict
+) -> TypeLike:
     sre = typelike_from_ipce_sr(schema0, global_symbols, encountered)
     return sre.res
 
 
-def typelike_from_ipce_sr(schema0: JSONSchema,
-                          global_symbols: Dict,
-                          encountered: Dict) -> SRE:
+def typelike_from_ipce_sr(
+    schema0: JSONSchema, global_symbols: Dict, encountered: Dict
+) -> SRE:
     try:
         sre = typelike_from_ipce_sr_(schema0, global_symbols, encountered)
         assert isinstance(sre, SRE), (schema0, sre)
         res = sre.res
     except (TypeError, ValueError) as e:  # pragma: no cover
-        msg = 'Cannot interpret schema as a type.'
+        msg = "Cannot interpret schema as a type."
         # msg += '\n\n' + indent(yaml.dump(schema0)[:400], ' > ')
         # msg += '\n\n' + pretty_dict('globals', global_symbols)
         # msg += '\n\n' + pretty_dict('encountered', encountered)
@@ -64,7 +118,9 @@ def typelike_from_ipce_sr(schema0: JSONSchema,
     return sre
 
 
-def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountered: Dict) -> SRE:
+def typelike_from_ipce_sr_(
+    schema0: JSONSchema, global_symbols: Dict, encountered: Dict
+) -> SRE:
     # pprint('schema_to_type_', schema0=schema0)
     # encountered = encountered or {}
     info = dict(global_symbols=global_symbols, encountered=encountered)
@@ -86,7 +142,7 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
     if REF_ATT in schema:
         r = schema[REF_ATT]
         if r == SCHEMA_ID:
-            if schema.get(JSC_TITLE, '') == 'type':
+            if schema.get(JSC_TITLE, "") == "type":
                 return SRE(type)
             else:  # pragma: no cover
                 raise NotImplementedError(schema)
@@ -96,7 +152,7 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
             res = encountered[r]
             return SRE(res, {r: res})
         else:
-            m = f'Cannot evaluate reference {r!r}'
+            m = f"Cannot evaluate reference {r!r}"
             msg = pretty_dict(m, info)
             raise CannotFindSchemaReference(msg)
 
@@ -107,7 +163,7 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
         return typelike_from_ipce_Intersection(schema, global_symbols, encountered)
 
     jsc_type = schema.get(JSC_TYPE, None)
-    jsc_title = schema.get(JSC_TITLE, '-not-provided-')
+    jsc_title = schema.get(JSC_TITLE, "-not-provided-")
     if jsc_title == JSC_TITLE_NUMPY:
         res = np.ndarray
         return SRE(res)
@@ -139,14 +195,16 @@ def typelike_from_ipce_sr_(schema0: JSONSchema, global_symbols: Dict, encountere
     elif jsc_type == JSC_OBJECT:
         if jsc_title == JSC_TITLE_CALLABLE:
             return typelike_from_ipce_Callable(schema, global_symbols, encountered)
-        elif jsc_title.startswith('Dict['):
+        elif jsc_title.startswith("Dict["):
             return typelike_from_ipce_DictType(schema, global_symbols, encountered)
-        elif jsc_title.startswith('Set['):
+        elif jsc_title.startswith("Set["):
             return typelike_from_ipce_SetType(schema, global_symbols, encountered)
         elif jsc_title == JSC_TITLE_SLICE:
             return SRE(slice)
         else:
-            return typelike_from_ipce_dataclass(schema, global_symbols, encountered, schema_id=schema_id)
+            return typelike_from_ipce_dataclass(
+                schema, global_symbols, encountered, schema_id=schema_id
+            )
         assert False, schema  # pragma: no cover
     elif jsc_type == JSC_ARRAY:
         return typelike_from_ipce_array(schema, global_symbols, encountered)
@@ -188,7 +246,7 @@ def typelike_from_ipce_Intersection(schema, global_symbols, encountered) -> SRE:
 
 def typelike_from_ipce_array(schema, global_symbols, encountered) -> SRE:
     assert schema[JSC_TYPE] == JSC_ARRAY
-    items = schema['items']
+    items = schema["items"]
     used = {}
 
     def f(x):
@@ -202,7 +260,7 @@ def typelike_from_ipce_array(schema, global_symbols, encountered) -> SRE:
         res = make_Tuple(*args)
 
     else:
-        if schema[JSC_TITLE].startswith('Tuple['):
+        if schema[JSC_TITLE].startswith("Tuple["):
             V = f(items)
             res = make_VarTuple(V)
 
@@ -226,16 +284,16 @@ def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
     V = f(schema[JSC_ADDITIONAL_PROPERTIES])
     # pprint(f'here:', d=dict(V.__dict__))
     # if issubclass(V, FakeValues):
-    if isinstance(V, type) and V.__name__.startswith('FakeValues'):
-        K = V.__annotations__['real_key']
-        V = V.__annotations__['value']
+    if isinstance(V, type) and V.__name__.startswith("FakeValues"):
+        K = V.__annotations__["real_key"]
+        V = V.__annotations__["value"]
 
     try:
         D = make_dict(K, V)
     except (TypeError, ValueError) as e:  # pragma: no cover
-        msg = f'Cannot reconstruct dict type with K = {K!r}  V = {V!r}'
-        msg += '\n\n' + pretty_dict('globals', global_symbols)
-        msg += '\n\n' + pretty_dict('encountered', encountered)
+        msg = f"Cannot reconstruct dict type with K = {K!r}  V = {V!r}"
+        msg += "\n\n" + pretty_dict("globals", global_symbols)
+        msg += "\n\n" + pretty_dict("encountered", encountered)
         raise TypeError(msg) from e
     # we never put it anyway
     # if JSC_DESCRIPTION in schema:
@@ -245,7 +303,7 @@ def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
 
 def typelike_from_ipce_SetType(schema, global_symbols, encountered):
     if not JSC_ADDITIONAL_PROPERTIES in schema:  # pragma: no cover
-        msg = f'Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}'
+        msg = f"Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}"
         raise ValueError(msg)
     used = {}
 
@@ -259,7 +317,9 @@ def typelike_from_ipce_SetType(schema, global_symbols, encountered):
     return SRE(res, used)
 
 
-def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict, encountered: ProcessingDict):
+def typelike_from_ipce_Callable(
+    schema: JSONSchema, global_symbols: GlobalsDict, encountered: ProcessingDict
+):
     used = {}
 
     def f(x):
@@ -273,7 +333,7 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
     others = []
     for k in schema[CALLABLE_ORDERING]:
         d = f(definitions[k])
-        if not k.startswith('__'):
+        if not k.startswith("__"):
             d = MyNamedArg(d, k)
         others.append(d)
 
@@ -286,8 +346,9 @@ def typelike_from_ipce_Callable(schema: JSONSchema, global_symbols: GlobalsDict,
 import json
 
 
-def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encountered: EncounteredDict,
-                                 schema_id=None) -> SRE:
+def typelike_from_ipce_dataclass(
+    res: JSONSchema, global_symbols: dict, encountered: EncounteredDict, schema_id=None
+) -> SRE:
     used = {}
 
     def f(x):
@@ -306,8 +367,10 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     classvars = res.get(X_CLASSVARS, {})
     classatts = res.get(X_CLASSATTS, {})
 
-    if (not X_PYTHON_MODULE_ATT in res) or not ATT_PYTHON_NAME in res:  # pragma: no cover
-        msg = f'Cannot find attributes for {cls_name}: \n {res}'
+    if (
+        not X_PYTHON_MODULE_ATT in res
+    ) or not ATT_PYTHON_NAME in res:  # pragma: no cover
+        msg = f"Cannot find attributes for {cls_name}: \n {res}"
         raise ValueError(msg)
     module_name = res[X_PYTHON_MODULE_ATT]
     qual_name = res[ATT_PYTHON_NAME]
@@ -344,7 +407,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     else:
         bases = ()
 
-    Placeholder = type(f'PlaceholderFor{cls_name}', (), {})
+    Placeholder = type(f"PlaceholderFor{cls_name}", (), {})
 
     encountered[schema_id] = Placeholder
 
@@ -357,6 +420,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     #
 
     from .conv_object_from_ipce import object_from_ipce
+
     # logger.info(f'reading {cls_name} names {names}')
     other_set_attr = {}
     for pname in names:
@@ -367,14 +431,18 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             _Field.name = pname
             has_default = JSC_DEFAULT in v
             if has_default:
-                default_value = object_from_ipce(v[JSC_DEFAULT], global_symbols, expect_type=ptype)
+                default_value = object_from_ipce(
+                    v[JSC_DEFAULT], global_symbols, expect_type=ptype
+                )
                 _Field.default = default_value
                 assert not isinstance(default_value, dataclasses.Field)
                 other_set_attr[pname] = default_value
             else:
                 if not pname in required:
-                    msg = f'Field {pname!r} is not required but I did not find a default'
-                    msg += '\n\n' + oyaml_dump(res)
+                    msg = (
+                        f"Field {pname!r} is not required but I did not find a default"
+                    )
+                    msg += "\n\n" + oyaml_dump(res)
                     raise Exception(msg)
             fields.append((pname, ptype, _Field))
         elif pname in classvars:
@@ -383,11 +451,13 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
             # logger.info(f'ipce classvar: {pname} {ptype}')
             fields.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
-            msg = f'Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}'
+            msg = f"Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}"
             raise ValueError(msg)
         else:  # pragma: no cover
-            msg = f'Cannot find {pname!r} either in properties ({list(properties)}) or classvars ({list(classvars)}) ' \
-                  f'or classatts {list(classatts)}'
+            msg = (
+                f"Cannot find {pname!r} either in properties ({list(properties)}) or classvars ({list(classvars)}) "
+                f"or classatts {list(classatts)}"
+            )
             raise ValueError(msg)
 
     # _MISSING_TYPE should be first (default fields last)
@@ -401,19 +471,29 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     #     logger.info(f'- {the_field.name} {the_field}')
     unsafe_hash = True
     try:
-        T = make_dataclass(cls_name, fields, bases=bases, namespace=None,
-                           init=True, repr=True, eq=True, order=False,
-                           unsafe_hash=unsafe_hash, frozen=False)
+        T = make_dataclass(
+            cls_name,
+            fields,
+            bases=bases,
+            namespace=None,
+            init=True,
+            repr=True,
+            eq=True,
+            order=False,
+            unsafe_hash=unsafe_hash,
+            frozen=False,
+        )
     except TypeError:  # pragma: no cover
 
-        msg = 'Cannot make dataclass with fields:'
+        msg = "Cannot make dataclass with fields:"
         for f in fields:
-            msg += f'\n {f}'
+            msg += f"\n {f}"
         logger.error(msg)
         raise
 
     fix_annotations_with_self_reference(T, cls_name, Placeholder)
     from .conv_object_from_ipce import object_from_ipce
+
     for pname, v in classatts.items():
         if isinstance(v, dict) and SCHEMA_ATT in v and v[SCHEMA_ATT] == SCHEMA_ID:
             interpreted = f(cast(JSONSchema, v))
@@ -425,15 +505,15 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
         assert not isinstance(v, dataclasses.Field)
         setattr(T, k, v)
     if JSC_DESCRIPTION in res:
-        setattr(T, '__doc__', res[JSC_DESCRIPTION])
+        setattr(T, "__doc__", res[JSC_DESCRIPTION])
     else:
         # the original one did not have it
-        setattr(T, '__doc__', None)
+        setattr(T, "__doc__", None)
 
     # if module_name is not None:
-    setattr(T, '__module__', module_name)
+    setattr(T, "__module__", module_name)
     # if ATT_PYTHON_NAME in res:
-    setattr(T, '__qualname__', qual_name)
+    setattr(T, "__qualname__", qual_name)
     # else:
     #     raise Exception(f'could not find ATT_PYTHON_NAME in {res}')
 
@@ -443,7 +523,7 @@ def typelike_from_ipce_dataclass(res: JSONSchema, global_symbols: dict, encounte
     if not used:
         remember_created_class(T)
 
-    assert not 'varargs' in T.__dict__
+    assert not "varargs" in T.__dict__
     return SRE(T, used)
 
 
@@ -462,7 +542,7 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
         else:
             return M
 
-    f.__name__ = f'replacer_for_{cls_name}'
+    f.__name__ = f"replacer_for_{cls_name}"
 
     anns2 = {}
 
@@ -475,6 +555,7 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
+
 
 #
 # @loglevel

@@ -48,7 +48,7 @@ def test_tuple2():
     class MyClass:
         f: Tuple[int, str]
 
-    e = MyClass((1, 'a'))
+    e = MyClass((1, "a"))
     assert_object_roundtrip(e, {})
 
 
@@ -111,6 +111,6 @@ $schema:
     assert_type_roundtrip(r, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup_logging()
     test_tuple_inside_class()

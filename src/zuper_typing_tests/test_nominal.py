@@ -26,6 +26,7 @@ def test_nominal_no_nominal():
 @raises(TypeError)
 def test_nominal_inherit():
     """ this is a limitation of the spec """
+
     @dataclass
     class A:
         a: int
@@ -35,5 +36,3 @@ def test_nominal_inherit():
     @dataclass
     class B(A):
         b: int
-
-

@@ -1,4 +1,3 @@
-
 from zuper_typing import dataclass
 
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
@@ -23,18 +22,18 @@ def test_serialize_klasses0():
 def test_serialize_klasses1():
     """ Note: equality does not come because the two As do not compare equal """
     D = make_dict(str, type)
+
     @dataclass
     class MyLanguage:
         # my_types: Dict[str, type]
         my_types: D
-
 
     @dataclass
     class A:
         a: int
         pass
 
-    x = MyLanguage(D({'A': A}))
+    x = MyLanguage(D({"A": A}))
 
     assert_type_roundtrip(MyLanguage, {})
     #
@@ -45,9 +44,10 @@ def test_serialize_klasses1():
     # assert_equal(x.my_types, x2.my_types)
     # assert x == x2
 
-
     expect_equality = False
-    assert_object_roundtrip(x, {}, expect_equality=expect_equality)  # because of classes
+    assert_object_roundtrip(
+        x, {}, expect_equality=expect_equality
+    )  # because of classes
 
 
 def test_serialize_klasses2():
@@ -63,4 +63,6 @@ def test_serialize_klasses2():
     assert_type_roundtrip(MyLanguage, {})
 
     expect_equality = False
-    assert_object_roundtrip(a, {}, expect_equality=expect_equality)  # because of classes
+    assert_object_roundtrip(
+        a, {}, expect_equality=expect_equality
+    )  # because of classes

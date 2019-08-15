@@ -6,14 +6,46 @@ from typing import Callable, ClassVar, List, Optional, Tuple, Type
 
 import numpy as np
 
-from zuper_typing.annotations_tricks import (get_Callable_info, get_ClassVar_arg, get_Dict_args, get_FixedTuple_args,
-                                             get_List_arg, get_Optional_arg, get_Set_arg, get_Type_arg, get_Union_args,
-                                             get_VarTuple_arg, is_Any, is_Callable, is_ClassVar, is_Dict, is_FixedTuple,
-                                             is_ForwardRef, is_List, is_Optional, is_Set, is_TupleLike, is_Type,
-                                             is_TypeVar, is_Union, is_VarTuple, make_Tuple, make_Union)
+from zuper_typing.annotations_tricks import (
+    get_Callable_info,
+    get_ClassVar_arg,
+    get_Dict_args,
+    get_FixedTuple_args,
+    get_List_arg,
+    get_Optional_arg,
+    get_Set_arg,
+    get_Type_arg,
+    get_Union_args,
+    get_VarTuple_arg,
+    is_Any,
+    is_Callable,
+    is_ClassVar,
+    is_Dict,
+    is_FixedTuple,
+    is_ForwardRef,
+    is_List,
+    is_Optional,
+    is_Set,
+    is_TupleLike,
+    is_Type,
+    is_TypeVar,
+    is_Union,
+    is_VarTuple,
+    make_Tuple,
+    make_Union,
+)
 from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
-from zuper_typing.my_dict import (get_CustomDict_args, get_CustomList_arg, get_CustomSet_arg, is_CustomDict,
-                                  is_CustomList, is_CustomSet, make_dict, make_list, make_set)
+from zuper_typing.my_dict import (
+    get_CustomDict_args,
+    get_CustomList_arg,
+    get_CustomSet_arg,
+    is_CustomDict,
+    is_CustomList,
+    is_CustomSet,
+    make_dict,
+    make_list,
+    make_set,
+)
 
 
 # def resolve_all(T, globals_):
@@ -114,28 +146,46 @@ def recursive_type_subst(T, f, ignore=()):
             return T
         return make_set(V2)
     elif is_dataclass(T):
-        annotations = dict(getattr(T, '__annotations__', {}))
+        annotations = dict(getattr(T, "__annotations__", {}))
         annotations2 = {}
         nothing_changed = True
         for k, v0 in list(annotations.items()):
             v2 = r(v0)
-            nothing_changed &= (v0 == v2)
+            nothing_changed &= v0 == v2
             annotations2[k] = v2
         if nothing_changed:
             # logger.info(f'Union unchanged under {f.__name__}: {ts0} == {ts}')
             return T
-        T2 = my_dataclass(type(T.__name__, (), {
-              '__annotations__': annotations2,
-              '__module__':      T.__module__,
-              '__doc__':         getattr(T, '__doc__', None),
-              '__qualname__':    getattr(T, '__qualname__')
-              }))
+        T2 = my_dataclass(
+            type(
+                T.__name__,
+                (),
+                {
+                    "__annotations__": annotations2,
+                    "__module__": T.__module__,
+                    "__doc__": getattr(T, "__doc__", None),
+                    "__qualname__": getattr(T, "__qualname__"),
+                },
+            )
+        )
 
         # from zuper_ipcl.debug_print_ import debug_print
         # logger.info(f'changed {T.__name__} into {debug_print(T2.__annotations__)}')
 
         return T2
-    elif (T in (int, bool, float, Decimal, datetime, bytes, str, type(None), type, np.ndarray, Number)):
+    elif T in (
+        int,
+        bool,
+        float,
+        Decimal,
+        datetime,
+        bytes,
+        str,
+        type(None),
+        type,
+        np.ndarray,
+        Number,
+    ):
         return f(T)
     elif is_TypeVar(T):
         return f(T)
@@ -162,8 +212,7 @@ def recursive_type_subst(T, f, ignore=()):
         return Callable[args, fret]
         # noinspection PyTypeHints
 
-    elif isinstance(T, type) and 'Placeholder' in T.__name__:
+    elif isinstance(T, type) and "Placeholder" in T.__name__:
         return f(T)
     else:  # pragma: no cover
         raise NotImplementedError(T)
-

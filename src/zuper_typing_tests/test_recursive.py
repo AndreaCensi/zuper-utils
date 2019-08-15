@@ -9,14 +9,14 @@ def test_recursive1():
     @dataclass
     class T1:
         data: int
-        branch: 'Optional[T1]'
+        branch: "Optional[T1]"
 
     resolve_types(T1)
 
     @dataclass
     class T2:
         data: int
-        branch: 'Optional[T2]'
+        branch: "Optional[T2]"
 
     resolve_types(T2)
 
@@ -35,14 +35,14 @@ def test_recursive2():
     @dataclass
     class T1:
         data: int
-        branch: 'Union[T1, int]'
+        branch: "Union[T1, int]"
 
     resolve_types(T1)
 
     @dataclass
     class T2:
         data: int
-        branch: 'T2'
+        branch: "T2"
 
     resolve_types(T2)
 

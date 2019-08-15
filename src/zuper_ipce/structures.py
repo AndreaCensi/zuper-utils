@@ -11,13 +11,11 @@ class CannotResolveTypeVar(Exception):
     pass
 
 
-KK = TypeVar('KK')
-VV = TypeVar('VV')
+KK = TypeVar("KK")
+VV = TypeVar("VV")
 
 
 @my_dataclass
 class FakeValues(Generic[KK, VV]):
     real_key: KK
     value: VV
-
-

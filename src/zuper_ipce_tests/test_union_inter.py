@@ -20,7 +20,7 @@ def test_union_1():
 
     e = MyClass(1)
     assert_object_roundtrip(e, {})  # raise here
-    e = MyClass('a')  # pragma: no cover
+    e = MyClass("a")  # pragma: no cover
     assert_object_roundtrip(e, {})  # pragma: no cover
 
 
@@ -89,7 +89,7 @@ def test_intersection2():
 
     AB = Intersection[A, B]
 
-    e = AB(a=1, b='2')
+    e = AB(a=1, b="2")
     assert_object_roundtrip(e, {})  # raise here
 
 

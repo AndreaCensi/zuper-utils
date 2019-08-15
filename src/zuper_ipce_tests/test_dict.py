@@ -9,22 +9,22 @@ from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.pretty import pprint
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
-from zuper_typing.my_dict import (get_DictLike_args, make_dict, make_list, make_set)
+from zuper_typing.my_dict import get_DictLike_args, make_dict, make_list, make_set
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
+
     @raises(ValueError)
     def test_dict_check_key():
         D = Dict[int, int]
         d = D()
-        d['a'] = 2
-
+        d["a"] = 2
 
     @raises(ValueError)
     def test_dict_check_value():
         D = Dict[int, int]
         d = D()
-        d[2] = 'a'
+        d[2] = "a"
 
 
 def test_dict_int_int0():
@@ -56,7 +56,7 @@ def test_dict_int_int():
 
 @raises(ValueError)
 def test_dict_err():
-    make_dict(int, 'str')
+    make_dict(int, "str")
 
 
 def test_dict_int_str():
@@ -66,7 +66,7 @@ def test_dict_int_str():
 
 def test_dict_int_str2():
     D = make_dict(str, int)
-    d = D({'a': 1, 'b': 2})
+    d = D({"a": 1, "b": 2})
     assert assert_object_roundtrip(d, {})
 
 
@@ -79,10 +79,10 @@ def test_dict_int_str3():
 
     assert_type_roundtrip(C, {})
 
-    d = D({'a': 1, 'b': 2})
+    d = D({"a": 1, "b": 2})
     c = C(d)
     res = assert_object_roundtrip(c, {})
-    x1b = res['x1b']
+    x1b = res["x1b"]
     # print(f"x1b: {debug_print(res['x1b'])}")
     K, V = get_DictLike_args(type(x1b.d))
     assert_equal(V, int)
@@ -101,16 +101,16 @@ def test_dict_int_str4_type():
 def test_dict_int_str4():
     D = make_dict(str, int)
 
-    c = D({'a': 1, 'b': 2})
+    c = D({"a": 1, "b": 2})
     K, V = get_DictLike_args(type(c))
     debug_print = str
-    logger.info(f'c: {debug_print(c)}')
+    logger.info(f"c: {debug_print(c)}")
 
     ipce = ipce_from_object(c)
     c2 = object_from_ipce(ipce, {})
 
-    logger.info(f'ipce: {oyaml_dump(ipce)}')
-    logger.info(f'c2: {debug_print(c2)}')
+    logger.info(f"ipce: {oyaml_dump(ipce)}")
+    logger.info(f"c2: {debug_print(c2)}")
 
     K2, V2 = get_DictLike_args(type(c2))
     assert_equal((K, V), (K2, V2))
@@ -133,7 +133,7 @@ def test_dict_kv03():
 
 def test_dict_copy():
     T = make_dict(int, str)
-    x = T({1: 'a'})
+    x = T({1: "a"})
     y = x.copy()
     assert type(y) is T
 

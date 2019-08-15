@@ -34,6 +34,7 @@ class Contents:
 @dataclass
 class Address:
     """ An address with street and number """
+
     street: str
     number: int
 
@@ -41,6 +42,7 @@ class Address:
 @dataclass
 class Person:
     """ Describes a Person """
+
     first: str
     last: str
     address: Address
@@ -49,6 +51,7 @@ class Person:
 @dataclass
 class Office:
     """ An Office contains people. """
+
     people: Dict[str, Person] = field(default_factory=make_dict(str, Person))
 
 
@@ -74,28 +77,28 @@ def test_ser1():
 
     print(oyaml_dump(Person_schema))
 
-    Address2 = typelike_from_ipce(Person_schema['properties']['address'], {}, {})
+    Address2 = typelike_from_ipce(Person_schema["properties"]["address"], {}, {})
     assert_equal(Address2.__doc__, Address.__doc__)
 
-    assert Person_schema['description'] == Person.__doc__
+    assert Person_schema["description"] == Person.__doc__
     Person2 = typelike_from_ipce(Person_schema, {}, {})
     assert Person2.__doc__ == Person.__doc__
 
-    assert_equal(Person2.__annotations__['address'].__doc__, Address.__doc__)
+    assert_equal(Person2.__annotations__["address"].__doc__, Address.__doc__)
 
     assert_type_roundtrip(Address, {}, expect_type_equal=False)
     assert_type_roundtrip(Person, {}, expect_type_equal=False)
     assert_type_roundtrip(Office, {}, expect_type_equal=False)
 
     x1 = Office()
-    x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
+    x1.people["andrea"] = Person("Andrea", "Censi", Address("Sonnegstrasse", 3))
 
     assert_object_roundtrip(x1, get_symbols())
 
 
 def test_ser2():
     x1 = Office()
-    x1.people['andrea'] = Person('Andrea', 'Censi', Address('Sonnegstrasse', 3))
+    x1.people["andrea"] = Person("Andrea", "Censi", Address("Sonnegstrasse", 3))
 
     assert_object_roundtrip(x1, {}, expect_equality=True)
 
@@ -103,6 +106,7 @@ def test_ser2():
 @dataclass
 class Name:
     """ Describes a Name with optional middle name"""
+
     first: str
     last: str
 
@@ -112,9 +116,10 @@ class Name:
 @dataclass
 class Chain:
     """ Describes a Name with optional middle name"""
+
     value: str
 
-    down: Optional['Chain'] = None
+    down: Optional["Chain"] = None
 
 
 def get_symbols():
@@ -125,50 +130,51 @@ def get_symbols():
     @dataclass
     class FA:
         """ Describes a Name with optional middle name"""
+
         value: str
 
         down: FB
 
     symbols = {
-          'Office':   Office,
-          'Person':   Person,
-          'Address':  Address,
-          'Name':     Name,
-          'Contents': Contents,
-          'Empty':    Empty,
-          'FA':       FA,
-          'FB':       FB,
-          'Chain':    Chain
-          }
+        "Office": Office,
+        "Person": Person,
+        "Address": Address,
+        "Name": Name,
+        "Contents": Contents,
+        "Empty": Empty,
+        "FA": FA,
+        "FB": FB,
+        "Chain": Chain,
+    }
     return symbols
 
 
 def test_optional_1():
-    n1 = Name(first='H', middle='J', last='Wells')
+    n1 = Name(first="H", middle="J", last="Wells")
     assert_object_roundtrip(n1, get_symbols())
 
 
 def test_optional_2():
-    n1 = Name(first='H', last='Wells')
+    n1 = Name(first="H", last="Wells")
     assert_object_roundtrip(n1, get_symbols())
 
 
 def test_optional_3():
-    n1 = Name(first='H', last='Wells')
+    n1 = Name(first="H", last="Wells")
     assert_object_roundtrip(n1, {}, expect_equality=True)
 
 
 def test_recursive():
-    n1 = Chain(value='12')
-    assert_object_roundtrip(n1, {'Chain': Chain})
+    n1 = Chain(value="12")
+    assert_object_roundtrip(n1, {"Chain": Chain})
 
 
 def test_ser_forward1():
     symbols = get_symbols()
-    FA = symbols['FA']
-    FB = symbols['FB']
+    FA = symbols["FA"]
+    FB = symbols["FB"]
 
-    n1 = FA(value='a', down=FB(12))
+    n1 = FA(value="a", down=FB(12))
     # with private_register('test_forward'):
     assert_object_roundtrip(n1, get_symbols())
 
@@ -208,10 +214,7 @@ def test_ser_dict_object():
     class M:
         a: Dict[L, str]
 
-    d = {
-          L(0, 0): 'one',
-          L(1, 1): 'two'
-          }
+    d = {L(0, 0): "one", L(1, 1): "two"}
     m = M(d)
     symbols2 = {L.__qualname__: L}
     assert_object_roundtrip(m, symbols2)
@@ -221,7 +224,7 @@ from nose.tools import raises, assert_equal
 
 
 def test_bytes1():
-    n1 = Contents(b'1234')
+    n1 = Contents(b"1234")
     assert_object_roundtrip(n1, get_symbols())
 
 
@@ -272,13 +275,13 @@ def test_not_union0():
 @raises(ValueError)
 def test_not_str1():
     # noinspection PyTypeChecker
-    ipce_from_typelike('T', {})
+    ipce_from_typelike("T", {})
 
 
 @raises(ValueError)
 def test_not_fref2():
     # noinspection PyTypeChecker
-    ipce_from_typelike(make_ForwardRef('one'), {})
+    ipce_from_typelike(make_ForwardRef("one"), {})
 
 
 def test_any():
@@ -331,12 +334,12 @@ def test_dict_only():
 
 @raises(ValueError)
 def test_str1():
-    ipce_from_typelike('string-arg', {})
+    ipce_from_typelike("string-arg", {})
 
 
 @raises(ValueError)
 def test_forward_ref1():
-    ipce_from_typelike(make_ForwardRef('AA'), {})
+    ipce_from_typelike(make_ForwardRef("AA"), {})
 
 
 @raises(TypeError)
@@ -344,7 +347,7 @@ def test_forward_ref2():
     @dataclass
     class MyClass:
         # noinspection PyUnresolvedReferences
-        f: make_ForwardRef('unknown')
+        f: make_ForwardRef("unknown")
 
     ipce_from_typelike(MyClass, {})
 
@@ -354,7 +357,7 @@ def test_forward_ref3():
     @dataclass
     class MyClass:
         # noinspection PyUnresolvedReferences
-        f: Optional['unknown']
+        f: Optional["unknown"]
 
     # do not put MyClass
     ipce_from_typelike(MyClass, {})
@@ -367,12 +370,12 @@ def test_forward_ref4():
 
     @dataclass
     class MyClass:
-        f: Optional['Other']
+        f: Optional["Other"]
 
         __depends__ = (Other,)
 
     # do not put MyClass
-    ipce_from_typelike(MyClass, {'Other': Other})
+    ipce_from_typelike(MyClass, {"Other": Other})
 
 
 # @raises(NotImplementedError)
@@ -394,7 +397,7 @@ def test_forward_ref4():
 
 
 def test_2_ok():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class M(Generic[X]):
@@ -413,7 +416,7 @@ def test_2_ok():
 
 @raises(Exception)
 def test_2_error():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class M(Generic[X]):
@@ -447,7 +450,7 @@ def test_random_json():
 
 @raises(Exception)
 def test_newtype_1():
-    A = NewType('A', str)
+    A = NewType("A", str)
 
     @dataclass
     class M10:
@@ -458,8 +461,8 @@ def test_newtype_1():
 
 @raises(Exception)
 def test_newtype_2():
-    X = TypeVar('X')
-    A = NewType('A', str)
+    X = TypeVar("X")
+    A = NewType("A", str)
 
     @dataclass
     class M11(Generic[X]):
@@ -507,6 +510,6 @@ def test_optional0():
     assert_object_roundtrip(T, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup_logging()
     test_ser0()

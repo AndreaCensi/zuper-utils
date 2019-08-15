@@ -5,6 +5,7 @@ from .constants import ANNOTATIONS_ATT, INTERSECTION_ATT, PYTHON_36
 
 def Intersection_item(cls, params):
     from .zeneric2 import as_tuple
+
     types = as_tuple(params)
     name = f'Intersection[{",".join(_.__name__ for _ in types)}]'
 
@@ -14,10 +15,7 @@ def Intersection_item(cls, params):
         a = getattr(t, ANNOTATIONS_ATT, {})
         annotations.update(a)
 
-    res = {
-          ANNOTATIONS_ATT:  annotations,
-          INTERSECTION_ATT: types
-          }
+    res = {ANNOTATIONS_ATT: annotations, INTERSECTION_ATT: types}
 
     for k in annotations:
         for t in types:
@@ -32,15 +30,17 @@ def Intersection_item(cls, params):
 
 
 if PYTHON_36:  # pragma: no cover
-    class IntersectionMeta(type):
 
+    class IntersectionMeta(type):
         def __getitem__(self, params):
             return Intersection_item(self, params)
 
-
     class Intersection(metaclass=IntersectionMeta):
         pass
+
+
 else:
+
     class Intersection:
         @classmethod
         def __class_getitem__(cls, params):

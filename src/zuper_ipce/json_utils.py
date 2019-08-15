@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from .base64_utils import encode_bytes_base64, is_encoded_bytes_base64, decode_bytes_base64
+from .base64_utils import (
+    encode_bytes_base64,
+    is_encoded_bytes_base64,
+    decode_bytes_base64,
+)
 
 
 # def json_dump(x) -> str:
@@ -39,7 +43,7 @@ def transform_leaf(x, transform):
 
 from decimal import Decimal
 
-DECIMAL_PREFIX = 'decimal:'
+DECIMAL_PREFIX = "decimal:"
 
 
 def encode_bytes_before_json_serialization(x0):
@@ -61,7 +65,7 @@ def decode_bytes_before_json_deserialization(x0):
         if isinstance(x, str) and is_encoded_bytes_base64(x):
             return decode_bytes_base64(x)
         elif isinstance(x, str) and x.startswith(DECIMAL_PREFIX):
-            x = x.replace(DECIMAL_PREFIX, '')
+            x = x.replace(DECIMAL_PREFIX, "")
             return Decimal(x)
         else:
             return x

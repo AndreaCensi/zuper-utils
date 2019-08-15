@@ -2,7 +2,7 @@ import hashlib
 
 import base58
 
-__all__ = ['get_sha256_base58']
+__all__ = ["get_sha256_base58"]
 
 
 def get_sha256_base58(contents):

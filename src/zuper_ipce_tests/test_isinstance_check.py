@@ -20,7 +20,7 @@ def test1():
         c: str
 
     c1 = C1(1, 2)
-    c2 = C2(1, 2, 'a')
+    c2 = C2(1, 2, "a")
 
     assert isinstance(c1, C1)
     assert isinstance(c2, C2)
@@ -49,7 +49,7 @@ def test2():
 
 
 def test3():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class CB(Generic[X]):
@@ -76,11 +76,10 @@ def test3():
     assert issubclass(C5, C5_)
     assert issubclass(C5, CB)
 
-    logger.info(f'CB {id(CB)}')
+    logger.info(f"CB {id(CB)}")
     logger.info(type(CB))
     logger.info(CB.mro())
-    logger.info(f'C5_ {id(C5_)}')
+    logger.info(f"C5_ {id(C5_)}")
     logger.info(type(C5_))
     logger.info(C5_.mro())
     assert issubclass(C5_, CB)
-

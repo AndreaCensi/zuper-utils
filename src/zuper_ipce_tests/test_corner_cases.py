@@ -1,4 +1,18 @@
-from typing import Any, ClassVar, Dict, Generic, List, NewType, Optional, Sequence, Set, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Generic,
+    List,
+    NewType,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from nose.tools import assert_equal, raises
 
@@ -9,11 +23,22 @@ from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.ipce_spec import assert_sorted_dict_with_cbor_ordering
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
-from zuper_ipce_tests.test_utils import (NotEquivalent, assert_equivalent_types, assert_object_roundtrip,
-                                         assert_type_roundtrip)
+from zuper_ipce_tests.test_utils import (
+    NotEquivalent,
+    assert_equivalent_types,
+    assert_object_roundtrip,
+    assert_type_roundtrip,
+)
 from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import (get_NewType_arg, get_NewType_name, get_NewType_repr, is_Any, is_NewType,
-                                             is_Type, name_for_type_like)
+from zuper_typing.annotations_tricks import (
+    get_NewType_arg,
+    get_NewType_name,
+    get_NewType_repr,
+    is_Any,
+    is_NewType,
+    is_Type,
+    name_for_type_like,
+)
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing_tests.test_utils import known_failure
@@ -54,7 +79,7 @@ def test_property_error():
     assert not ok.result
 
     # noinspection PyTypeChecker
-    ob = MyClass32('not an int')
+    ob = MyClass32("not an int")
     # ipce_to_object(ob, {}, {}, expect_type=MyClass32)
     res = ipce_from_object(ob, {}, {})
     # print(yaml.dump(res))
@@ -87,16 +112,16 @@ def test_corner_cases08():
 
 
 def test_newtype1():
-    T = NewType('a', int)
+    T = NewType("a", int)
     assert is_NewType(T)
     assert_equal(get_NewType_arg(T), int)
-    assert_equal(get_NewType_name(T), 'a')
+    assert_equal(get_NewType_name(T), "a")
     assert_equal(get_NewType_repr(T), "NewType('a', int)")
     assert_equal(name_for_type_like(T), "NewType('a', int)")
 
 
 def test_newtype2():
-    T = NewType('a', Any)
+    T = NewType("a", Any)
     assert is_NewType(T)
     assert is_Any(get_NewType_arg(T))
     assert_equal(get_NewType_repr(T), "NewType('a')")
@@ -129,7 +154,7 @@ def test_default1():
 
 
 def test_default2():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class C(Generic[X]):
@@ -141,7 +166,7 @@ def test_default2():
     C2 = typelike_from_ipce(ipce1, {}, {})
     # print(debug_print(C))
     print(oyaml_dump(ipce1))
-    assert ipce1['properties']['a']['default'] == False
+    assert ipce1["properties"]["a"]["default"] == False
     # print(debug_print(C2))
     ipce2 = ipce_from_typelike(C2, {})
     assert ipce1 == ipce2
@@ -153,7 +178,9 @@ def test_type1():
 
 
 def test_parsing():
-    schema_bool = """{$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}"""
+    schema_bool = (
+        """{$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}"""
+    )
     ipce = oyaml_load(schema_bool)
     T0 = typelike_from_ipce(ipce, {}, {})
     assert T0 is bool, T0
@@ -176,10 +203,10 @@ a: true
     """
     ipce = oyaml_load(a)
 
-    T = typelike_from_ipce(ipce['$schema'], {}, {})
+    T = typelike_from_ipce(ipce["$schema"], {}, {})
     print(T)
     print(T.__annotations__)
-    assert T.__annotations__['a'] is bool, T.__annotations__
+    assert T.__annotations__["a"] is bool, T.__annotations__
 
     ob = object_from_ipce(ipce, {})
 
@@ -212,14 +239,14 @@ def test_error_list2b():
 
 @raises(TypeError)
 def test_error_scalar1():
-    a = 's'
+    a = "s"
     S = Union[int, bool]
     ipce = ipce_from_object(a, suggest_type=S)
 
 
 @raises(TypeError)
 def test_error_scalar2():
-    a = 's'
+    a = "s"
     S = Union[int, bool]
     object_from_ipce(a, {}, {}, expect_type=S)
 
@@ -275,9 +302,9 @@ def test_corner_optional_with_default():
     assert_object_roundtrip(a, {})
 
     ipce = ipce_from_typelike(MyCD, {})
-    logger.info('yaml:\n\n' + oyaml_dump(ipce))
-    assert ipce['properties']['a']['default'] == True
-    assert 'required' not in ipce
+    logger.info("yaml:\n\n" + oyaml_dump(ipce))
+    assert ipce["properties"]["a"]["default"] == True
+    assert "required" not in ipce
 
 
 def test_corner_optional_with_default2():
@@ -291,9 +318,9 @@ def test_corner_optional_with_default2():
     assert_object_roundtrip(a, {})
 
     ipce = ipce_from_typelike(MyCD2, {})
-    logger.info('yaml:\n\n' + oyaml_dump(ipce))
-    assert ipce['properties']['a']['default'] == True
-    assert 'required' not in ipce
+    logger.info("yaml:\n\n" + oyaml_dump(ipce))
+    assert ipce["properties"]["a"]["default"] == True
+    assert "required" not in ipce
 
 
 def test_sequence():
@@ -422,7 +449,7 @@ def test_not_equal10():
 
 
 def test_type():
-    X = TypeVar('X')
+    X = TypeVar("X")
 
     @dataclass
     class MyClass(Generic[X]):
@@ -463,14 +490,14 @@ def test_corner_tuple1():
 
 
 def test_corner_tuple2():
-    x = (1, 'a')
+    x = (1, "a")
     T = Optional[Tuple[int, str]]
     ipce_from_object(x, suggest_type=T)
 
 
 @raises(TypeError)
 def test_corner_tuple3():
-    x = (1, 'a')
+    x = (1, "a")
     T = Dict[str, str]
     ipce_from_object(x, suggest_type=T)
 
@@ -516,7 +543,7 @@ def test_corner_list_Any():
 
 @raises(ValueError)
 def test_corner_ipce():
-    res = {'aa': 1, 'a': 2}
+    res = {"aa": 1, "a": 2}
     assert_sorted_dict_with_cbor_ordering(res)
 
 
