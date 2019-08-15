@@ -8,7 +8,7 @@ import numpy as np
 from frozendict import frozendict
 
 from zuper_commons.text import pretty_dict
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike_ndarray
+from .conv_ipce_from_typelike import ipce_from_typelike_ndarray
 from zuper_typing.annotations_tricks import (
     get_Optional_arg,
     get_Union_args,

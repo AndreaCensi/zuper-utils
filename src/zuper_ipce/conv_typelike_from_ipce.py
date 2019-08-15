@@ -19,7 +19,6 @@ from typing import (
 import numpy as np
 
 from zuper_commons.types import check_isinstance
-from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import (
     is_Any,
     is_ForwardRef,
@@ -81,6 +80,7 @@ from .constants import (
 from .pretty import pretty_dict
 from .structures import CannotFindSchemaReference
 from .types import TypeLike
+from .utils_text import oyaml_dump
 
 
 @dataclass

@@ -10,7 +10,6 @@ import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
 from zuper_commons.text import indent, pretty_dict
-from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import (
     get_FixedTuple_args,
     get_Optional_arg,
@@ -46,6 +45,7 @@ from .constants import (
 from .numpy_encoding import numpy_array_from_ipce
 from .structures import FakeValues
 from .types import IPCE
+from .utils_text import oyaml_dump
 
 
 def object_from_ipce(

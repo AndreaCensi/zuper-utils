@@ -4,7 +4,7 @@ from decimal import Decimal
 from numbers import Number
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
-from zuper_typing.annotations_tricks import (
+from .annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
     get_FixedTuple_args,
@@ -35,7 +35,7 @@ from zuper_typing.annotations_tricks import (
     make_Tuple,
     make_VarTuple,
 )
-from zuper_typing.my_dict import (
+from .my_dict import (
     get_CustomList_arg,
     get_DictLike_args,
     get_SetLike_arg,

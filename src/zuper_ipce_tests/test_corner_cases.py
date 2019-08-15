@@ -565,8 +565,6 @@ def test_corner_classvar():
 
 
 def test_corner_classvar2():
-    a = "2"
-
     @dataclass
     class Dog42:
         x: ClassVar[Type[int]] = int
