@@ -1,7 +1,6 @@
-from zuper_typing import dataclass
-
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.pretty import pprint
+from zuper_typing import dataclass
 from zuper_typing.my_dict import make_dict
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 

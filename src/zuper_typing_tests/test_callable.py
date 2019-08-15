@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from zuper_typing.monkey_patching_typing import MyNamedArg as NamedArg
 from nose.tools import assert_equal
 
-from zuper_typing.annotations_tricks import is_Callable, get_Callable_info
 from zuper_ipce_tests.test_utils import assert_type_roundtrip
+from zuper_typing.annotations_tricks import get_Callable_info, is_Callable
+from zuper_typing.monkey_patching_typing import MyNamedArg as NamedArg
 
 
 def test_detection_1():

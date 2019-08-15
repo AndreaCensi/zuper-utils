@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Set, Tuple, TypeVar, Optional
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple, TypeVar
 
 from nose.tools import assert_equal, raises
 

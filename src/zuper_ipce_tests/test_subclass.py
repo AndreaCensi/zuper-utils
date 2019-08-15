@@ -1,6 +1,6 @@
-from zuper_typing import dataclass
-from typing import TypeVar, Generic
+from typing import Generic, TypeVar
 
+from zuper_typing import dataclass
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 symbols = {}

@@ -1,12 +1,13 @@
 import json
 from dataclasses import field
-from zuper_typing import dataclass
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 from zuper_ipce.json_utils import encode_bytes_before_json_serialization
 from zuper_ipce.numpy_encoding import ipce_from_numpy_array, numpy_array_from_ipce
-from .test_utils import assert_type_roundtrip, assert_object_roundtrip
+from zuper_typing import dataclass
+from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
 # def array_eq(arr1, arr2):

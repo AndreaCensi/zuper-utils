@@ -16,7 +16,7 @@ from typing import (
 
 from nose.tools import assert_equal
 
-from zuper_typing import dataclass, Generic
+from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (
     get_Callable_info,
     is_Any,

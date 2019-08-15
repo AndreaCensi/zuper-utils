@@ -1,6 +1,6 @@
-from zuper_typing import dataclass
 from decimal import Decimal
 
+from zuper_typing import dataclass
 from .test_utils import assert_object_roundtrip
 
 

@@ -1,10 +1,10 @@
 import json
-from zuper_typing import dataclass
 from typing import Optional
 
 from jsonschema import validate
 
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_typing import dataclass
 
 
 @dataclass

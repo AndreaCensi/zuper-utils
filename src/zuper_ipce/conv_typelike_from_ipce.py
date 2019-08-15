@@ -17,7 +17,6 @@ from typing import (
 )
 
 import numpy as np
-import yaml
 
 from zuper_commons.types import check_isinstance
 from zuper_ipce.utils_text import oyaml_dump
@@ -555,7 +554,6 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
-
 
 #
 # @loglevel

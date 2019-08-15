@@ -21,7 +21,6 @@ def numpy_array_from_ipce(d: IPCE) -> np.ndarray:
     res = a.reshape(shape)
     return res
 
-
 #
 #
 # def bytes_from_numpy(a: np.ndarray) -> bytes:

@@ -1,7 +1,7 @@
-from zuper_typing import dataclass
 from typing import Optional
 
 from zuper_ipce_tests.test_utils import assert_type_roundtrip
+from zuper_typing import dataclass
 
 
 def test_recursive01():

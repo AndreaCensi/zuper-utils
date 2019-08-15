@@ -1,8 +1,6 @@
 from nose.tools import raises
 
 from zuper_typing import dataclass
-
-
 from zuper_typing.subcheck import can_be_used_as2
 
 

@@ -3,7 +3,7 @@ import inspect
 import traceback
 from dataclasses import Field, is_dataclass
 from decimal import Decimal
-from typing import Any, Dict, Optional, cast, List
+from typing import Any, Dict, Optional, cast
 
 import numpy as np
 import yaml
@@ -32,8 +32,8 @@ from zuper_typing.my_dict import (
     is_ListLike,
     is_SetLike,
     make_dict,
-    make_set,
     make_list,
+    make_set,
 )
 from .constants import (
     HINTS_ATT,

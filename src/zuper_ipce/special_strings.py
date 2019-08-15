@@ -1,5 +1,5 @@
 from collections import UserString
-from typing import NewType, Dict, Callable
+from typing import Callable, Dict, NewType
 
 
 def valid_email(s):

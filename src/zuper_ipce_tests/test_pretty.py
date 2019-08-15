@@ -1,6 +1,7 @@
-from zuper_typing import dataclass
 from datetime import datetime
-from typing import TypeVar, Dict
+from typing import Dict, TypeVar
+
+from zuper_typing import dataclass
 
 
 def test_pretty1():

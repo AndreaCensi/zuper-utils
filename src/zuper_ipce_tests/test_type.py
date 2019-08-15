@@ -1,7 +1,7 @@
 import dataclasses
 import json
-from zuper_typing import dataclass
 
+from zuper_typing import dataclass
 from zuper_typing.logging import logger
 
 logger.info("")

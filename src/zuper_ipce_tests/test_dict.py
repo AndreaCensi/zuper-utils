@@ -13,12 +13,12 @@ from zuper_typing.my_dict import get_DictLike_args, make_dict, make_list, make_s
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 if False:
-
     @raises(ValueError)
     def test_dict_check_key():
         D = Dict[int, int]
         d = D()
         d["a"] = 2
+
 
     @raises(ValueError)
     def test_dict_check_value():

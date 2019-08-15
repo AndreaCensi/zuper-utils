@@ -1,9 +1,9 @@
-from zuper_typing import dataclass
 from typing import Dict, Optional, Set, Tuple, Union
 
 from nose.tools import raises
 
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import make_Tuple
 from zuper_typing.my_dict import make_dict, make_list, make_set
 from zuper_typing.my_intersection import Intersection

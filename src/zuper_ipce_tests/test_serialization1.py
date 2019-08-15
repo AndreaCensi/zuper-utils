@@ -14,6 +14,7 @@ from zuper_typing.my_dict import make_dict
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
+
 # #
 # try:
 #     from typing import ForwardRef

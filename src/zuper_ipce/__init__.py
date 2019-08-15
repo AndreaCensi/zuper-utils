@@ -3,7 +3,6 @@ from .logging import logger
 
 logger.info(f"zj {__version__}")
 
-
 # noinspection PyUnresolvedReferences
 from typing import Generic
 

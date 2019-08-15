@@ -6,16 +6,16 @@ import traceback
 from io import BufferedReader
 from json import JSONDecodeError
 from typing import Iterator
-from .utils_text import oyaml_dump
+
 import base58
 import cbor2
-import yaml
 
 from . import logger
 from .json_utils import (
     decode_bytes_before_json_deserialization,
     encode_bytes_before_json_serialization,
 )
+from .utils_text import oyaml_dump
 
 __all__ = [
     "read_cbor_or_json_objects",

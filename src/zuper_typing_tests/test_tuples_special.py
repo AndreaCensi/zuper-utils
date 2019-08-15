@@ -5,9 +5,9 @@ from zuper_typing.annotations_tricks import (
     is_Any,
     is_FixedTuple,
     is_Tuple,
+    is_TupleLike,
     is_VarTuple,
     make_Tuple,
-    is_TupleLike,
 )
 
 #

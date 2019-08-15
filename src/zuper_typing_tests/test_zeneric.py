@@ -1,14 +1,14 @@
-from typing import ClassVar, Type, TypeVar, Generic
+from typing import ClassVar, Generic, Type, TypeVar
 
-from nose.tools import raises, assert_equal
+from nose.tools import assert_equal, raises
 
-from zuper_typing.constants import enable_type_checking
 from zuper_typing.annotations_tricks import (
-    is_ClassVar,
     get_ClassVar_arg,
-    is_Type,
     get_Type_arg,
+    is_ClassVar,
+    is_Type,
 )
+from zuper_typing.constants import enable_type_checking
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.subcheck import can_be_used_as2
 
@@ -110,7 +110,6 @@ def test_check_bound2():
 
 
 if enable_type_checking:
-
     @raises(ValueError, TypeError)  # typerror in 3.6
     def test_check_value():
         @dataclass
@@ -118,7 +117,6 @@ if enable_type_checking:
             a: int
 
         CG[int](a="a")
-
 
 if __name__ == "__main__":
     test_check_bound1()

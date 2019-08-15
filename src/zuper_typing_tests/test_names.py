@@ -1,12 +1,8 @@
-from typing import ClassVar, Dict, Iterable, Type, IO
+from typing import ClassVar, Dict, IO, Iterable
 
 from mypy_extensions import NamedArg
 
-from zuper_typing.annotations_tricks import (
-    name_for_type_like,
-    make_ForwardRef,
-    get_Type_arg,
-)
+from zuper_typing.annotations_tricks import make_ForwardRef, name_for_type_like
 from zuper_typing.monkey_patching_typing import original_dict_getitem
 from zuper_typing.my_dict import make_set
 

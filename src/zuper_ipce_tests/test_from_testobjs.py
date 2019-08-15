@@ -1,5 +1,4 @@
 import gzip
-from zuper_typing import dataclass
 from typing import Iterator
 from unittest import SkipTest
 
@@ -9,6 +8,7 @@ from zuper_commons.fs import locate_files, os, read_bytes_from_file
 from zuper_ipce import IPCE
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_typing import dataclass
 
 
 @dataclass

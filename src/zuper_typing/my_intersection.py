@@ -35,6 +35,7 @@ if PYTHON_36:  # pragma: no cover
         def __getitem__(self, params):
             return Intersection_item(self, params)
 
+
     class Intersection(metaclass=IntersectionMeta):
         pass
 

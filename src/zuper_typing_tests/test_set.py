@@ -2,7 +2,7 @@ from typing import Set
 
 from nose.tools import assert_equal
 
-from zuper_typing.my_dict import make_set, get_SetLike_name
+from zuper_typing.my_dict import get_SetLike_name, make_set
 
 
 def test_set_1():
