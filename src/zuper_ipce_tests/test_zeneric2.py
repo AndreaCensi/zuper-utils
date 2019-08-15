@@ -479,14 +479,14 @@ $id: http://invalid.json-schema.org/Entity2[X]#
 $schema: http://json-schema.org/draft-07/schema#
 definitions:
   X: {$id: 'http://invalid.json-schema.org/Entity2[X]/X#', $schema: 'http://json-schema.org/draft-07/schema#'}
-description: 
+description:
 properties:
   parent: {$ref: 'http://invalid.json-schema.org/Entity2[X]#', default: null}
 required: [data0, guid, security_model]
 __qualname__: QUAL
 __module__: module
 title: Entity2[X]
-type: object    
+type: object
     """,
         Loader=yaml.SafeLoader,
     )
