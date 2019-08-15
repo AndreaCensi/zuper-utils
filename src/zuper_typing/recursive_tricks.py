@@ -82,7 +82,6 @@ def replace_typevars(cls, *, bindings, symbols):
 
     if hasattr(cls, "__name__") and cls.__name__ in symbols:
         return symbols[cls.__name__]
-
     elif (isinstance(cls, str) or is_TypeVar(cls)) and cls in bindings:
         return bindings[cls]
     elif hasattr(cls, "__name__") and cls.__name__.startswith("Placeholder"):
@@ -101,9 +100,6 @@ def replace_typevars(cls, *, bindings, symbols):
             return symbols[cls]
         g = dict(get_default_attrs())
         g.update(symbols)
-        # for t, u in zip(types, types2):
-        #     g[t.__name__] = u
-        #     g[u.__name__] = u
         g0 = dict(g)
         try:
             return eval(cls, g)
@@ -113,7 +109,6 @@ def replace_typevars(cls, *, bindings, symbols):
             raise NameError(msg) from e
     elif is_NewType(cls):
         return cls
-
     elif is_Type(cls):
         x = get_Type_arg(cls)
         r = r(x)

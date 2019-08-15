@@ -568,6 +568,7 @@ def test_check_bound2():
 
 
 if enable_type_checking:
+
     @raises(ValueError, TypeError)  # typerror in 3.6
     def test_check_value():
         @dataclass

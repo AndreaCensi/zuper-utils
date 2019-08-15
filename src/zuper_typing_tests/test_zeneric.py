@@ -110,6 +110,7 @@ def test_check_bound2():
 
 
 if enable_type_checking:
+
     @raises(ValueError, TypeError)  # typerror in 3.6
     def test_check_value():
         @dataclass
@@ -117,6 +118,7 @@ if enable_type_checking:
             a: int
 
         CG[int](a="a")
+
 
 if __name__ == "__main__":
     test_check_bound1()

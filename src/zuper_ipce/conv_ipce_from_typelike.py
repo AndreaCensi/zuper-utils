@@ -775,6 +775,7 @@ def ipce_from_typelike_Optional(t, c: IFTContext) -> TRE:
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, used)
 
+
 #
 # def ipce_from_typelike_generic(T: Type, globals_: GlobalsDict, processing_: ProcessingDict) -> JSONSchema:
 #     assert hasattr(T, GENERIC_ATT2)

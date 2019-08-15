@@ -41,7 +41,6 @@ if PYTHON_36:  # pragma: no cover
 
     old_one = GenericMeta.__getitem__
 
-
     class P36Generic:
         def __getitem__(self, params):
             # pprint('P36', params=params, self=self)
@@ -55,7 +54,6 @@ if PYTHON_36:  # pragma: no cover
 
             # noinspection PyArgumentList
             return old_one(self, params)
-
 
     GenericMeta.__getitem__ = P36Generic.__getitem__
 

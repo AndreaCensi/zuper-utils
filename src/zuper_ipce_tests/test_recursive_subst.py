@@ -150,6 +150,7 @@ def test_classvar():
 
     assert get_ClassVar_arg(U2) is bool, U
 
+
 #
 # def test_list_swap():
 #     def swap(x):

@@ -84,7 +84,8 @@ class Caches:
 
 def make_VarTuple(a: type):
     args = (a, ...)
-    return make_Tuple(*args)
+    res = make_Tuple(*args)
+    return res
 
 
 def make_Tuple(*a):

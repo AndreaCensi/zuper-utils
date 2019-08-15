@@ -554,3 +554,27 @@ def test_corner_same_default_value():
 
     c = SameDefault(2)
     assert_object_roundtrip(c, {})
+
+
+def test_corner_classvar():
+    @dataclass
+    class Dog41:
+        x: ClassVar[Type[int]]
+
+    assert_type_roundtrip(Dog41, {})
+
+
+def test_corner_classvar2():
+    @dataclass
+    class Dog42:
+        x: ClassVar[Type[int]] = int
+
+    assert_type_roundtrip(Dog42, {})
+
+
+def test_corner_classvar3():
+    @dataclass
+    class Dog43:
+        x: ClassVar[Type[int]] = Union[int, bool]
+
+    assert_type_roundtrip(Dog43, {})

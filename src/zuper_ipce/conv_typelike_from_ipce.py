@@ -555,6 +555,7 @@ def fix_annotations_with_self_reference(T, cls_name, Placeholder):
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
 
+
 #
 # @loglevel
 # def typelike_from_ipce_generic(res: JSONSchema, global_symbols: dict, encountered: dict, rl: RecLogger = None) ->

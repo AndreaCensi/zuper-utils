@@ -296,6 +296,8 @@ def test_replace_typevars():
         (Any, {}, Any),
         (List[X], {X2: str}, List[str]),
         (Tuple[X], {X2: str}, Tuple[str]),
+        (Tuple[X, ...], {X2: str}, Tuple[str, ...]),
+        (Tuple[bool, ...], {X2: str}, Tuple[bool, ...]),
         (Callable[[X], Y], {X2: str, Y: int}, Callable[[str], int]),
         (Optional[X], {X2: str}, Optional[str]),
         (Union[X, Y], {X2: str, Y: int}, Union[str, int]),
