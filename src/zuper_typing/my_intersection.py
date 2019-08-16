@@ -4,10 +4,11 @@ from .constants import ANNOTATIONS_ATT, INTERSECTION_ATT, PYTHON_36
 
 
 def Intersection_item(cls, params):
+    from .annotations_tricks import name_for_type_like
     from .zeneric2 import as_tuple
 
     types = as_tuple(params)
-    name = f'Intersection[{",".join(_.__name__ for _ in types)}]'
+    name = f'Intersection[{",".join(name_for_type_like(_) for _ in types)}]'
 
     annotations = {}
     any_dataclass = any(is_dataclass(_) for _ in types)

@@ -1,4 +1,5 @@
 import datetime
+import traceback
 from dataclasses import fields, is_dataclass
 from decimal import Decimal
 from typing import Any, Dict, Optional, Tuple
@@ -7,7 +8,7 @@ import cbor2
 import numpy as np
 from frozendict import frozendict
 
-from zuper_commons.text import pretty_dict
+from zuper_commons.text import pretty_dict, indent
 from .conv_ipce_from_typelike import ipce_from_typelike_ndarray
 from zuper_typing.annotations_tricks import (
     get_Optional_arg,
@@ -24,6 +25,7 @@ from zuper_typing.annotations_tricks import (
     is_TupleLike,
     is_Union,
     is_VarTuple,
+    name_for_type_like,
 )
 from zuper_typing.my_dict import (
     get_CustomDict_args,
@@ -185,10 +187,13 @@ def ipce_from_object_union(ob, globals_, with_schema, suggest_type) -> IPCE:
                 ob, globals_=globals_, with_schema=with_schema, suggest_type=Ti
             )
         except BaseException as e:
-            errors.append((Ti, e))
+            errors.append((Ti, traceback.format_exc()))
 
     msg = "Cannot save union."
-    d = {"value": ob, "errors": errors}
+    for Ti, m in errors:
+        msg += "\n\n" + indent(m, "", name_for_type_like(Ti) + ": ")
+
+    d = {"value": ob}
     raise TypeError(pretty_dict(msg, d))
 
 
