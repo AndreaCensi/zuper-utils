@@ -72,14 +72,6 @@ def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
-#
-# def map_none_to_nonetype(x):
-#     if x is None:
-#         return type(None)
-#     else:
-#         return x
-
-
 class ZenericFix:
     class CannotInstantiate(TypeError):
         ...

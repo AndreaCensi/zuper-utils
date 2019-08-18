@@ -1,10 +1,13 @@
 import dataclasses
+import traceback
 import typing
 from datetime import datetime
 from typing import Dict, Generic, TypeVar
 
 import termcolor
 
+from zuper_commons.text.boxing import box
+from zuper_commons.text.text_sidebyside import side_by_side
 from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
@@ -382,13 +385,14 @@ def debug_print_str(x: str, prefix: str):
 
     lines = x.split("\n")
     if len(lines) > 1:
-
-        lines[0] = lines[0] + ps
-        lines2 = ["%" + _ + "%" for _ in lines]
-        r = "\n".join(lines2)
-        return r
+        try:
+            res = box(x, color="yellow", attrs=["dark"])
+            return side_by_side([res, ps])
+        except:
+            print(traceback.format_exc())
+            return "?"
     else:
-        return "`" + x + "`"
+        return "`" + x + "`" + ps
     # return x.__repr__() + ps
 
 

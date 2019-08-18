@@ -264,7 +264,7 @@ def replace_typevars(cls, *, bindings, symbols):
         return cls
     elif isinstance(cls, type):
 
-        logger.warning(f"extraneous class {cls}")
+        # logger.warning(f"extraneous class {cls}")
         return cls
     else:
         raise NotImplementedError(cls)
