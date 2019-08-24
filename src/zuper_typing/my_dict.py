@@ -1,4 +1,5 @@
-from typing import Any, ClassVar, Tuple
+from dataclasses import is_dataclass
+from typing import Any, ClassVar, Tuple, Type
 
 from .annotations_tricks import (
     get_Dict_args,
@@ -168,6 +169,8 @@ def make_set(V) -> type:
         if V in Caches.make_set_cache:
             return Caches.make_set_cache[V]
 
+    assert_good_typelike(V)
+
     class MyType(type):
         def __eq__(self, other):
             V2 = getattr(self, "__set_type__")
@@ -194,10 +197,21 @@ def make_set(V) -> type:
     return res
 
 
+def assert_good_typelike(x):
+    if isinstance(x, type):
+        return
+    if is_dataclass(type(x)):
+        n = type(x).__name__
+        if n in ["Constant"]:
+            raise AssertionError(x)
+
+
 def make_list(V) -> type:
     if Caches.use_cache:
         if V in Caches.make_list_cache:
             return Caches.make_list_cache[V]
+
+    assert_good_typelike(V)
 
     class MyType(type):
         def __eq__(self, other):
@@ -237,6 +251,9 @@ def make_dict(K, V) -> type:
 
         if key in Caches.make_dict_cache:
             return Caches.make_dict_cache[key]
+
+    assert_good_typelike(K)
+    assert_good_typelike(V)
 
     class MyType(type):
         def __eq__(self, other):

@@ -31,6 +31,7 @@ from zuper_typing.my_dict import (
     is_ListLike,
     is_SetLike,
 )
+from zuper_typing.my_intersection import is_Intersection, get_Intersection_args
 from zuper_typing_tests.test_utils import known_failure
 
 
@@ -227,6 +228,13 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             ts2 = get_Union_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
+        elif is_Intersection(T1):
+            if not is_Intersection(T2):
+                raise NotEquivalent((T1, T2))
+            ts1 = get_Intersection_args(T1)
+            ts2 = get_Intersection_args(T2)
+            for t1, t2 in zip(ts1, ts2):
+                assert_equivalent_types(t1, t2, assume_yes)
         elif is_FixedTuple(T1):
             if not is_FixedTuple(T2):
                 raise NotEquivalent((T1, T2))
@@ -311,7 +319,9 @@ def save_object(x: object, ipce: object):
         # write_ustring_to_utf8_file(yaml.dump(y1), fn)
         fn = os.path.join(dn, digest + ".object.ansi")
         s = debug_print(x)  # '\n\n as ipce: \n\n' + debug_print(ipce) \
-        s += "\n\n as YAML: \n\n" + oyaml_dump(ipce)
+        write_ustring_to_utf8_file(s, fn)
+        fn = os.path.join(dn, digest + ".ipce.yaml")
+        s = oyaml_dump(ipce)
         write_ustring_to_utf8_file(s, fn)
 
 

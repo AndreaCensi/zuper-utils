@@ -3,6 +3,7 @@ from typing import Any, Dict, Tuple, Union
 
 from .constants import NAME_ARG, PYTHON_36
 
+paranoid = False
 
 # noinspection PyProtectedMember
 def is_Optional(x):
@@ -121,6 +122,8 @@ def make_Tuple(*a):
 
 
 def _check_valid_arg(x):
+    if not paranoid:
+        return
     if isinstance(x, str):  # pragma: no cover
         msg = f"The annotations must be resolved: {x!r}"
         raise ValueError(msg)

@@ -158,58 +158,36 @@ class ZenericFix:
 
 class StructuralTyping(type):
     def __subclasscheck__(self, subclass) -> bool:
-        can = can_be_used_as2(subclass, self, {})
+        can = can_be_used_as2(subclass, self)
         # logger.info(
         #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass}
         #     {id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
+        T = type(instance)
+        if T is self:
+            return True
+        if not is_dataclass(T):
+            return False
         i = super().__instancecheck__(instance)
         if i:
             return True
 
         # loadable  - To remove
-        if "Loadable" in type(instance).__name__ and hasattr(
-            instance, "T"
-        ):  # pragma: no cover
+        if "Loadable" in T.__name__ and hasattr(instance, "T"):  # pragma: no cover
             if hasattr(instance, "T"):
                 T = getattr(instance, "T")
-                can = can_be_used_as2(T, self, {})
+                can = can_be_used_as2(T, self)
                 if can.result:
                     return True
 
-        res = can_be_used_as2(type(instance), self, {})
+        res = can_be_used_as2(T, self)
 
         return res.result
 
 
 class MyABC(StructuralTyping, ABCMeta):
-    #
-    # def __subclasscheck__(self, subclass) -> bool:
-    #
-    #     can = can_be_used_as2(subclass, self, {})
-    #     # logger.info(f'MyABC: Performing __subclasscheck__ {self} {id(self)} {subclass} {
-    #     # id(subclass)}: {can}')
-    #     return can.result
-
-    # def __instancecheck__(self, instance) -> bool:
-    #     i = super().__instancecheck__(instance)
-    #     if i:
-    #         return True
-    #
-    #     # loadable  - To remove
-    #     if 'Loadable' in type(instance).__name__ and hasattr(instance, 'T'): # pragma: no cover
-    #         T = getattr(instance, 'T')
-    #         logger.info(f'Comparing {self} and type {type(instance)} {T}')
-    #         can = can_be_used_as2(T, self, {})
-    #         if can.result:
-    #             return True
-    #
-    #     res = can_be_used_as2(type(instance), self, {})
-    #
-    #     return res.results
-
     def __new__(mcls, name_orig, bases, namespace, **kwargs):
         # logger.info(f'----\nCreating name: {name}')
         # logger.info('namespace: %s' % namespace)

@@ -19,51 +19,52 @@ from nose.tools import assert_equal
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (
     get_Callable_info,
-    is_Any,
     is_Callable,
     is_Iterator,
     is_Sequence,
-    is_Tuple,
     name_for_type_like,
 )
 from zuper_typing.my_dict import make_list, make_set
 from zuper_typing.recursive_tricks import replace_typevars
 from zuper_typing.subcheck import can_be_used_as2
 
+X = TypeVar("X")
+Y = TypeVar("Y")
+
 
 def test_corner_cases10():
-    assert can_be_used_as2(str, str, {})
-    assert not can_be_used_as2(str, int, {})
+    assert can_be_used_as2(str, str)
+    assert not can_be_used_as2(str, int)
 
 
 def test_corner_cases11():
-    assert can_be_used_as2(Dict, Dict, {})
-    assert can_be_used_as2(Dict[str, str], Dict[str, str], {})
-    assert can_be_used_as2(Dict[str, str], Dict[str, Any], {})
+    assert can_be_used_as2(Dict, Dict)
+    assert can_be_used_as2(Dict[str, str], Dict[str, str])
+    assert can_be_used_as2(Dict[str, str], Dict[str, Any])
 
 
 def test_corner_cases12():
-    assert not can_be_used_as2(Dict[str, str], str, {})
+    assert not can_be_used_as2(Dict[str, str], str)
 
 
 def test_corner_cases13():
-    assert not can_be_used_as2(str, Dict[str, str], {})
+    assert not can_be_used_as2(str, Dict[str, str])
 
 
 def test_corner_cases14():
-    assert not can_be_used_as2(Union[int, str], str, {})
+    assert not can_be_used_as2(Union[int, str], str)
 
 
 def test_corner_cases15():
-    assert can_be_used_as2(str, Union[int, str], {})
+    assert can_be_used_as2(str, Union[int, str])
 
 
 def test_corner_cases16():
-    assert can_be_used_as2(Union[int], Union[int, str], {})
+    assert can_be_used_as2(Union[int], Union[int, str])
 
 
 def test_corner_cases17():
-    assert not can_be_used_as2(Union[int, str], Union[str], {})
+    assert not can_be_used_as2(Union[int, str], Union[str])
 
 
 def test_corner_cases18():
@@ -79,8 +80,8 @@ def test_corner_cases18():
     class C:
         a: int
 
-    assert can_be_used_as2(B, A, {})
-    assert can_be_used_as2(C, A, {})
+    assert can_be_used_as2(B, A)
+    assert can_be_used_as2(C, A)
 
 
 def test_corner_cases18b():
@@ -92,7 +93,7 @@ def test_corner_cases18b():
     class C:
         a: str
 
-    assert not can_be_used_as2(A, C, {})
+    assert not can_be_used_as2(A, C)
 
 
 def test_corner_cases18c():
@@ -104,30 +105,35 @@ def test_corner_cases18c():
     class C:
         pass
 
-    assert not can_be_used_as2(C, A, {})
-    assert can_be_used_as2(A, C, {})
+    assert not can_be_used_as2(C, A)
+    assert can_be_used_as2(A, C)
 
 
 def test_corner_cases19():
-    assert not can_be_used_as2(str, int, {})
+    assert not can_be_used_as2(str, int)
 
 
 def test_corner_cases06():
-    assert can_be_used_as2(int, Optional[int], {}).result
+    assert can_be_used_as2(int, Optional[int]).result
 
 
 def test_corner_cases20():
-    assert is_Tuple(Tuple[int, int])
-    res = can_be_used_as2(Tuple[int, int], Tuple[int, Any], {})
+    res = can_be_used_as2(Tuple[int, int], Tuple[int, Any])
+    assert res, res
+
+
+def test_corner_cases20b():
+    res = can_be_used_as2(Tuple[int, int], Tuple[int, object])
     assert res, res
 
 
 def test_corner_cases21():
-    assert not can_be_used_as2(Tuple[int, int], int, {})
+    assert not can_be_used_as2(Tuple[int, int], int)
 
 
 def test_corner_cases22():
-    assert not can_be_used_as2(Any, int, {})
+    assert not can_be_used_as2(object, int)
+    assert can_be_used_as2(Any, int)
 
 
 def test_corner_cases23():
@@ -143,24 +149,24 @@ def test_corner_cases23():
     class C(A):
         pass
 
-    res = can_be_used_as2(Union[B, C], A, {})
+    res = can_be_used_as2(Union[B, C], A)
     assert res, res
 
 
 def test_corner_cases24():
-    assert not can_be_used_as2(Tuple[int, int], Tuple[int, str], {})
+    assert not can_be_used_as2(Tuple[int, int], Tuple[int, str])
 
 
 def test_corner_cases30():
-    assert not can_be_used_as2(Sequence, List[int], {})
+    assert not can_be_used_as2(Sequence, List[int])
 
 
 def test_corner_cases31():
-    assert not can_be_used_as2(List[str], List[int], {})
+    assert not can_be_used_as2(List[str], List[int])
 
 
 def test_corner_cases32():
-    assert can_be_used_as2(List[str], List, {})
+    assert can_be_used_as2(List[str], List)
 
 
 def test_corner_cases33():
@@ -170,75 +176,119 @@ def test_corner_cases33():
     class B:
         pass
 
-    assert not can_be_used_as2(A, B, {})
+    assert not can_be_used_as2(A, B)
 
 
 def test_corner_cases36():
     A = Set[str]
     B = Set[Any]
 
-    assert can_be_used_as2(A, B, {})
+    assert can_be_used_as2(A, B)
 
-    assert not can_be_used_as2(B, A, {})
+    assert can_be_used_as2(B, A)
+
+
+def test_corner_cases36b():
+    A = Set[str]
+    B = Set[object]
+
+    assert can_be_used_as2(A, B)
+
+    assert not can_be_used_as2(B, A)
 
 
 def test_corner_cases34():
-    assert not can_be_used_as2(Dict[str, str], Dict[int, str], {})
+    assert not can_be_used_as2(Dict[str, str], Dict[int, str])
 
 
 def test_corner_cases35():
-    assert not can_be_used_as2(Dict[str, str], Dict[int, str], {})
+    assert not can_be_used_as2(Dict[str, str], Dict[int, str])
 
 
 def test_corner_cases25():
     D1 = Dict[str, Any]
     D2 = Dict[str, int]
-    res = can_be_used_as2(D2, D1, {})
+    res = can_be_used_as2(D2, D1)
     assert res, res
 
 
 def test_corner_cases26():
     D1 = Dict[str, Any]
     D2 = Dict[str, int]
-    res = can_be_used_as2(D1, D2, {})
+    res = can_be_used_as2(D1, D2)
+    assert res, res
+
+
+def test_corner_cases26b():
+    D1 = Dict[str, object]
+    D2 = Dict[str, int]
+    res = can_be_used_as2(D1, D2)
     assert not res, res
 
 
-def test_match_List1():
-    L1 = List[str]
+def test_match_List1a():
     X = TypeVar("X")
+
+    L1 = List[str]
     L2 = List[X]
-    res = can_be_used_as2(L1, L2, {})
+
+    res = can_be_used_as2(L1, L2)
     print(L1, L2, res)
     assert res, res
-    assert res.matches["X"] is str, res
+
+    assert res.M.get_lb("X") is str, res
+    assert res.M.get_ub("X") is None, res
+
+
+def test_match_List1b():
+    X = TypeVar("X")
+
+    L1 = List[X]
+    L2 = List[str]
+
+    res = can_be_used_as2(L1, L2)
+    print(L1, L2, res)
+    assert res, res
+
+    assert res.M.get_ub("X") is str, res
+    assert res.M.get_lb("X") is None, res
 
 
 def test_match_List2():
-    L1 = List[Any]
     X = TypeVar("X")
+
+    L1 = List[Any]
     L2 = List[X]
-    res = can_be_used_as2(L1, L2, {})
+    res = can_be_used_as2(L1, L2)
+    print(L1, L2, res)
+
     assert res, res
-    assert is_Any(res.matches["X"]), res
+    assert res.M.get_ub("X") is None
+    assert res.M.get_lb("X") is None
 
 
 def test_match_List3():
     """ We want that match(X, Any) does not match X at all. """
-    L1 = List[Any]
     X = TypeVar("X")
+
+    L1 = List[Any]
     L2 = List[X]
-    res = can_be_used_as2(L2, L1, {})
+
+    res = can_be_used_as2(L2, L1)
     assert res, res
 
     assert not "X" in res.matches, res
+
+    assert res.M.get_ub("X") is None
+    assert res.M.get_lb("X") is None
+
     # assert is_Any(res.matches['X']), res
 
 
 def test_match_TypeVar0():
     L1 = Tuple[str]
     L2 = TypeVar("L2")
-    res = can_be_used_as2(L1, L2, {})
+    res = can_be_used_as2(L1, L2)
     print(res)
 
     assert res, res
@@ -246,10 +296,11 @@ def test_match_TypeVar0():
 
 def test_match_TypeVar0b():
     L1 = str
-    L2 = TypeVar("L2")
-    res = can_be_used_as2(L1, L2, {})
-    print(res)
-    assert res.matches["L2"] is L1, res
+    L2 = X
+    res = can_be_used_as2(L1, L2)
+
+    assert res.M.get_ub("X") is None, res
+    assert res.M.get_lb("X") is str, res
 
     assert res, res
 
@@ -257,30 +308,33 @@ def test_match_TypeVar0b():
 def test_match_MySet1():
     C1 = Set[str]
     C2 = make_set(str)
-    res = can_be_used_as2(C1, C2, {})
+    res = can_be_used_as2(C1, C2)
     assert res, res
 
 
 def test_match_Tuple0():
     L1 = Tuple[str]
-    X = TypeVar("X")
-
     L2 = Tuple[X]
-    res = can_be_used_as2(L1, L2, {})
+
+    res = can_be_used_as2(L1, L2)
     print(res)
-    assert res.matches["X"] is str, res
+
+    assert res.M.get_ub("X") is None, res
+    assert res.M.get_lb("X") is str, res
+
     assert res, res
 
 
 def test_match_Tuple1():
     L1 = Tuple[str, int]
-    X = TypeVar("X")
-    Y = TypeVar("Y")
     L2 = Tuple[X, Y]
-    res = can_be_used_as2(L1, L2, {})
+
+    res = can_be_used_as2(L1, L2)
     print(res)
-    assert res.matches["X"] is str, res
-    assert res.matches["Y"] is int, res
+    assert res.M.get_ub("X") is None, res
+    assert res.M.get_lb("X") is str, res
+    assert res.M.get_ub("Y") is None, res
+    assert res.M.get_lb("Y") is int, res
     assert res, res
 
 
@@ -389,3 +443,27 @@ def test_Iterator1():
 
 def test_Iterator2():
     assert is_Iterator(Iterator)
+
+
+def test_typevar1a():
+    X = TypeVar("X")
+    expect_type = X
+    found_type = str
+    res = can_be_used_as2(found_type, expect_type)
+    assert res.result, res
+
+
+def test_typevar1b():
+    X = TypeVar("X")
+    expect_type = str
+    found_type = X
+    res = can_be_used_as2(found_type, expect_type)
+    assert res.result, res
+
+
+def test_typevar2():
+    X = TypeVar("X")
+    expect_type = List[str]
+    found_type = List[X]
+    res = can_be_used_as2(found_type, expect_type)
+    assert res.result, res

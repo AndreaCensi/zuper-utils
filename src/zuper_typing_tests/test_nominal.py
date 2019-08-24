@@ -17,8 +17,8 @@ def test_nominal_no_nominal():
     class D:
         pass
 
-    assert not can_be_used_as2(A, C, {})
-    assert can_be_used_as2(A, D, {})
+    assert not can_be_used_as2(A, C)
+    assert can_be_used_as2(A, D)
 
 
 @raises(TypeError)

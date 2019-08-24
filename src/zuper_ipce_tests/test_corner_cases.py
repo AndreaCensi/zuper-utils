@@ -75,7 +75,7 @@ def test_property_error():
     class MyClass32:
         a: int
 
-    ok = can_be_used_as2(str, int, {})
+    ok = can_be_used_as2(str, int)
     assert not ok.result
 
     # noinspection PyTypeChecker
@@ -95,11 +95,11 @@ def test_not_know():
 
 @raises(TypeError)
 def test_corner_cases07():
-    can0 = can_be_used_as2(int, bool, {})
+    can0 = can_be_used_as2(int, bool)
     assert not can0, can0
 
     T = Union[bool, str]
-    can = can_be_used_as2(int, T, {})
+    can = can_be_used_as2(int, T)
     assert not can, can
     object_from_ipce(12, {}, expect_type=T)
 
@@ -107,7 +107,7 @@ def test_corner_cases07():
 @raises(TypeError)
 def test_corner_cases08():
     T = Optional[bool]
-    assert not can_be_used_as2(int, T, {}).result
+    assert not can_be_used_as2(int, T).result
     object_from_ipce(12, {}, expect_type=Optional[bool])
 
 

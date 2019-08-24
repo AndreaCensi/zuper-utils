@@ -19,6 +19,12 @@ test:
 	rm -rf cover
 	nosetests $(extra) $(coverage) $(xunitmp) src  -v
 
+
+test-typing:
+	rm -f .coverage
+	rm -rf cover
+	nosetests $(extra) $(coverage) $(xunitmp) zuper_typing_tests  -v
+
 test-parallel:
 	rm -f .coverage
 	rm -rf cover
@@ -44,18 +50,20 @@ test-failed:
 docker-36-build:
 	docker build -f Dockerfile.python3.6 -t python36 .
 
+docker_params=-v $(PWD)/test_objects:/project/test_objects -w /project
+
 docker-36-test:  docker-36-build
-	docker run -it -v $(PWD)/src/zuper_json:/project/src/zuper_json -w /project python36 make all
+	docker run -it  $(docker_params) python36 make all
 
 docker-36-shell:
-	docker run -it   python36 /bin/bash
+	docker run -it python36 /bin/bash
 
 
 docker-37-build:
 	docker build -f Dockerfile.python3.7 -t python37 .
 
 docker-37-test: docker-37-build
-	docker run -it -v $(PWD)/src/zuper_json:/project/src/zuper_json -w /project python37 make all
+	docker run -it $(docker_params)  python37 make all
 
 docker-37-shell:
 	docker run -it   python37 /bin/bash

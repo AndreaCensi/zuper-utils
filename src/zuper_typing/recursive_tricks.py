@@ -4,6 +4,7 @@ from decimal import Decimal
 from numbers import Number
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+from zuper_typing.uninhabited import is_Uninhabited
 from .annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
@@ -261,6 +262,8 @@ def replace_typevars(cls, *, bindings, symbols):
     ):
         return cls
     elif is_Any(cls):
+        return cls
+    elif is_Uninhabited(cls):
         return cls
     elif isinstance(cls, type):
 

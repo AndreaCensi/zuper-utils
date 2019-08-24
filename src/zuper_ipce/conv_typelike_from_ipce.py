@@ -33,7 +33,7 @@ from zuper_typing.monkey_patching_typing import (
     remember_created_class,
 )
 from zuper_typing.my_dict import make_dict, make_list, make_set
-from zuper_typing.my_intersection import Intersection
+from zuper_typing.my_intersection import Intersection, make_Intersection
 from . import logger
 from .assorted_recursive_type_subst import recursive_type_subst
 from .constants import (
@@ -239,7 +239,7 @@ def typelike_from_ipce_Intersection(schema, global_symbols, encountered) -> SRE:
         return sre.res
 
     args = [f(_) for _ in options]
-    res = Intersection[tuple(args)]  # XXX
+    res = make_Intersection(tuple(args))
     return SRE(res, used)
 
 

@@ -73,7 +73,7 @@ def test_check_bound1():
     class Animal:
         a: int
 
-    assert not can_be_used_as2(int, Animal, {}).result
+    assert not can_be_used_as2(int, Animal).result
     assert not issubclass(int, Animal)
 
     X = TypeVar("X", bound=Animal)
@@ -94,7 +94,7 @@ def test_check_bound2():
     class Not:
         b: int
 
-    assert not can_be_used_as2(Not, Animal, {}).result
+    assert not can_be_used_as2(Not, Animal).result
 
     X = TypeVar("X", bound=Animal)
 

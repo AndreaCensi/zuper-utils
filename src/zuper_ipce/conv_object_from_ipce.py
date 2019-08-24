@@ -34,6 +34,7 @@ from zuper_typing.my_dict import (
     make_list,
     make_set,
 )
+from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from .constants import (
     HINTS_ATT,
     JSC_TITLE,
@@ -96,10 +97,15 @@ def object_from_ipce_(
         encountered = {}
 
     if is_Optional(expect_type):
-        return object_from_ipcl_optional(expect_type, mj, global_symbols, encountered)
+        return object_from_ipce_optional(expect_type, mj, global_symbols, encountered)
 
     if is_Union(expect_type):
-        return object_from_ipcl_union(expect_type, mj, global_symbols, encountered)
+        return object_from_ipce_union(expect_type, mj, global_symbols, encountered)
+
+    if is_Intersection(expect_type):
+        return object_from_ipce_intersection(
+            expect_type, mj, global_symbols, encountered
+        )
 
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
     trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
@@ -192,7 +198,11 @@ def object_from_ipce_(
         # msg += '\n\n' + indent(yaml.dump(mj), ' > ')
         # raise NotImplementedError(msg)
 
-    msg = f"Invalid type or type suggestion {K}"
+    from zuper_ipcl.debug_print_ import debug_print
+
+    msg = (
+        f"Invalid type or type suggestion {K} - {is_Intersection(K)} - {debug_print(K)}"
+    )
     raise TypeError(msg)
     # assert False, (type(K), K, mj, expect_type)  # pragma: no cover
 
@@ -244,7 +254,7 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
         return T(seq)
 
 
-def object_from_ipcl_optional(expect_type, mj, global_symbols, encountered) -> IPCE:
+def object_from_ipce_optional(expect_type, mj, global_symbols, encountered) -> IPCE:
     if mj is None:
         return mj
     K = get_Optional_arg(expect_type)
@@ -252,9 +262,26 @@ def object_from_ipcl_optional(expect_type, mj, global_symbols, encountered) -> I
     return object_from_ipce(mj, global_symbols, encountered, expect_type=K)
 
 
-def object_from_ipcl_union(expect_type, mj, global_symbols, encountered) -> IPCE:
+def object_from_ipce_union(expect_type, mj, global_symbols, encountered) -> IPCE:
     errors = {}
     ts = get_Union_args(expect_type)
+    for T in ts:
+        try:
+            return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
+        except BaseException:
+            errors[str(T)] = traceback.format_exc()
+    msg = f"Cannot deserialize with any of {ts}"
+    fn = write_out_yaml(f"object{id(mj)}", mj)
+    msg += f"\n ipce in {fn}"
+    msg += "\n\n" + pretty_dict("tries", errors)
+
+    # msg += '\n'.join(str(e) for e in errors)
+    raise ValueError(msg)
+
+
+def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) -> IPCE:
+    errors = {}
+    ts = get_Intersection_args(expect_type)
     for T in ts:
         try:
             return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
@@ -349,14 +376,14 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
         if not k in mj:
             if hasattr(K, k):  # default - XXX
                 V = getattr(K, k)
-                if isinstance(V, Field):
-                    logger.error(oyaml_dump(mj))
-                    from zuper_ipcl.debug_print_ import debug_print
-
-                    logger.error(f"dict: {debug_print(dict(K.__dict__))}")
-                    logger.error(f"anns: {debug_print(K.__annotations__)}")
-                    # V = V.default
-                    raise Exception((k, V))
+                # if isinstance(V, Field):
+                #     logger.error(oyaml_dump(mj))
+                #     from zuper_ipcl.debug_print_ import debug_print
+                #
+                #     logger.error(f"dict: {debug_print(dict(K.__dict__))}")
+                #     logger.error(f"anns: {debug_print(K.__annotations__)}")
+                #     # V = V.default
+                #     raise Exception((k, V))
                 # logger.info(f'setting default {V}')
                 attrs[k] = V
             # elif is_Optional(T):

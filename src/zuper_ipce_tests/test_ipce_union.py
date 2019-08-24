@@ -6,7 +6,6 @@ from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import make_Tuple
 from zuper_typing.my_dict import make_dict, make_list, make_set
-from zuper_typing.my_intersection import Intersection
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
@@ -63,34 +62,6 @@ def test_union_3():
     assert_type_roundtrip(C, {})
     assert_object_roundtrip(ec1, {})
     assert_object_roundtrip(ec2, {})
-
-
-def test_intersection1():
-    @dataclass
-    class A1:
-        a: int
-
-    @dataclass
-    class B1:
-        b: str
-
-    AB = Intersection[A1, B1]
-    assert_type_roundtrip(AB, {}, expect_type_equal=False)
-
-
-def test_intersection2():
-    @dataclass
-    class A:
-        a: int
-
-    @dataclass
-    class B:
-        b: str
-
-    AB = Intersection[A, B]
-
-    e = AB(a=1, b="2")
-    assert_object_roundtrip(e, {})  # raise here
 
 
 @raises(TypeError)

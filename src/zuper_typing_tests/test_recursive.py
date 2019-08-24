@@ -25,7 +25,7 @@ def test_recursive1():
 
     print(T1)
     print(T2)
-    c = can_be_used_as2(T1, T2, {})
+    c = can_be_used_as2(T1, T2)
     print(c)
 
     assert c.result, c.why
@@ -48,7 +48,7 @@ def test_recursive2():
 
     print(T1)
     print(T2)
-    c = can_be_used_as2(T2, T1, {})
+    c = can_be_used_as2(T2, T1)
     print(c)
 
     assert c.result, c.why

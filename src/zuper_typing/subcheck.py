@@ -1,11 +1,15 @@
-from dataclasses import dataclass, is_dataclass
-from typing import Any, Dict, Tuple
+from dataclasses import dataclass, field, is_dataclass
+from decimal import Decimal
+from typing import Any, Dict, Optional, Tuple
 
 from zuper_commons.text import indent
+from zuper_typing.type_algebra import Matches
+from zuper_typing.uninhabited import is_Uninhabited
 from .annotations_tricks import (
     get_ForwardRef_arg,
     get_Optional_arg,
     get_Sequence_arg,
+    get_TypeVar_name,
     get_Union_args,
     get_tuple_types,
     is_Any,
@@ -33,7 +37,14 @@ from .my_dict import (
 class CanBeUsed:
     result: bool
     why: str
-    matches: Dict[str, type]
+    M: Matches
+    matches: Optional[Dict[str, type]] = None
+
+    reasons: "Dict[str, CanBeUsed]" = field(default_factory=dict)
+
+    def __post_init__(self):
+        assert isinstance(self.M, Matches), self
+        self.matches = self.M.get_matches()
 
     def __bool__(self):
         return self.result
@@ -41,31 +52,50 @@ class CanBeUsed:
 
 verbose = False
 
+can_be_used_cache = {}
+
 
 def can_be_used_as2(
-    T1, T2, matches: Dict[str, type], assumptions0: Tuple[Tuple[Any, Any], ...] = ()
+    T1,
+    T2,
+    matches: Optional[Matches] = None,
+    assumptions0: Tuple[Tuple[Any, Any], ...] = (),
 ) -> CanBeUsed:
+    if matches is None:
+        matches = Matches()
+
+    if is_Any(T2):
+        return CanBeUsed(True, "Any", matches)
+    if is_Any(T1):
+        return CanBeUsed(True, "Any", matches)
+
+    if is_Uninhabited(T1):
+        return CanBeUsed(True, "Empty", matches)
+
+    assert isinstance(matches, Matches), matches
     if (T1, T2) in assumptions0:
         return CanBeUsed(True, "By assumption", matches)
 
+    if (T1 is T2) or (T1 == T2):
+        return CanBeUsed(True, "equal", matches)
+
+    if is_Any(T1) or is_Any(T2):
+        return CanBeUsed(True, "Any ignores everything", matches)
+    if T2 is object:
+        return CanBeUsed(True, "object is the top", matches)
     # cop out for the easy cases
 
     assumptions = assumptions0 + ((T1, T2),)
 
-    if T1 is T2 or (T1 == T2):
-        return CanBeUsed(True, "equal", matches)
-
     # logger.info(f'can_be_used_as\n {T1} {T2}\n {assumptions0}')
-
-    if is_TypeVar(T2):
-        if T2.__name__ not in matches:
-            matches = dict(matches)
-            matches[T2.__name__] = T1
+    if T1 is type(None):
+        if is_Optional(T2):
             return CanBeUsed(True, "", matches)
-        # TODO: not implemented
-
-    if is_Any(T2):
-        return CanBeUsed(True, "Any", matches)
+        elif T2 is type(None):
+            return CanBeUsed(True, "", matches)
+        else:
+            msg = f"Needs type(None), got {T2}"
+            return CanBeUsed(False, msg, matches)
 
     if is_Union(T1):
         if is_Union(T2):
@@ -88,11 +118,42 @@ def can_be_used_as2(
         for t in get_Union_args(T2):
             can = can_be_used_as2(T1, t, matches, assumptions)
             if can.result:
-                return CanBeUsed(True, f"union match with {t} ", can.matches)
+                return CanBeUsed(True, f"union match with {t} ", can.M)
             reasons.append(f"- {t}: {can.why}")
 
         msg = f"Cannot use {T1} as any of {T2}:\n" + "\n".join(reasons)
         return CanBeUsed(False, msg, matches)
+
+    if is_TypeVar(T2):
+        n2 = get_TypeVar_name(T2)
+        if is_TypeVar(T1):
+            n1 = get_TypeVar_name(T1)
+            if n1 == n2:
+                # TODO: intersection of bounds
+                return CanBeUsed(True, "", matches)
+            else:
+                matches = matches.must_be_subtype_of(n1, T2)
+                # raise NotImplementedError((T1, T2))
+
+        matches = matches.must_be_supertype_of(n2, T1)
+        return CanBeUsed(True, "", matches)
+        #
+        # if T2.__name__ not in matches:
+        #     matches = dict(matches)
+        #     matches[T2.__name__] = T1
+        #     return CanBeUsed(True, "", matches)
+        # else:
+        #     prev = matches[T2.__name__]
+        #     if prev == T1:
+        #         return CanBeUsed(True, "", matches)
+        #     else:
+        #         raise NotImplementedError((T1, T2, matches))
+
+    if is_TypeVar(T1):
+        n1 = get_TypeVar_name(T1)
+        matches = matches.must_be_subtype_of(n1, T2)
+        return CanBeUsed(True, "Any", matches)
+        # TODO: not implemented
 
     if is_Optional(T1):
         t1 = get_Optional_arg(T1)
@@ -127,11 +188,11 @@ def can_be_used_as2(
             if not rk:
                 return CanBeUsed(False, f"keys {K1} {K2}: {rk}", matches)
 
-            rv = can_be_used_as2(V1, V2, rk.matches, assumptions)
+            rv = can_be_used_as2(V1, V2, rk.M, assumptions)
             if not rv:
                 return CanBeUsed(False, f"values {V1} {V2}: {rv}", matches)
 
-            return CanBeUsed(True, f"ok: {rk} {rv}", rv.matches)
+            return CanBeUsed(True, f"ok: {rk} {rv}", rv.M)
     else:
         if is_DictLike(T1):
             msg = "A Dict needs a dictionary"
@@ -165,6 +226,10 @@ def can_be_used_as2(
         # h1 = get_type_hints(T1)
         # h2 = get_type_hints(T2)
 
+        key = (T1.__module__, T1.__qualname__, T2.__module__, T2.__qualname__)
+        if key in can_be_used_cache:
+            return can_be_used_cache[key]
+
         h1 = getattr(T1, ANNOTATIONS_ATT, {})
         h2 = getattr(T2, ANNOTATIONS_ATT, {})
 
@@ -178,7 +243,9 @@ def can_be_used_as2(
                     )
                 else:
                     msg = k
-                return CanBeUsed(False, msg, matches)
+                res = CanBeUsed(False, msg, matches)
+                can_be_used_cache[key] = res
+                return res
             v1 = h1[k]
             can = can_be_used_as2(v1, v2, matches, assumptions)
             if not can.result:
@@ -191,9 +258,13 @@ def can_be_used_as2(
                     msg += "\n\n" + indent(can.why, "> ")
                 else:
                     msg = ""
-                return CanBeUsed(False, msg, matches)
+                res = CanBeUsed(False, msg, matches)
+                can_be_used_cache[key] = res
+                return res
 
-        return CanBeUsed(True, "dataclass", matches)
+        res = CanBeUsed(True, "dataclass", matches)
+        can_be_used_cache[key] = res
+        return res
 
     if T1 is int:
         if T2 is int:
@@ -219,26 +290,12 @@ def can_be_used_as2(
                 can = can_be_used_as2(t1, t2, matches, assumptions)
                 if not can.result:
                     return CanBeUsed(False, f"{t1} {T2}", matches)
-                matches = can.matches
+                matches = can.M
             return CanBeUsed(True, "", matches)
 
     if is_Tuple(T2):
         assert not is_Tuple(T1)
         return CanBeUsed(False, "", matches)
-    #
-    # if is_Iterable(T1):
-    #     t1 = get_Iterable_arg(T1)
-    #
-    #     if is_Tuple(T2):
-    #         for t2 in get_tuple_types(T2):
-    #             can = can_be_used_as2(t1, t2, matches, assumptions)
-    #             if not can.result:
-    #                 return CanBeUsed(False, f'{t1} {T2}', matches)
-    #             matches = can.matches
-    #         return CanBeUsed(True, '', matches)
-    #     else:
-    #
-    #         return CanBeUsed(False, 'not implemented', matches)
 
     if is_Any(T1):
         assert not is_Union(T2)
@@ -259,7 +316,7 @@ def can_be_used_as2(
         if not can.result:
             return CanBeUsed(False, f"{t1} {T2}", matches)
 
-        return CanBeUsed(True, "", can.matches)
+        return CanBeUsed(True, "", can.M)
 
     if is_Callable(T2):
         if not is_Callable(T1):
@@ -284,6 +341,7 @@ def can_be_used_as2(
                 return CanBeUsed(True, "", matches)
             else:
                 return CanBeUsed(False, "different name", matches)
+
     if is_SetLike(T2):
         if not is_SetLike(T1):
             msg = "A Set can only be used as a Set"
@@ -295,9 +353,11 @@ def can_be_used_as2(
         can = can_be_used_as2(t1, t2, matches, assumptions)
 
         if not can.result:
-            return CanBeUsed(False, f"{t1} {T2}", matches)
+            return CanBeUsed(
+                False, f"Set argument fails", matches, reasons={"set_arg": can}
+            )
 
-        return CanBeUsed(True, "", can.matches)
+        return CanBeUsed(True, "", can.M)
 
     if is_Sequence(T1):
         t1 = get_Sequence_arg(T1)
@@ -309,7 +369,7 @@ def can_be_used_as2(
             if not can.result:
                 return CanBeUsed(False, f"{t1} {T2}", matches)
 
-            return CanBeUsed(True, "", can.matches)
+            return CanBeUsed(True, "", can.M)
 
         msg = f"Needs a Sequence[{t1}], got {T2}"
         return CanBeUsed(False, msg, matches)
@@ -319,21 +379,25 @@ def can_be_used_as2(
         if type.__subclasscheck__(T2, T1):
             return CanBeUsed(True, f"type.__subclasscheck__ {T1} {T2}", matches)
         else:
-            msg = f"Type {T1}\n is not a subclass of {T2}"
+            msg = f"Type {T1} ({id(T1)}) \n is not a subclass of {T2} ({id(T2)}) "
+            msg += f"\n is : {T1 is T2}"
             return CanBeUsed(False, msg, matches)
 
     if is_List(T1):
         msg = f"Needs a List, got {T2}"
         return CanBeUsed(False, msg, matches)
 
-    if T1 is type(None):
-        if T2 is type(None):
-            return CanBeUsed(True, "", matches)
-        else:
-            msg = f"Needs type(None), got {T2}"
-            return CanBeUsed(False, msg, matches)
     if T2 is type(None):
         msg = f"Needs type(None), got {T1}"
         return CanBeUsed(False, msg, matches)
+
+    trivial = (int, str, bool, Decimal, datetime, float)
+    if T2 in trivial:
+        if T1 in trivial:
+            raise NotImplementedError((T1, T2))
+        return CanBeUsed(False, "", matches)
     msg = f"{T1} ? {T2}"  # pragma: no cover
     raise NotImplementedError(msg)
+
+
+from datetime import datetime
