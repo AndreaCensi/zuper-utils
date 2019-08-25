@@ -1,4 +1,4 @@
-from typing import ClassVar, Generic, Type, TypeVar
+from typing import ClassVar, TYPE_CHECKING, Type, TypeVar
 
 from nose.tools import assert_equal, raises
 
@@ -9,8 +9,13 @@ from zuper_typing.annotations_tricks import (
     is_Type,
 )
 from zuper_typing.constants import enable_type_checking
-from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.subcheck import can_be_used_as2
+
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+    from typing import Generic
+else:
+    from zuper_typing import dataclass, Generic
 
 
 def test_basic():

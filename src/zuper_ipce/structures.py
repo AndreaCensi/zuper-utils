@@ -1,6 +1,7 @@
 from typing import Generic, TypeVar
 
 from zuper_typing.monkey_patching_typing import my_dataclass
+from zuper_typing.zeneric2 import ZenericFix
 
 
 class CannotFindSchemaReference(Exception):
@@ -16,6 +17,6 @@ VV = TypeVar("VV")
 
 
 @my_dataclass
-class FakeValues(Generic[KK, VV]):
+class FakeValues(ZenericFix[KK, VV]):
     real_key: KK
     value: VV

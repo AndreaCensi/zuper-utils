@@ -8,9 +8,10 @@ import termcolor
 
 from zuper_commons.text.boxing import box
 from zuper_commons.text.text_sidebyside import side_by_side
-from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36
+from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36, monkey_patch_Generic
 from .my_dict import make_dict
 from .zeneric2 import ZenericFix, resolve_types
+
 
 if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
@@ -39,30 +40,31 @@ def original_dict_getitem(a):
     return previous_getitem(Dict, a)
 
 
-if PYTHON_36:  # pragma: no cover
-    from typing import GenericMeta
+if monkey_patch_Generic:
+    if PYTHON_36:  # pragma: no cover
+        from typing import GenericMeta
 
-    old_one = GenericMeta.__getitem__
+        old_one = GenericMeta.__getitem__
 
-    class P36Generic:
-        def __getitem__(self, params):
-            # pprint('P36', params=params, self=self)
-            if self is typing.Generic:
-                return ZenericFix.__class_getitem__(params)
+        class P36Generic:
+            def __getitem__(self, params):
+                # pprint('P36', params=params, self=self)
+                if self is typing.Generic:
+                    return ZenericFix.__class_getitem__(params)
 
-            if self is typing.Dict:
-                K, V = params
-                if K is not str:
-                    return make_dict(K, V)
+                if self is typing.Dict:
+                    K, V = params
+                    if K is not str:
+                        return make_dict(K, V)
 
-            # noinspection PyArgumentList
-            return old_one(self, params)
+                # noinspection PyArgumentList
+                return old_one(self, params)
 
-    GenericMeta.__getitem__ = P36Generic.__getitem__
+        GenericMeta.__getitem__ = P36Generic.__getitem__
 
-else:
-    Generic.__class_getitem__ = ZenericFix.__class_getitem__
-    _GenericAlias.__getitem__ = Alias1.__getitem__
+    else:
+        Generic.__class_getitem__ = ZenericFix.__class_getitem__
+        _GenericAlias.__getitem__ = Alias1.__getitem__
 
 Dict.__getitem__ = Alias1.__getitem__
 
@@ -250,6 +252,11 @@ def my_dataclass_(
     #   class C:
     #       a: List[] = field(default_factory=list)
     #
+    # #
+
+    if Generic in _cls.__bases__:
+        msg = f"There are problems with initialization: class {_cls.__name__} inherits from Generic: {_cls.__bases__}"
+        raise Exception(msg)
     if type(_cls) is type:
         old_annotations = get_all_annotations(_cls)
         from .zeneric2 import StructuralTyping
@@ -264,6 +271,7 @@ def my_dataclass_(
             pass
 
         _cls2 = type(_cls.__name__, (_cls, Base) + _cls.__bases__, attrs)
+
         _cls2.__module__ = _cls.__module__
         _cls2.__qualname__ = _cls.__qualname__
         # from .logging import logger

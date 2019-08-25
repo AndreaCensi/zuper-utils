@@ -1,10 +1,14 @@
 from abc import ABCMeta, abstractmethod
-from typing import ClassVar, Generic, TYPE_CHECKING, Type, TypeVar
+from typing import ClassVar, TYPE_CHECKING, Type, TypeVar
 
 if TYPE_CHECKING:
     from dataclasses import dataclass
+    from typing import Generic
 else:
-    from zuper_typing.zeneric2 import dataclass
+    from zuper_typing import dataclass
+    from zuper_typing import Generic
+
+
 from dataclasses import is_dataclass
 
 from nose.tools import raises, assert_equal

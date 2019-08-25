@@ -1,6 +1,6 @@
-from typing import Generic, TypeVar
+from typing import TypeVar
 
-from zuper_typing import dataclass
+from zuper_typing import dataclass, Generic
 
 
 def test_hash1():

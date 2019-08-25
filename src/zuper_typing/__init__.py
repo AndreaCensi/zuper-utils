@@ -11,4 +11,4 @@ else:
     from .monkey_patching_typing import my_dataclass as dataclass
 
     # noinspection PyUnresolvedReferences
-    from typing import Generic
+    from .monkey_patching_typing import ZenericFix as Generic
