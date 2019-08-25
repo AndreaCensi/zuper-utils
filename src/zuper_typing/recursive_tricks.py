@@ -4,6 +4,11 @@ from decimal import Decimal
 from numbers import Number
 from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
 
+from zuper_typing.my_intersection import (
+    get_Intersection_args,
+    is_Intersection,
+    make_Intersection,
+)
 from zuper_typing.uninhabited import is_Uninhabited
 from .annotations_tricks import (
     get_Callable_info,
@@ -34,6 +39,7 @@ from .annotations_tricks import (
     is_Union,
     is_VarTuple,
     make_Tuple,
+    make_Union,
     make_VarTuple,
 )
 from .my_dict import (
@@ -218,7 +224,13 @@ def replace_typevars(cls, *, bindings, symbols):
         ys = tuple(r(_) for _ in xs)
         if ys == xs:
             return cls
-        return typing.Union[ys]
+        return make_Union(*ys)
+    elif is_Intersection(cls):
+        xs = get_Intersection_args(cls)
+        ys = tuple(r(_) for _ in xs)
+        if ys == xs:
+            return cls
+        return make_Intersection(ys)
     elif is_Tuple(cls):
         if is_VarTuple(cls):
             X = get_VarTuple_arg(cls)

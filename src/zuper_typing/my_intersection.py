@@ -54,6 +54,13 @@ class IntersectionCache:
 
 
 def make_Intersection(ts: tuple) -> type:
+    done = []
+    for t in ts:
+        if t not in done:
+            done.append(t)
+    ts = tuple(done)
+    if len(ts) == 1:
+        return ts[0]
     if IntersectionCache.use_cache:
         if ts in IntersectionCache.make_intersection_cache:
             return IntersectionCache.make_intersection_cache[ts]

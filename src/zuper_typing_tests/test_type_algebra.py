@@ -10,9 +10,11 @@ from zuper_typing.uninhabited import is_Uninhabited, make_Uninhabited
 def test_algebra_sup_1():
     X = TypeVar("X")
     Y = TypeVar("Y")
+    U = make_Uninhabited()
     cases = [
         (bool, object, object),
         (bool, int, int),
+        (bool, U, bool),
         (int, str, Union[int, str]),
         (int, type(None), Optional[int]),
         (List[bool], List[int], List[int]),
@@ -36,6 +38,7 @@ def test_algebra_inf_1():
         (bool, object, bool),
         (bool, int, bool),
         (int, str, U),
+        (U, str, U),
         (int, type(None), U),
         (List[bool], List[int], List[bool]),
         (List[bool], int, U),

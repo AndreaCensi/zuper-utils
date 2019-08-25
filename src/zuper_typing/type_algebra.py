@@ -13,6 +13,7 @@ from zuper_typing.annotations_tricks import (
     is_VarTuple,
     make_Tuple,
     make_VarTuple,
+    make_Union,
 )
 from zuper_typing.my_dict import (
     get_DictLike_args,
@@ -25,19 +26,23 @@ from zuper_typing.my_dict import (
     make_list,
     make_set,
 )
-from zuper_typing.my_intersection import Intersection
-from zuper_typing.uninhabited import make_Uninhabited, is_Uninhabited
+from zuper_typing.my_intersection import Intersection, make_Intersection
+from zuper_typing.uninhabited import is_Uninhabited, make_Uninhabited
 
 
 def type_sup(a, b):
+    assert a is not None
+    assert b is not None
+
+    if a is b or (a == b):
+        return a
+
     if a is object or b is object:
         return object
 
-    if a is None:
+    if is_Uninhabited(a):
         return b
-    if b is None:
-        return a
-    if a is b or (a == b):
+    if is_Uninhabited(b):
         return a
 
     if a is type(None):
@@ -88,7 +93,7 @@ def type_sup(a, b):
     if is_dataclass(a) and is_dataclass(b):
         return type_sup_dataclass(a, b)
 
-    return Union[a, b]
+    return make_Union(a, b)
 
     # raise NotImplementedError(a, b)
 
@@ -150,19 +155,28 @@ def type_sup_dataclass(a, b):
 
 
 def type_inf(a, b):
-    if a is None:
-        return b
-    if b is None:
-        return a
+    assert a is not None
+    assert b is not None
+
     if a is object:
         return b
     if b is object:
         return a
+    if is_Uninhabited(a):
+        return a
+    if is_Uninhabited(b):
+        return b
     if a is b or (a == b):
         return a
 
     if (a, b) in [(bool, int), (int, bool)]:
         return bool
+
+    if is_TypeVar(a) and is_TypeVar(b):
+        if get_TypeVar_name(a) == get_TypeVar_name(b):
+            return a
+    if is_TypeVar(a) or is_TypeVar(b):
+        return make_Intersection((a, b))
 
     primitive = (bool, int, str, Decimal, datetime, float, bytes, type(None))
     if a in primitive or b in primitive:
@@ -210,11 +224,7 @@ def type_inf(a, b):
         ts = tuple(type_inf(ta, tb) for ta, tb in zip(tas, tbs))
         return make_Tuple(*ts)
 
-    if is_TypeVar(a) and is_TypeVar(b):
-        if get_TypeVar_name(a) == get_TypeVar_name(b):
-            return a
-
-    return Intersection[a, b]
+    return make_Intersection((a, b))
 
 
 @dataclass
@@ -223,11 +233,11 @@ class MatchConstraint:
     lb: type = None
 
     def impose_subtype(self, ub) -> "MatchConstraint":
-        ub = type_sup(self.ub, ub)
+        ub = type_sup(self.ub, ub) if self.ub is not None else ub
         return MatchConstraint(ub=ub, lb=self.lb)
 
     def impose_supertype(self, lb) -> "MatchConstraint":
-        lb = type_inf(self.lb, lb)
+        lb = type_inf(self.lb, lb) if self.lb is not None else lb
         return MatchConstraint(lb=lb, ub=self.ub)
 
 

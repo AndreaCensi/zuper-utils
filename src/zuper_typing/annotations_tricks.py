@@ -5,6 +5,7 @@ from .constants import NAME_ARG, PYTHON_36
 
 paranoid = False
 
+
 # noinspection PyProtectedMember
 def is_Optional(x):
     if PYTHON_36:  # pragma: no cover
@@ -59,6 +60,13 @@ def make_Union(*a):
             else:
                 return typing.Optional[make_Union(*others)]
 
+    def key(x):
+        if is_TypeVar(x):
+            return (1, x.__name__)
+        else:
+            return (0,)
+
+    a = sorted(a, key=key)
     if len(a) == 0:
         raise ValueError("empty")
     if len(a) == 1:
@@ -579,6 +587,8 @@ def name_for_type_like(x):
     from .my_dict import is_SetLike
     from .my_dict import get_DictLike_name
 
+    from zuper_typing.uninhabited import is_Uninhabited
+
     if is_Any(x):
         return "Any"
     elif isinstance(x, typing.TypeVar):
@@ -616,6 +626,8 @@ def name_for_type_like(x):
     elif is_ForwardRef(x):
         a = get_ForwardRef_arg(x)
         return f"ForwardRef({a!r})"
+    elif is_Uninhabited(x):
+        return "!"
     elif is_Callable(x):
         info = get_Callable_info(x)
 

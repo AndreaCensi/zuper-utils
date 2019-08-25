@@ -25,6 +25,7 @@ from zuper_typing.annotations_tricks import (
     name_for_type_like,
 )
 from zuper_typing.my_dict import make_list, make_set
+from zuper_typing.my_intersection import Intersection
 from zuper_typing.recursive_tricks import replace_typevars
 from zuper_typing.subcheck import can_be_used_as2
 
@@ -369,6 +370,8 @@ def test_replace_typevars():
         (make_list(bool), S, make_list(bool)),
         (make_list(X), S, make_list(str)),
         (Sequence, S, Sequence[Any]),
+        (Intersection[X, int], S, Intersection[str, int]),
+        (Intersection[X, str], S, str),
     )
     for orig, subst, result in tries:
         yield try_, orig, subst, result
