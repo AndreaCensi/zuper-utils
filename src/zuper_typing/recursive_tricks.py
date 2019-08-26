@@ -2,7 +2,19 @@ import typing
 from datetime import datetime
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from zuper_typing.my_intersection import (
     get_Intersection_args,
@@ -27,9 +39,11 @@ from .annotations_tricks import (
     is_Callable,
     is_ClassVar,
     is_FixedTuple,
+    is_FixedTuple_canonical,
     is_ForwardRef,
     is_Iterator,
     is_List,
+    is_List_canonical,
     is_NewType,
     is_Optional,
     is_Sequence,
@@ -38,6 +52,7 @@ from .annotations_tricks import (
     is_TypeVar,
     is_Union,
     is_VarTuple,
+    is_VarTuple_canonical,
     make_Tuple,
     make_Union,
     make_VarTuple,
@@ -48,11 +63,18 @@ from .my_dict import (
     get_SetLike_arg,
     is_CustomList,
     is_DictLike,
+    is_DictLike_canonical,
     is_SetLike,
+    is_SetLike_canonical,
     make_dict,
     make_list,
     make_set,
+    is_ListLike,
+    get_ListLike_arg,
+    is_ListLike_canonical,
 )
+
+TypeLike = Union[type, typing._SpecialForm]
 
 
 def get_name_without_brackets(name: str) -> str:
@@ -78,7 +100,17 @@ def get_default_attrs():
     )
 
 
-def replace_typevars(cls, *, bindings, symbols):
+def canonical(typelike: TypeLike) -> TypeLike:
+    return replace_typevars(typelike, bindings={}, symbols={}, make_canonical=True)
+
+
+def replace_typevars(
+    cls: TypeLike,
+    *,
+    bindings: Dict[Any, TypeLike],
+    symbols: Dict[str, TypeLike],
+    make_canonical: bool = False,
+) -> TypeLike:
     from .logging import logger
 
     # if already is None:
@@ -124,17 +156,19 @@ def replace_typevars(cls, *, bindings, symbols):
         return Type[r]
         # return type
     elif is_DictLike(cls):
+        is_canonical = is_DictLike_canonical(cls)
         K0, V0 = get_DictLike_args(cls)
         K = r(K0)
         V = r(V0)
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
-        if (K0, V0) == (K, V):
+        if (K0, V0) == (K, V) and (is_canonical or not make_canonical):
             return cls
         return make_dict(K, V)
     elif is_SetLike(cls):
+        is_canonical = is_SetLike_canonical(cls)
         V0 = get_SetLike_arg(cls)
         V = r(V0)
-        if V0 == V:
+        if V0 == V and (is_canonical or not make_canonical):
             return cls
         return make_set(V)
     elif is_CustomList(cls):
@@ -143,6 +177,20 @@ def replace_typevars(cls, *, bindings, symbols):
         if V0 == V:
             return cls
         return make_list(V)
+    elif is_List(cls):
+        arg = get_List_arg(cls)
+        is_canonical = is_List_canonical(cls)
+        arg2 = r(arg)
+        if arg == arg2 and (is_canonical or not make_canonical):
+            return cls
+        return List[arg2]
+    elif is_ListLike(cls):
+        arg = get_ListLike_arg(cls)
+        is_canonical = is_ListLike_canonical(cls)
+        arg2 = r(arg)
+        if arg == arg2 and (is_canonical or not make_canonical):
+            return cls
+        return make_list(arg2)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, "__annotations__"):
         # logger.debug(f'replace in {id(cls)} {cls}  (symbols: {symbols})')
@@ -186,43 +234,41 @@ def replace_typevars(cls, *, bindings, symbols):
             return T2
 
     elif is_ClassVar(cls):
+        is_canonical = True  # XXXis_ClassVar_canonical(cls)
         x = get_ClassVar_arg(cls)
         r = r(x)
-        if x == r:
+        if x == r and (is_canonical or not make_canonical):
             return cls
-        return typing.ClassVar[r]
+        return ClassVar[r]
     elif is_Iterator(cls):
+        is_canonical = True  # is_Iterator_canonical(cls)
         x = get_Iterator_arg(cls)
         r = r(x)
-        if x == r:
+        if x == r and (is_canonical or not make_canonical):
             return cls
-        return typing.Iterator[r]
+        return Iterator[r]
     elif is_Sequence(cls):
+        is_canonical = True  # is_Sequence_canonical(cls)
         x = get_Sequence_arg(cls)
         r = r(x)
-        if x == r:
+        if x == r and (is_canonical or not make_canonical):
             return cls
 
-        return typing.Sequence[r]
-
-    elif is_List(cls):
-        arg = get_List_arg(cls)
-        arg2 = r(arg)
-        if arg == arg2:
-            return cls
-        return typing.List[arg2]
+        return Sequence[r]
 
     elif is_Optional(cls):
+        is_canonical = True  # is_Optional_canonical(cls)
         x = get_Optional_arg(cls)
         x2 = r(x)
-        if x == x2:
+        if x == x2 and (is_canonical or not make_canonical):
             return cls
-        return typing.Optional[x2]
+        return Optional[x2]
 
     elif is_Union(cls):
         xs = get_Union_args(cls)
+        is_canonical = True  # is_Union_canonical(cls)
         ys = tuple(r(_) for _ in xs)
-        if ys == xs:
+        if ys == xs and (is_canonical or not make_canonical):
             return cls
         return make_Union(*ys)
     elif is_Intersection(cls):
@@ -231,21 +277,22 @@ def replace_typevars(cls, *, bindings, symbols):
         if ys == xs:
             return cls
         return make_Intersection(ys)
-    elif is_Tuple(cls):
-        if is_VarTuple(cls):
-            X = get_VarTuple_arg(cls)
-            Y = r(X)
-            if X == Y:
-                return cls
-            return make_VarTuple(Y)
-        elif is_FixedTuple(cls):
-            xs = get_FixedTuple_args(cls)
-            ys = tuple(r(_) for _ in xs)
-            if ys == xs:
-                return cls
-            return make_Tuple(*ys)
-        else:  # pragma: no cover
-            assert False
+    elif is_VarTuple(cls):
+
+        is_canonical = is_VarTuple_canonical(cls)
+        X = get_VarTuple_arg(cls)
+        Y = r(X)
+        if X == Y and (is_canonical or not make_canonical):
+            return cls
+        return make_VarTuple(Y)
+    elif is_FixedTuple(cls):
+        is_canonical = is_FixedTuple_canonical(cls)
+        xs = get_FixedTuple_args(cls)
+        ys = tuple(r(_) for _ in xs)
+        if ys == xs and (is_canonical or not make_canonical):
+            return cls
+        return make_Tuple(*ys)
+
     elif is_Callable(cls):
         cinfo = get_Callable_info(cls)
 

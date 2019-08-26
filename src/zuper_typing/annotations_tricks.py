@@ -330,6 +330,14 @@ def get_FixedTuple_args(x) -> Tuple[type, ...]:
     return get_tuple_types(x)
 
 
+def is_VarTuple_canonical(x):
+    return (x is not tuple) and (x is not Tuple)
+
+
+def is_FixedTuple_canonical(x):
+    return (x is not tuple) and (x is not Tuple)
+
+
 def get_VarTuple_arg(x):
     if x is tuple:
         return Any
@@ -423,6 +431,19 @@ def get_List_arg(x):
     if is_placeholder_typevar(t):
         return Any
     return t
+
+
+def is_List_canonical(x):
+    assert is_List(x), x
+
+    if PYTHON_36:  # pragma: no cover
+        if x.__args__ is None:
+            return False
+
+    t = x.__args__[0]
+    if is_placeholder_typevar(t):
+        return False
+    return True
 
 
 def get_Dict_args(T):

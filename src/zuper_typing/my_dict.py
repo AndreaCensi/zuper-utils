@@ -1,5 +1,5 @@
 from dataclasses import is_dataclass
-from typing import Any, ClassVar, Tuple, Type
+from typing import Any, ClassVar, Tuple
 
 from .annotations_tricks import (
     get_Dict_args,
@@ -106,6 +106,18 @@ def is_ListLike(x):
 
 def is_DictLike(x):
     return (x is dict) or is_Dict(x) or is_CustomDict(x)
+
+
+def is_ListLike_canonical(x):
+    return is_CustomList(x)
+
+
+def is_DictLike_canonical(x):
+    return is_CustomDict(x)
+
+
+def is_SetLike_canonical(x):
+    return is_CustomSet(x)
 
 
 def get_SetLike_arg(x):
