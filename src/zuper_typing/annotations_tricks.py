@@ -178,6 +178,36 @@ def is_Any(x):
         return isinstance(x, typing._SpecialForm) and x._name == "Any"
 
 
+from typing import Optional, TypeVar, TYPE_CHECKING
+
+
+class CacheTypeVar:
+    cache = {}
+
+
+if TYPE_CHECKING:
+    make_TypeVar = TypeVar
+
+else:
+
+    def make_TypeVar(
+        name: str,
+        *,
+        bound: Optional[type] = None,
+        contravariant: bool = False,
+        covariant: bool = False,
+    ) -> TypeVar:
+        key = (name, bound, contravariant, covariant)
+        if key in CacheTypeVar.cache:
+            return CacheTypeVar.cache[key]
+        # noinspection PyTypeHints
+        res = TypeVar(
+            name, bound=bound, contravariant=contravariant, covariant=covariant
+        )
+        CacheTypeVar.cache[key] = res
+        return res
+
+
 def is_TypeVar(x):
     return isinstance(x, typing.TypeVar)
 
