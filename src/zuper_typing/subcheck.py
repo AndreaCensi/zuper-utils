@@ -21,6 +21,7 @@ from .annotations_tricks import (
     is_Tuple,
     is_TypeVar,
     is_Union,
+    get_NewType_arg,
 )
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (
@@ -396,8 +397,22 @@ def can_be_used_as2(
         if T1 in trivial:
             raise NotImplementedError((T1, T2))
         return CanBeUsed(False, "", matches)
-    msg = f"{T1} ? {T2}"  # pragma: no cover
-    raise NotImplementedError(msg)
+
+    from .annotations_tricks import is_NewType
+
+    if is_NewType(T1):
+        n1 = get_NewType_arg(T1)
+        if is_NewType(T2):
+            n2 = get_NewType_arg(T2)
+            if n1 == n2:
+                return CanBeUsed(True, "", matches)
+            else:
+                raise NotImplementedError((T1, T2))
+        else:
+            raise NotImplementedError((T1, T2))
+
+    # msg = f"{T1} ? {T2}"  # pragma: no cover
+    raise NotImplementedError((T1, T2))
 
 
 from datetime import datetime
