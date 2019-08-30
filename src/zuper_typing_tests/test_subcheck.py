@@ -401,7 +401,7 @@ def test_callable1():
     cinfo = get_Callable_info(T)
     print(cinfo)
 
-    assert cinfo.parameters_by_name == {"__0": int}
+    assert cinfo.parameters_by_name == {"0": int}
     assert cinfo.parameters_by_position == (int,)
 
     assert cinfo.returns is str
@@ -415,7 +415,7 @@ def test_callable2():
     cinfo = get_Callable_info(T)
     print(cinfo)
 
-    assert cinfo.parameters_by_name == {"__0": X}
+    assert cinfo.parameters_by_name == {"0": X}
     assert cinfo.parameters_by_position == (X,)
 
     assert cinfo.returns == Y
@@ -426,7 +426,7 @@ def test_callable2():
         return subs.get(x, x)
 
     cinfo2 = cinfo.replace(f)
-    assert cinfo2.parameters_by_name == {"__0": str}, cinfo2
+    assert cinfo2.parameters_by_name == {"0": str}, cinfo2
     assert cinfo2.parameters_by_position == (str,), cinfo2
 
     assert cinfo2.returns == int, cinfo2

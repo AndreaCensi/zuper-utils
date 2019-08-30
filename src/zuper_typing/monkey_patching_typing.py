@@ -122,6 +122,13 @@ class Reg:
 
 
 def MyNamedArg(T, name: str):
+    try:
+        int(name)
+    except:
+        pass
+    else:
+        msg = f"Tried to create NamedArg with name = {name!r}."
+        raise ValueError(msg)
     key = f"{T} {name}"
     if key in Reg.already:
         return Reg.already[key]

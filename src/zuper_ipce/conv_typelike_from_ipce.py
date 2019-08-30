@@ -332,7 +332,7 @@ def typelike_from_ipce_Callable(
     others = []
     for k in schema[CALLABLE_ORDERING]:
         d = f(definitions[k])
-        if not k.startswith("__"):
+        if not looks_like_int(k):
             d = MyNamedArg(d, k)
         others.append(d)
 
@@ -340,6 +340,15 @@ def typelike_from_ipce_Callable(
     res = Callable[others, ret]
     # logger.info(f'typelike_from_ipce_Callable: {schema} \n others =  {others}\n res = {res}')
     return SRE(res, used)
+
+
+def looks_like_int(k: str) -> bool:
+    try:
+        int(k)
+    except:
+        return False
+    else:
+        return True
 
 
 import json
