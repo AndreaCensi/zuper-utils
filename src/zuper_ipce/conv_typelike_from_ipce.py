@@ -6,6 +6,7 @@ from numbers import Number
 from typing import (
     Any,
     Callable,
+    cast,
     ClassVar,
     Dict,
     Generic,
@@ -13,7 +14,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    cast,
 )
 
 import numpy as np
@@ -28,12 +28,12 @@ from zuper_typing.annotations_tricks import (
 )
 from zuper_typing.constants import PYTHON_36
 from zuper_typing.monkey_patching_typing import (
-    MyNamedArg,
     get_remembered_class,
+    MyNamedArg,
     remember_created_class,
 )
 from zuper_typing.my_dict import make_dict, make_list, make_set
-from zuper_typing.my_intersection import Intersection, make_Intersection
+from zuper_typing.my_intersection import make_Intersection
 from . import logger
 from .assorted_recursive_type_subst import recursive_type_subst
 from .constants import (
@@ -135,8 +135,12 @@ def typelike_from_ipce_sr_(
             cls_name = schema[JSC_TITLE]
             encountered[schema_id] = cls_name
 
-    if schema == {}:
+    if schema == {JSC_TITLE: "Any"}:
         return SRE(Any)
+    if schema == {}:
+        return SRE(object)
+    if schema == {JSC_TITLE: "object"}:
+        return SRE(object)
 
     if REF_ATT in schema:
         r = schema[REF_ATT]
@@ -393,7 +397,7 @@ def typelike_from_ipce_dataclass(
     for tname, t in definitions.items():
         bound = f(t)
         # noinspection PyTypeHints
-        if is_Any(bound):
+        if is_Any(bound) or bound is object:
             bound = None
         # noinspection PyTypeHints
         tv = TypeVar(tname, bound=bound)

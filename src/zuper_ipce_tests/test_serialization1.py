@@ -285,10 +285,20 @@ def test_not_fref2():
     ipce_from_typelike(make_ForwardRef("one"), {})
 
 
-def test_any():
+def test_serialize_any():
     # noinspection PyTypeChecker
     s = ipce_from_typelike(Any, {})
-    assert_equal(s, {SCHEMA_ATT: SCHEMA_ID})
+    assert_equal(s, {SCHEMA_ATT: SCHEMA_ID, "title": "Any"})
+
+    assert assert_type_roundtrip(Any, {})
+
+
+def test_serialize_object():
+    # noinspection PyTypeChecker
+    s = ipce_from_typelike(object, {})
+    assert_equal(s, {SCHEMA_ATT: SCHEMA_ID, "title": "object"})
+
+    assert assert_type_roundtrip(object, {})
 
 
 # @raises(NotImplementedError)
@@ -309,7 +319,7 @@ def test_not_dict_naked():
 def test_any1b():
     res = cast(JSONSchema, {})
     t = typelike_from_ipce(res, {}, encountered={})
-    assert is_Any(t), t
+    assert t is object, t
 
 
 def test_any2():

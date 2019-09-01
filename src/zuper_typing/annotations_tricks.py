@@ -270,6 +270,7 @@ def is_NewType(x):
 
 
 def get_NewType_arg(x):
+    assert is_NewType(x)
     return x.__supertype__
 
 

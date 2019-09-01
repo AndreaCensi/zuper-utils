@@ -403,9 +403,14 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         res = sorted_dict_with_cbor_ordering(res)
         return TRE(res)
 
+    if T is object:
+        res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: "object"})
+        res = sorted_dict_with_cbor_ordering(res)
+        return TRE(res)
+
     # we cannot use isinstance on typing.Any
     if is_Any(T):  # XXX not possible...
-        res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
+        res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: "Any"})
         res = sorted_dict_with_cbor_ordering(res)
         return TRE(res)
 

@@ -4,7 +4,6 @@ from typing import List
 from zuper_ipce.constants import USE_REMEMBERED_CLASSES
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import dataclass
-from zuper_typing_tests.test_utils import known_failure
 
 if not USE_REMEMBERED_CLASSES:  # pragma: no cover
 
@@ -18,7 +17,6 @@ if not USE_REMEMBERED_CLASSES:  # pragma: no cover
         F()
 
 
-@known_failure
 def test_object():
     T = object
     assert_type_roundtrip(T, {})

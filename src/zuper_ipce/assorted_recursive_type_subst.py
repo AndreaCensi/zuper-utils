@@ -185,6 +185,7 @@ def recursive_type_subst(T, f, ignore=()):
         type,
         np.ndarray,
         Number,
+        object,
     ):
         return f(T)
     elif is_TypeVar(T):

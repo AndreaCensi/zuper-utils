@@ -139,6 +139,8 @@ def object_from_ipce_(
             return None
         elif is_Any(expect_type):
             return None
+        elif expect_type is object:
+            return None
         else:
             msg = f"The value is None but the expected type is {expect_type}."
             raise TypeError(msg)  # XXX
@@ -182,7 +184,7 @@ def object_from_ipce_(
     if K is slice:
         return object_from_ipce_slice(mj)
 
-    if is_Any(K):
+    if is_Any(K) or K is object:
         if looks_like_set(mj):
             res = object_from_ipce_SetLike(None, mj, global_symbols, encountered)
             return res
@@ -221,7 +223,7 @@ def object_from_ipce_slice(mj) -> slice:
 def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
     if expect_type is not None:
         # logger.info(f'expect_type for list is {expect_type}')
-        if is_Any(expect_type):
+        if is_Any(expect_type) or expect_type is object:
             suggest = None
             seq = [
                 object_from_ipce(_, global_symbols, encountered, expect_type=suggest)
