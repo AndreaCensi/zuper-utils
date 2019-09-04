@@ -380,6 +380,8 @@ def debug_print_compact(x):
 
 
 def debug_print_str(x: str, prefix: str):
+    if x == "\n":
+        return "`\\n`"
     if x.startswith("Qm"):
         x2 = "Qm..." + x[-4:] + " " + prefix
         return termcolor.colored(x2, "magenta")

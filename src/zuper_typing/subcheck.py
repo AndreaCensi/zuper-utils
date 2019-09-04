@@ -7,21 +7,23 @@ from zuper_typing.type_algebra import Matches
 from zuper_typing.uninhabited import is_Uninhabited
 from .annotations_tricks import (
     get_ForwardRef_arg,
+    get_Iterable_arg,
+    get_NewType_arg,
     get_Optional_arg,
     get_Sequence_arg,
+    get_tuple_types,
     get_TypeVar_name,
     get_Union_args,
-    get_tuple_types,
     is_Any,
     is_Callable,
     is_ForwardRef,
+    is_Iterable,
     is_List,
     is_Optional,
     is_Sequence,
     is_Tuple,
     is_TypeVar,
     is_Union,
-    get_NewType_arg,
 )
 from .constants import ANNOTATIONS_ATT, BINDINGS_ATT
 from .my_dict import (
@@ -342,6 +344,25 @@ def can_be_used_as2(
                 return CanBeUsed(True, "", matches)
             else:
                 return CanBeUsed(False, "different name", matches)
+
+    if is_Iterable(T2):
+        t2 = get_Iterable_arg(T2)
+        if is_Iterable(T1):
+            t1 = get_Iterable_arg(T1)
+            return can_be_used_as2(t1, t2, matches)
+
+        if is_SetLike(T1):
+            t1 = get_SetLike_arg(T1)
+            return can_be_used_as2(t1, t2, matches)
+        if is_ListLike(T1):
+            t1 = get_ListLike_arg(T1)
+            return can_be_used_as2(t1, t2, matches)
+        if is_DictLike(T1):
+            K, V = get_DictLike_args(T1)
+            t1 = Tuple[K, V]
+            return can_be_used_as2(t1, t2, matches)
+
+        return CanBeUsed(False, "expect iterable", matches)
 
     if is_SetLike(T2):
         if not is_SetLike(T1):

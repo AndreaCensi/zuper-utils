@@ -328,6 +328,8 @@ def replace_typevars(
 
         # logger.warning(f"extraneous class {cls}")
         return cls
+    # elif is_Literal(cls):
+    #     return cls
     else:
         raise NotImplementedError(cls)
         # logger.debug(f'Nothing to do with {cls!r} {cls}')

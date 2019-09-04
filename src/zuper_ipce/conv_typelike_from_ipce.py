@@ -3,18 +3,7 @@ import datetime
 from dataclasses import dataclass, field, make_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import (
-    Any,
-    Callable,
-    cast,
-    ClassVar,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Tuple,
-    TypeVar,
-)
+from typing import Any, Callable, cast, ClassVar, Dict, List, Optional, Tuple, TypeVar
 
 import numpy as np
 
@@ -407,6 +396,7 @@ def typelike_from_ipce_dataclass(
 
     if typevars:
         typevars2: Tuple[TypeVar, ...] = tuple(typevars)
+        from zuper_typing import Generic
 
         # TODO: typevars
         if PYTHON_36:  # pragma: no cover
