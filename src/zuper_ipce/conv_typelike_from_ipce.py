@@ -525,7 +525,7 @@ def typelike_from_ipce_dataclass(
     if not used:
         remember_created_class(T)
 
-    assert not "varargs" in T.__dict__
+    # assert not "varargs" in T.__dict__, T
     return SRE(T, used)
 
 
