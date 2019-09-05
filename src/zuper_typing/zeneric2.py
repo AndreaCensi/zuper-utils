@@ -1,4 +1,5 @@
 import sys
+import typing
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, ClassVar, Dict, Tuple
@@ -13,68 +14,54 @@ from .annotations_tricks import (
 )
 from .constants import (
     BINDINGS_ATT,
+    cache_enabled,
     DEPENDS_ATT,
+    enable_type_checking,
     GENERIC_ATT2,
     MakeTypeCache,
     PYTHON_36,
-    cache_enabled,
-    enable_type_checking,
 )
 from .logging import logger
 from .recursive_tricks import (
-    NoConstructorImplemented,
     get_name_without_brackets,
+    NoConstructorImplemented,
     replace_typevars,
 )
 from .subcheck import can_be_used_as2
-
-
-#
-# def loglevel(f):
-#     def f2(*args, **kwargs):
-#         RecLogger.levels += 1
-#         # if RecLogger.levels >= 10:
-#         #     raise AssertionError()
-#         try:
-#             return f(*args, **kwargs)
-#         finally:
-#             RecLogger.levels -= 1
-#
-#     return f2
-
-
-# class RecLogger:
-#     levels = 0
-#     prefix: Tuple[str, ...]
-#     count = 0
-#
-#     def __init__(self, prefix=None):
-#         if prefix is None:
-#             prefix = (str(RecLogger.count),)
-#         RecLogger.count += 1
-#         self.prefix = prefix
-#
-#     def p(self, s):
-#         p = '  ' * RecLogger.levels + ':'
-#         # p = '/'.join(('root',) + self.prefix) + ':'
-#         print(indent(s, p))
-#
-#     def pp(self, msg, **kwargs):
-#         self.p(pretty_dict(msg, kwargs))
-#
-#     def child(self, name=None):
-#         name = name or '-'
-#         prefix = self.prefix + (name,)
-#         return RecLogger(prefix)
 
 
 def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
+if PYTHON_36:
+    from typing import GenericMeta
+
+    old_one = GenericMeta.__getitem__
+else:
+    old_one = None
+
+
 class ZenericFix:
-    class CannotInstantiate(TypeError):
-        ...
+    # class CannotInstantiate(TypeError):
+    #     ...
+
+    if PYTHON_36:
+
+        def __getitem__(self, params):
+            # pprint('P36', params=params, self=self)
+            if self is typing.Generic:
+                return ZenericFix.__class_getitem__(params)
+
+            if self is typing.Dict:
+                K, V = params
+                if K is not str:
+                    from zuper_typing.my_dict import make_dict
+
+                    return make_dict(K, V)
+
+            # noinspection PyArgumentList
+            return old_one(self, params)
 
     @classmethod
     def __class_getitem__(cls0, params):
@@ -129,11 +116,11 @@ class ZenericFix:
                 for T, U in zip(types, types2):
                     bindings[T] = U
                     if T.__bound__ is not None and isinstance(T.__bound__, type):
-                        logger.info(f"{U} should be usable as {T.__bound__}")
-                        logger.info(
-                            f" issubclass({U}, {T.__bound__}) ="
-                            f" {issubclass(U, T.__bound__)}"
-                        )
+                        # logger.info(f"{U} should be usable as {T.__bound__}")
+                        # logger.info(
+                        #     f" issubclass({U}, {T.__bound__}) ="
+                        #     f" {issubclass(U, T.__bound__)}"
+                        # )
                         if not issubclass(U, T.__bound__):
                             msg = (
                                 f'For type parameter "{T.__name__}", expected a'
@@ -141,11 +128,7 @@ class ZenericFix:
                             )
                             raise TypeError(msg)
 
-                # logger.info(f'cls0 qual: {cls0.__qualname__}')
                 res = make_type(cls2, bindings)
-                # A = lambda C: getattr(C, '__annotations__', 'no anns')
-                # print(f'results of particularization of {cls.__name__} with {
-                # params2}:\nbefore: {A(cls)}\nafter: {A(res)}')
                 return res
 
         name = "Generic[%s]" % ",".join(name_for_type_like(_) for _ in types)
@@ -159,9 +142,6 @@ class ZenericFix:
 class StructuralTyping(type):
     def __subclasscheck__(self, subclass) -> bool:
         can = can_be_used_as2(subclass, self)
-        # logger.info(
-        #     f'StructuralTyping: Performing __subclasscheck__ {self} {id(self)} {subclass}
-        #     {id(subclass)}: {can}')
         return can.result
 
     def __instancecheck__(self, instance) -> bool:
@@ -188,39 +168,30 @@ class StructuralTyping(type):
 
 
 class MyABC(StructuralTyping, ABCMeta):
-    def __new__(mcls, name_orig, bases, namespace, **kwargs):
+    def __new__(mcs, name_orig, bases, namespace, **kwargs):
         # logger.info(f'----\nCreating name: {name}')
         # logger.info('namespace: %s' % namespace)
         # logger.info('bases: %s' % str(bases))
         # if bases:
         #     logger.info('bases[0]: %s' % str(bases[0].__dict__))
-
         if GENERIC_ATT2 in namespace:
             spec = namespace[GENERIC_ATT2]
-        # elif 'types_' in namespace:
-        #     spec = namespace['types_']
         elif bases and GENERIC_ATT2 in bases[0].__dict__:
             spec = bases[0].__dict__[GENERIC_ATT2]
         else:
             spec = {}
-        # logger.info(f'Creating name: {name} spec {spec}')
         if spec:
             name0 = get_name_without_brackets(name_orig)
             name = f"{name0}[%s]" % (",".join(name_for_type_like(_) for _ in spec))
-            # setattr(cls, '__name__', name)
         else:
             name = name_orig
 
-        cls = super().__new__(mcls, name, bases, namespace, **kwargs)
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         qn = cls.__qualname__.replace(name_orig, name)
 
-        # if 'need' in namespace and bases:
-        #     qn = bases[0].__qualname__
         setattr(cls, "__qualname__", qn)
-        # logger.info(f'in MyABC choosing qualname {cls.__qualname__!r} from {cls.__qualname__} ({mcls.__qualname__}')
-        setattr(cls, "__module__", mcls.__module__)
+        setattr(cls, "__module__", mcs.__module__)
         setattr(cls, GENERIC_ATT2, spec)
-        # logger.info('spec: %s' % spec)
         return cls
 
 
@@ -344,7 +315,7 @@ def make_type(cls: type, bindings, symbols=None) -> type:
     annotations = getattr(cls, "__annotations__", {})
     name_without = get_name_without_brackets(cls.__name__)
 
-    def param_name(x):
+    def param_name(x: type) -> str:
         x2 = recur(x)
         return name_for_type_like(x2)
 
@@ -352,10 +323,8 @@ def make_type(cls: type, bindings, symbols=None) -> type:
         name2 = "%s[%s]" % (name_without, ",".join(param_name(_) for _ in generic_att2))
     else:
         name2 = name_without
-    # rl.p('  name2: %s' % name2)
     try:
         cls2 = type(name2, (cls,), {"need": lambda: None})
-        # cls2.__qualname__ = cls.__qualname__
         # logger.info(f'Created class {cls2} ({name2}) and set qualname {cls2.__qualname__}')
     except TypeError as e:  # pragma: no cover
         msg = f'Cannot create derived class "{name2}" from {cls!r}'
@@ -498,15 +467,9 @@ def make_type(cls: type, bindings, symbols=None) -> type:
     if not sep:
         sep = ""
     setattr(cls2, "__qualname__", qn0 + sep + name2)
-    # logger.info(f'choosing qualname {cls2.__qualname__!r} from {qn}')
     setattr(cls2, BINDINGS_ATT, bindings)
-
     setattr(cls2, GENERIC_ATT2, generic_att2_new)
 
-    # raise Exception()
-    # rl.p(f'  final {cls2.__name__}  {cls2.__annotations__}')
-    # rl.p(f'     dataclass {is_dataclass(cls2)}')
-    #
     MakeTypeCache.cache[cache_key] = cls2
 
     # logger.info(f'started {cls}; hash is {cls.__hash__}')

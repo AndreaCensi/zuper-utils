@@ -1,13 +1,11 @@
 class Unh:
-    U = None
-
-
-Unh.U = Unh()
+    def __init__(self):
+        raise Exception()
 
 
 def make_Uninhabited():
-    return Unh.U
+    return Unh
 
 
 def is_Uninhabited(x):
-    return x is Unh.U
+    return x is Unh

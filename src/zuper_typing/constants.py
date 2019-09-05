@@ -10,7 +10,7 @@ GENERIC_ATT2 = "__generic2__"
 BINDINGS_ATT = "__binding__"
 
 enable_type_checking = True
-cache_enabled = True  # XXX
+cache_enabled = True
 monkey_patch_Generic = True
 
 
@@ -21,12 +21,16 @@ class MakeTypeCache:
 from .logging import logger
 import os
 
-if "ZUPER_TYPING_NOPATCH" in os.environ:
-    logger.info("Disabling monkey_patch_Generic because of ZUPER_TYPING_NOPATCH")
+vname = "ZUPER_TYPING_PATCH"
+if vname in os.environ:
+    logger.info(f"Enabling monkey_patch_Generic because of {vname}")
+    monkey_patch_Generic = True
+else:
+    logger.info(f"Disabling monkey_patch_Generic because of {vname}")
     monkey_patch_Generic = False
 
 circle_job = os.environ.get("CIRCLE_JOB", None)
-logger.info(f"Circle JOB: {circle_job!r}")
+# logger.info(f"Circle JOB: {circle_job!r}")
 
 
 if circle_job == "test-3.7-no-cache":  # pragma: no cover

@@ -16,12 +16,9 @@ from typing import (
     Union,
 )
 
-from zuper_typing.my_intersection import (
-    get_Intersection_args,
-    is_Intersection,
-    make_Intersection,
-)
-from zuper_typing.uninhabited import is_Uninhabited
+from zuper_typing.constants import PYTHON_36
+from .my_intersection import get_Intersection_args, is_Intersection, make_Intersection
+from .uninhabited import is_Uninhabited
 from .annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
@@ -74,7 +71,10 @@ from .my_dict import (
     is_ListLike_canonical,
 )
 
-TypeLike = Union[type, typing._SpecialForm]
+if PYTHON_36:  # pragma: no cover
+    TypeLike = type
+else:
+    TypeLike = Union[type, typing._SpecialForm]
 
 
 def get_name_without_brackets(name: str) -> str:

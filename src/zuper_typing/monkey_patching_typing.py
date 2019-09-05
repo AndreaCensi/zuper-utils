@@ -42,26 +42,7 @@ def original_dict_getitem(a):
 
 if monkey_patch_Generic:
     if PYTHON_36:  # pragma: no cover
-        from typing import GenericMeta
-
-        old_one = GenericMeta.__getitem__
-
-        class P36Generic:
-            def __getitem__(self, params):
-                # pprint('P36', params=params, self=self)
-                if self is typing.Generic:
-                    return ZenericFix.__class_getitem__(params)
-
-                if self is typing.Dict:
-                    K, V = params
-                    if K is not str:
-                        return make_dict(K, V)
-
-                # noinspection PyArgumentList
-                return old_one(self, params)
-
-        GenericMeta.__getitem__ = P36Generic.__getitem__
-
+        GenericMeta.__getitem__ = ZenericFix.__getitem__
     else:
         Generic.__class_getitem__ = ZenericFix.__class_getitem__
         _GenericAlias.__getitem__ = Alias1.__getitem__
@@ -143,22 +124,6 @@ def MyNamedArg(T, name: str):
     return CNamedArg
 
 
-#
-# def MyNamedArg_old(x: type, name: str):
-#     key = f'{x} {name}'
-#     if key in Reg.already:
-#         return Reg.already[key]
-#
-#     x2 = copy.copy(x)
-#     # noinspection PyBroadException
-#     try:
-#         setattr(x2, NAME_ARG, name)
-#     except:
-#         return x
-#
-#     return x2
-
-
 import mypy_extensions
 
 setattr(mypy_extensions, "NamedArg", MyNamedArg)
@@ -178,9 +143,6 @@ def get_remembered_class(module_name: str, qual_name: str) -> type:
 
 
 def remember_created_class(res: type):
-    # print(f'Registered class "{res.__name__}"')
-    # k = (res.__qual, res.__name__)
-    # k = res.__qualname__
     k = (res.__module__, res.__qualname__)
     RegisteredClasses.klasses[k] = res
 
@@ -239,8 +201,6 @@ def get_all_annotations(cls: type) -> Dict[str, type]:
 def my_dataclass_(
     _cls, *, init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False
 ):
-    # if not 'Fake' in _cls.__qualname__  and not _cls.__name__ in ['Patch'] and not '.' in _cls.__qualname__:
-    #     raise ValueError(_cls.__qualname__)
     original_doc = getattr(_cls, "__doc__", None)
     # logger.info(_cls.__dict__)
     unsafe_hash = True
@@ -264,6 +224,7 @@ def my_dataclass_(
     if Generic in _cls.__bases__:
         msg = f"There are problems with initialization: class {_cls.__name__} inherits from Generic: {_cls.__bases__}"
         raise Exception(msg)
+
     if type(_cls) is type:
         old_annotations = get_all_annotations(_cls)
         from .zeneric2 import StructuralTyping
