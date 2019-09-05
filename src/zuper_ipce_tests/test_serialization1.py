@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Any, Dict, Generic, NewType, Optional, TypeVar, Union, cast
+from typing import Any, Dict, NewType, Optional, TypeVar, Union, cast
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
@@ -11,6 +11,7 @@ from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing.annotations_tricks import is_Any, make_ForwardRef
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.my_dict import make_dict
+from zuper_typing import Generic
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 

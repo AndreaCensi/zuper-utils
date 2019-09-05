@@ -2,7 +2,6 @@ from typing import (
     Any,
     ClassVar,
     Dict,
-    Generic,
     List,
     NewType,
     Optional,
@@ -29,7 +28,7 @@ from zuper_ipce_tests.test_utils import (
     assert_object_roundtrip,
     assert_type_roundtrip,
 )
-from zuper_typing import dataclass
+from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import (
     get_NewType_arg,
     get_NewType_name,
