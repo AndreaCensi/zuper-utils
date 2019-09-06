@@ -1,6 +1,8 @@
 from collections import UserString
 from typing import Callable, Dict, NewType
 
+from zuper_ipce.structures import ZValueError
+
 
 def valid_email(s):
     import validate_email
@@ -8,8 +10,8 @@ def valid_email(s):
     is_valid = validate_email.validate_email(s)
 
     if not is_valid:
-        msg = f"Invalid email address {s!r}"
-        raise ValueError(msg)
+        msg = "Invalid email address."
+        raise ZValueError(msg, s=s)
 
 
 json_formats: Dict[str, Callable[[str], None]] = {

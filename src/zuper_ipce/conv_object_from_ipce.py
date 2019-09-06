@@ -60,7 +60,7 @@ def object_from_ipce(
         return res
 
     except BaseException as e:
-        msg = f"Cannot deserialize object (expect: {expect_type})"
+        msg = f"Cannot deserialize object"
         if isinstance(mj, dict) and "$schema" in mj:
             schema = mj["$schema"]
         else:
@@ -73,7 +73,7 @@ def object_from_ipce(
             fn = write_out_yaml(prefix + "_schema", schema)
             msg += f"\n object schema in {fn}"
 
-        raise ZTypeError(msg) from e
+        raise ZTypeError(msg, expect_type=expect_type) from e
 
 
 def object_from_ipce_(
@@ -101,7 +101,7 @@ def object_from_ipce_(
 
     if expect_type in trivial:
         if not isinstance(mj, expect_type):
-            msg = f"Expected trivial expect_type @expect_type, got @mj_yaml."
+            msg = "Expected trivial expect_type @expect_type, got @mj_yaml."
             raise ZTypeError(msg, expect_type=expect_type, mj_yaml=mj)
         else:
             return mj
@@ -264,10 +264,10 @@ def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) 
             return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
         except BaseException:
             errors[str(T)] = traceback.format_exc()
-    msg = f"Cannot deserialize with any of {ts}"
+    msg = f"Cannot deserialize with any of @ts"
     fn = write_out_yaml(f"object{id(mj)}", mj)
     msg += f"\n ipce in {fn}"
-    raise ZValueError(msg, errors=errors)
+    raise ZValueError(msg, errors=errors, ts=ts)
 
 
 def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
@@ -318,9 +318,9 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
             expect_type = anns[k]
 
             if inspect.isabstract(expect_type):  # pragma: no cover
-                msg = f'Trying to instantiate abstract class for field "{k}" of class {K}.'
+                msg = f"Trying to instantiate abstract class for field {k!r} of class {K.__name__}."
                 raise ZTypeError(
-                    msg, expect_type=expect_type, mj=mj, annotation=anns[k]
+                    msg, K=K, expect_type=expect_type, mj=mj, annotation=anns[k]
                 )
 
             if k in hints:

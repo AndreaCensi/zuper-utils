@@ -378,7 +378,7 @@ def typelike_from_ipce_dataclass(
     if (
         not X_PYTHON_MODULE_ATT in res
     ) or not ATT_PYTHON_NAME in res:  # pragma: no cover
-        msg = f"Cannot find attributes for {cls_name}."
+        msg = f"Cannot find attributes for {cls_name!r}."
         raise ZValueError(msg, res=res)
     module_name = res[X_PYTHON_MODULE_ATT]
     qual_name = res[ATT_PYTHON_NAME]
@@ -460,8 +460,8 @@ def typelike_from_ipce_dataclass(
             # logger.info(f'ipce classvar: {pname} {ptype}')
             fields.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
-            msg = f"Found {pname} in classatts but not in classvars"
-            raise ZValueError(msg, res=res)
+            msg = f"Found {pname!r} in @classatts but not in @classvars"
+            raise ZValueError(msg, res=res, classatts=classatts, classvars=classvars)
         else:  # pragma: no cover
             msg = f"Cannot find {pname!r} either in @properties or @classvars or @classatts."
             raise ZValueError(

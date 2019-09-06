@@ -2,7 +2,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
-from .constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
+from zuper_ipce.structures import ZValueError
+from .constants import JSONSchema, REF_ATT, SCHEMA_ATT, SCHEMA_ID
 from .ipce_attr import make_key
 from .ipce_spec import assert_canonical_ipce
 
@@ -11,10 +12,11 @@ def assert_canonical_schema(x: JSONSchema):
     assert isinstance(x, dict)
     if SCHEMA_ATT in x:
         assert x[SCHEMA_ATT] in [SCHEMA_ID]
-    elif "$ref" in x:
+    elif REF_ATT in x:
         pass
     else:
-        raise ValueError(x)
+        msg = f"No {SCHEMA_ATT} or {REF_ATT}"
+        raise ZValueError(msg, x=x)
 
     assert_canonical_ipce(x)
 
@@ -30,8 +32,8 @@ class TRE:
         try:
             assert_canonical_schema(self.schema)
         except ValueError as e:  # pragma: no cover
-            msg = f"Invalid schema: {self.schema}"
-            raise ValueError(msg) from e
+            msg = f"Invalid schema"
+            raise ZValueError(msg, schema=self.schema) from e
 
 
 class IPCETypelikeCache:

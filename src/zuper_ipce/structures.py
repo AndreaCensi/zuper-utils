@@ -13,6 +13,14 @@ class ZValueError(ZException, ValueError):
     pass
 
 
+class ZAssertionError(ZException, AssertionError):
+    pass
+
+
+class ZNotImplementedError(ZException, NotImplementedError):
+    pass
+
+
 class CannotFindSchemaReference(Exception):
     pass
 

@@ -38,7 +38,7 @@ from zuper_typing.my_dict import (
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT
 from .conv_ipce_from_typelike import ipce_from_typelike, ipce_from_typelike_ndarray
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
-from .structures import FakeValues, ZTypeError, ZValueError
+from .structures import FakeValues, ZTypeError, ZValueError, ZNotImplementedError
 from .types import IPCE, TypeLike
 from .utils_text import get_sha256_base58
 
@@ -54,8 +54,8 @@ def ipce_from_object(
             ob, globals_, suggest_type=suggest_type, with_schema=with_schema
         )
     except TypeError as e:
-        msg = f"ipce_from_object() for type {type(ob)} failed."
-        raise ZTypeError(msg, ob=ob) from e
+        msg = "ipce_from_object() for type @t failed."
+        raise ZTypeError(msg, ob=ob, T=type(ob)) from e
 
     assert_canonical_ipce(res)
     return res
@@ -92,12 +92,12 @@ def ipce_from_object_(
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
             msg = "Cannot serialize dates without a timezone."
-            raise ValueError(msg)
+            raise ZValueError(msg, ob=ob)
 
     trivial = (bool, int, str, float, bytes, Decimal, datetime.datetime)
     if suggest_type in trivial:
         if not isinstance(ob, suggest_type):
-            msg = f"Expected this to be @suggest_type."
+            msg = "Expected this to be @suggest_type."
             raise ZTypeError(msg, suggest_type=suggest_type, T=type(ob))
         return ob
 
@@ -154,8 +154,8 @@ def ipce_from_object_(
             ob, globals_, with_schema=with_schema, suggest_type=suggest_type
         )
 
-    msg = f"I do not know a way to convert object of type {type(ob)} ({ob})."
-    raise NotImplementedError(msg)
+    msg = "I do not know a way to convert object @ob of type @T."
+    raise ZNotImplementedError(msg, ob=ob, T=type(ob))
 
 
 def ipce_from_object_numpy(ob, with_schema) -> IPCE:
@@ -199,7 +199,7 @@ def ipce_from_object_list(ob, globals_, suggest_type, with_schema: bool) -> IPCE
         elif is_ListLike(suggest_type):
             suggest_type_l = get_ListLike_arg(suggest_type)
         else:
-            msg = f"suggest_type does not make sense for a list"
+            msg = "suggest_type does not make sense for a list"
             raise ZTypeError(msg, suggest_type=suggest_type)
     else:
         suggest_type_l = None
@@ -223,7 +223,7 @@ def ipce_from_object_tuple(
             else:
                 suggest_type_l = [None] * len(ob)
         else:
-            msg = f"suggest_type   does not make sense for a tuple"
+            msg = "suggest_type does not make sense for a tuple."
             raise ZTypeError(msg, suggest_type=suggest_type)
     else:
         suggest_type_l = [None] * len(ob)

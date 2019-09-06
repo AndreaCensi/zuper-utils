@@ -96,14 +96,19 @@ from .constants import (
     X_PYTHON_MODULE_ATT,
 )
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
-from .pretty import pretty_dict
 from .schema_caching import (
     get_ipce_from_typelike_cache,
     set_ipce_from_typelike_cache,
     TRE,
 )
 from .schema_utils import make_ref, make_url
-from .structures import FakeValues
+from .structures import (
+    FakeValues,
+    ZTypeError,
+    ZValueError,
+    ZAssertionError,
+    ZNotImplementedError,
+)
 
 
 def ipce_from_typelike(
@@ -184,33 +189,15 @@ def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
 
     except NotImplementedError:  # pragma: no cover
         raise
-    except (ValueError, AssertionError) as e:
-        m = f"Cannot get schema for type {T!r} (metatype {type(T)}"
-        if hasattr(T, "__name__"):
-            m += f" (name = {T.__name__!r})"
-        msg = pretty_dict(
-            m,
-            dict(  # globals0=globals0,
-                # globals=globals_,
-                processing=c.processing
-            ),
-        )
-        # msg += '\n' + traceback.format_exc()
-        raise type(e)(msg) from e
-
+    except ValueError as e:
+        msg = "Cannot get schema for type @T"
+        raise ZValueError(msg, T=T, T_type=type(T), c=c) from e
+    except AssertionError as e:
+        msg = "Cannot get schema for type @T"
+        raise ZAssertionError(msg, T=T, T_type=type(T), c=c) from e
     except BaseException as e:
-        m = f"Cannot get schema for {T}"
-        if hasattr(T, "__name__"):
-            m += f" (name = {T.__name__!r})"
-            m += f" {T.__name__ in c.processing}"
-        msg = pretty_dict(
-            m,
-            dict(  # globals0=globals0,
-                # globals=globals_,
-                processing=c.processing
-            ),
-        )
-        raise TypeError(msg) from e
+        msg = "Cannot get schema for @T"
+        raise ZTypeError(msg, T=T, c=c) from e
 
 
 def ipce_from_typelike_DictLike(T, c: IFTContext) -> TRE:
@@ -347,18 +334,19 @@ def ipce_from_typelike_Callable(T: Type, c: IFTContext) -> TRE:
 
 def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
     if T is None:
-        raise ValueError("None is not a type!")
+        msg = "None is not a type!"
+        raise ZValueError(msg)
 
     # This can actually happen inside a Tuple (or Dict, etc.) even though
     # we have a special case for dataclass
 
     if is_ForwardRef(T):  # pragma: no cover
-        msg = f"It is not supported to have an ForwardRef here yet: {T}"
-        raise ValueError(msg)
+        msg = "It is not supported to have an ForwardRef here yet."
+        raise ZValueError(msg, T=T)
 
     if isinstance(T, str):  # pragma: no cover
-        msg = f"It is not supported to have a string here: {T!r}"
-        raise ValueError(msg)
+        msg = "It is not supported to have a string here."
+        raise ZValueError(msg, T=T)
 
     if T is str:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID})
@@ -473,10 +461,8 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
     if T is np.ndarray:
         return ipce_from_typelike_ndarray()
 
-    msg = f"Cannot interpret this type: {T!r}"
-    msg += f"\n   globals_: {c.globals_}"
-    msg += f"\n processing: {c.processing}"
-    raise ValueError(msg)
+    msg = "Cannot interpret the type @T"
+    raise ZValueError(msg, T=T, c=c)
 
 
 def ipce_from_typelike_ndarray() -> TRE:
@@ -687,8 +673,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                             used.update({tn: ref})
                             classatts[name] = f(type)
                         else:  # pragma: no cover
-                            msg = f"Unknown typevar {tn} in class {T}; processing = {c.processing}"
-                            raise NotImplementedError(msg)
+                            msg = "Unknown typevar @tn in class @T"
+                            raise ZNotImplementedError(msg, tn=tn, T=T, c=c)
                     else:
                         # classatts[name] = ipce_from_object(u, c.globals_)
                         # raise NotImplementedError(T)
@@ -740,10 +726,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                 properties[name] = schema
 
         except BaseException as e:
-            msg = (
-                f"Cannot write schema for attribute {name} -> {t} of type {T.__name__}"
-            )
-            raise TypeError(msg) from e
+            msg = "Cannot write schema for attribute @name -> @t of type @T."
+            raise ZTypeError(msg, name=name, t=t, T=T) from e
 
     if required:  # empty is error
         res[JSC_REQUIRED] = sorted(required)
