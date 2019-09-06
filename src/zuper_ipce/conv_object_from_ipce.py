@@ -370,31 +370,19 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 # msg += '\n\n' + indent(traceback.format_exc(), '| ')
 
                 raise TypeError(msg) from e
-    # for k, v in attrs.items():
-    #     assert not isinstance(v, Field), (k, v)
+
     for k, T in anns.items():
         if is_ClassVar(T):
             continue
         if not k in mj:
-            if hasattr(K, k):  # default - XXX
+            if hasattr(K, k):
                 V = getattr(K, k)
-                # if isinstance(V, Field):
-                #     logger.error(oyaml_dump(mj))
-                #     from zuper_ipcl.debug_print_ import debug_print
-                #
-                #     logger.error(f"dict: {debug_print(dict(K.__dict__))}")
-                #     logger.error(f"anns: {debug_print(K.__annotations__)}")
-                #     # V = V.default
-                #     raise Exception((k, V))
-                # logger.info(f'setting default {V}')
                 attrs[k] = V
-            # elif is_Optional(T):
-            #     attrs[k] = None
-            #     pass
             else:
                 msg = f"Cannot find field {k!r} in data for class {K}. (T = {T}) Know {sorted(mj)}"
                 msg += f"\n annotations: {anns}"
                 raise ValueError(msg)
+
     for k, v in attrs.items():
         assert not isinstance(v, Field), (k, v)
     try:

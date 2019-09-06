@@ -8,10 +8,9 @@ import termcolor
 
 from zuper_commons.text.boxing import box
 from zuper_commons.text.text_sidebyside import side_by_side
-from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, PYTHON_36, monkey_patch_Generic
+from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, monkey_patch_Generic, PYTHON_36
 from .my_dict import make_dict
-from .zeneric2 import ZenericFix, resolve_types
-
+from .zeneric2 import resolve_types, ZenericFix
 
 if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
@@ -332,15 +331,15 @@ def nice_repr(self):
 
 def debug_print_compact(x):
     if isinstance(x, str):
-        return debug_print_str(x, "")
+        return debug_print_str(x, prefix="")
     if isinstance(x, bytes):
         return debug_print_bytes(x)
     if isinstance(x, datetime):
-        return debug_print_date(x, "")
+        return debug_print_date(x, prefix="")
     return f"{x!r}"
 
 
-def debug_print_str(x: str, prefix: str):
+def debug_print_str(x: str, *, prefix: str):
     if x == "\n":
         return "`\\n`"
     if x.startswith("Qm"):
@@ -374,7 +373,7 @@ def debug_print_str(x: str, prefix: str):
     # return x.__repr__() + ps
 
 
-def debug_print_date(x: datetime, prefix=None):
+def debug_print_date(x: datetime, *, prefix: str):
     s = x.isoformat()[:19]
     s = s.replace("T", " ")
     return termcolor.colored(s, "yellow") + (" " + prefix if prefix else "")

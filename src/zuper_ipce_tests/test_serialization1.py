@@ -1,5 +1,5 @@
 from dataclasses import field
-from typing import Any, Dict, NewType, Optional, TypeVar, Union, cast
+from typing import Any, cast, Dict, NewType, Optional, TypeVar, Union
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
@@ -8,19 +8,12 @@ from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.structures import CannotFindSchemaReference
 from zuper_ipce.utils_text import oyaml_dump
-from zuper_typing.annotations_tricks import is_Any, make_ForwardRef
+from zuper_typing import Generic
+from zuper_typing.annotations_tricks import make_ForwardRef
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.my_dict import make_dict
-from zuper_typing import Generic
 from zuper_typing_tests.test_utils import known_failure
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
-
-
-# #
-# try:
-#     from typing import ForwardRef
-# except ImportError:  # pragma: no cover
-#     from typing import _ForwardRef as ForwardRef
 
 
 @dataclass
@@ -454,10 +447,6 @@ def test_random_json():
     """ Invalid because of $schema """
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}
     object_from_ipce(data, {})
-
-
-# if __name__ == '__main__':
-#     test_error2()
 
 
 def test_newtype_1():
