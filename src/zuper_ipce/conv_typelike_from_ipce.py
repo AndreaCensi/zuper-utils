@@ -3,7 +3,18 @@ import datetime
 from dataclasses import dataclass, field, make_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Any, Callable, cast, ClassVar, Dict, List, Optional, Tuple, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    NewType,
+)
 
 import numpy as np
 
@@ -159,6 +170,9 @@ def typelike_from_ipce_sr_(
     if jsc_title == JSC_TITLE_NUMPY:
         res = np.ndarray
         return SRE(res)
+
+    if jsc_type == "NewType":
+        return SRE(NewType(jsc_title, object))  # XXX
 
     if jsc_type == JSC_STRING:
         if jsc_title == JSC_TITLE_BYTES:

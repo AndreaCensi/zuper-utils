@@ -460,7 +460,6 @@ def test_random_json():
 #     test_error2()
 
 
-@raises(Exception)
 def test_newtype_1():
     A = NewType("A", str)
 
@@ -471,7 +470,6 @@ def test_newtype_1():
     assert_type_roundtrip(M10, {})
 
 
-@raises(Exception)
 def test_newtype_2():
     X = TypeVar("X")
     A = NewType("A", str)

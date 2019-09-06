@@ -26,6 +26,7 @@ from zuper_typing.annotations_tricks import (
     is_Union,
     is_VarTuple,
     name_for_type_like,
+    is_NewType,
 )
 from zuper_typing.my_dict import (
     get_CustomDict_args,
@@ -142,6 +143,7 @@ def ipce_from_object_(
         or is_Union(ob)
         or is_Sequence(ob)
         or is_Optional(ob)
+        or is_NewType(ob)
     ):
         # TODO: put more here
         return ipce_from_typelike(ob, globals_, processing={})
@@ -285,7 +287,12 @@ def ipce_from_object_dataclass_instance(
                 hints[k] = ipce_from_typelike(type(v), globals_)
 
         except BaseException as e:
-            msg = f"Obtained {type(e).__name__} while serializing attribute {k}  of type {type(v)}."
+            msg = (
+                f"Obtained {type(e).__name__} while serializing an object of type {T.__name__}. Problem "
+                f"occurred with attribute "
+                f"'{k}' of type"
+                f" {type(v)}."
+            )
             msg += (
                 f"\nThe schema for {type(ob)} says that it should be of type {f.type}."
             )

@@ -2,7 +2,7 @@ import datetime
 from dataclasses import is_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Callable, ClassVar, List, Optional, Tuple, Type
+from typing import Callable, ClassVar, List, NewType, Optional, Tuple, Type
 
 import numpy as np
 
@@ -12,6 +12,8 @@ from zuper_typing.annotations_tricks import (
     get_Dict_args,
     get_FixedTuple_args,
     get_List_arg,
+    get_NewType_arg,
+    get_NewType_name,
     get_Optional_arg,
     get_Set_arg,
     get_Type_arg,
@@ -24,6 +26,7 @@ from zuper_typing.annotations_tricks import (
     is_FixedTuple,
     is_ForwardRef,
     is_List,
+    is_NewType,
     is_Optional,
     is_Set,
     is_TupleLike,
@@ -145,6 +148,14 @@ def recursive_type_subst(T, f, ignore=()):
         if V == V2:
             return T
         return make_set(V2)
+    elif is_NewType(T):
+        name = get_NewType_name(T)
+        a = get_NewType_arg(T)
+        a2 = r(a)
+        if a == a2:
+            return T
+
+        return NewType(name, a2)
     elif is_dataclass(T):
         annotations = dict(getattr(T, "__annotations__", {}))
         annotations2 = {}

@@ -3,10 +3,10 @@ import dataclasses
 import datetime
 import typing
 import warnings
-from dataclasses import Field, _FIELDS, is_dataclass, replace
+from dataclasses import _FIELDS, Field, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
-from typing import Any, List, Optional, Tuple, Type, TypeVar, cast
+from typing import Any, cast, List, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 
@@ -17,12 +17,13 @@ from zuper_typing.annotations_tricks import (
     get_Dict_name_K_V,
     get_FixedTuple_args,
     get_ForwardRef_arg,
+    get_NewType_name,
     get_Optional_arg,
     get_Sequence_arg,
     get_Set_name_V,
     get_Tuple_name,
-    get_TypeVar_name,
     get_Type_arg,
+    get_TypeVar_name,
     get_Union_args,
     get_VarTuple_arg,
     is_Any,
@@ -30,6 +31,7 @@ from zuper_typing.annotations_tricks import (
     is_ClassVar,
     is_FixedTuple,
     is_ForwardRef,
+    is_NewType,
     is_Optional,
     is_Sequence,
     is_TupleLike,
@@ -87,18 +89,18 @@ from .constants import (
     SCHEMA_BYTES,
     SCHEMA_CID,
     SCHEMA_ID,
+    use_ipce_from_typelike_cache,
     X_CLASSATTS,
     X_CLASSVARS,
     X_ORDER,
     X_PYTHON_MODULE_ATT,
-    use_ipce_from_typelike_cache,
 )
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .pretty import pretty_dict
 from .schema_caching import (
-    TRE,
     get_ipce_from_typelike_cache,
     set_ipce_from_typelike_cache,
+    TRE,
 )
 from .schema_utils import make_ref, make_url
 from .structures import FakeValues
@@ -282,6 +284,17 @@ def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
         assert False
 
 
+def ipce_from_typelike_NewType(T, c: IFTContext) -> TRE:
+    name = get_NewType_name(T)
+    used = {}
+    res = cast(JSONSchema, {})
+    res[SCHEMA_ATT] = SCHEMA_ID
+    res[JSC_TYPE] = "NewType"
+    res[JSC_TITLE] = name
+    res = sorted_dict_with_cbor_ordering(res)
+    return TRE(res, used)
+
+
 def ipce_from_typelike_ListLike(T, c: IFTContext) -> TRE:
     assert is_ListLike(T), T
     items = get_ListLike_arg(T)
@@ -431,6 +444,8 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
 
     if is_Callable(T):
         return ipce_from_typelike_Callable(T, c)
+    if is_NewType(T):
+        return ipce_from_typelike_NewType(T, c)
 
     if is_Sequence(T):
         msg = "Translating Sequence into List"
