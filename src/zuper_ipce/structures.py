@@ -1,7 +1,16 @@
-from typing import Generic, TypeVar
+from typing import TypeVar
 
+from zuper_commons.types.exceptions import ZException
 from zuper_typing.monkey_patching_typing import my_dataclass
 from zuper_typing.zeneric2 import ZenericFix
+
+
+class ZTypeError(ZException, TypeError):
+    pass
+
+
+class ZValueError(ZException, ValueError):
+    pass
 
 
 class CannotFindSchemaReference(Exception):

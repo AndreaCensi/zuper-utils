@@ -826,7 +826,7 @@ def test_same_forward():
 
 
 def test_debug_print_str_multiple_lines():
-    a = debug_print_str("a\nb", "prefix")
+    a = debug_print_str("a\nb", prefix="prefix")
 
 
 if __name__ == "__main__":

@@ -10,10 +10,10 @@ from typing import (
     ClassVar,
     Dict,
     List,
+    NewType,
     Optional,
     Tuple,
     TypeVar,
-    NewType,
 )
 
 import numpy as np
@@ -78,7 +78,7 @@ from .constants import (
     X_PYTHON_MODULE_ATT,
 )
 from .pretty import pretty_dict
-from .structures import CannotFindSchemaReference
+from .structures import CannotFindSchemaReference, ZTypeError, ZValueError
 from .types import TypeLike
 from .utils_text import oyaml_dump
 
@@ -105,10 +105,7 @@ def typelike_from_ipce_sr(
         res = sre.res
     except (TypeError, ValueError) as e:  # pragma: no cover
         msg = "Cannot interpret schema as a type."
-        # msg += '\n\n' + indent(yaml.dump(schema0)[:400], ' > ')
-        # msg += '\n\n' + pretty_dict('globals', global_symbols)
-        # msg += '\n\n' + pretty_dict('encountered', encountered)
-        raise TypeError(msg) from e
+        raise ZTypeError(msg, schema0=schema0) from e
 
     if ID_ATT in schema0:
         schema_id = schema0[ID_ATT]
@@ -297,20 +294,19 @@ def typelike_from_ipce_DictType(schema, global_symbols, encountered) -> SRE:
     try:
         D = make_dict(K, V)
     except (TypeError, ValueError) as e:  # pragma: no cover
-        msg = f"Cannot reconstruct dict type with K = {K!r}  V = {V!r}"
-        msg += "\n\n" + pretty_dict("globals", global_symbols)
-        msg += "\n\n" + pretty_dict("encountered", encountered)
-        raise TypeError(msg) from e
-    # we never put it anyway
-    # if JSC_DESCRIPTION in schema:
-    #     setattr(D, '__doc__', schema[JSC_DESCRIPTION])
+        msg = f"Cannot reconstruct dict type."
+
+        raise ZTypeError(
+            msg, K=K, V=V, global_symbols=global_symbols, encountered=encountered
+        ) from e
+
     return SRE(D, used)
 
 
 def typelike_from_ipce_SetType(schema, global_symbols, encountered):
     if not JSC_ADDITIONAL_PROPERTIES in schema:  # pragma: no cover
-        msg = f"Expected {JSC_ADDITIONAL_PROPERTIES!r} in {schema}"
-        raise ValueError(msg)
+        msg = f"Expected {JSC_ADDITIONAL_PROPERTIES!r} in @schema."
+        raise ZValueError(msg, schema=schema)
     used = {}
 
     def f(x):
@@ -358,9 +354,6 @@ def looks_like_int(k: str) -> bool:
         return True
 
 
-import json
-
-
 def typelike_from_ipce_dataclass(
     res: JSONSchema, global_symbols: dict, encountered: EncounteredDict, schema_id=None
 ) -> SRE:
@@ -385,8 +378,8 @@ def typelike_from_ipce_dataclass(
     if (
         not X_PYTHON_MODULE_ATT in res
     ) or not ATT_PYTHON_NAME in res:  # pragma: no cover
-        msg = f"Cannot find attributes for {cls_name}: \n {res}"
-        raise ValueError(msg)
+        msg = f"Cannot find attributes for {cls_name}."
+        raise ZValueError(msg, res=res)
     module_name = res[X_PYTHON_MODULE_ATT]
     qual_name = res[ATT_PYTHON_NAME]
 
@@ -467,14 +460,13 @@ def typelike_from_ipce_dataclass(
             # logger.info(f'ipce classvar: {pname} {ptype}')
             fields.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
-            msg = f"Found {pname} in classatts but not in classvars: \n {json.dumps(res, indent=3)}"
-            raise ValueError(msg)
+            msg = f"Found {pname} in classatts but not in classvars"
+            raise ZValueError(msg, res=res)
         else:  # pragma: no cover
-            msg = (
-                f"Cannot find {pname!r} either in properties ({list(properties)}) or classvars ({list(classvars)}) "
-                f"or classatts {list(classatts)}"
+            msg = f"Cannot find {pname!r} either in @properties or @classvars or @classatts."
+            raise ZValueError(
+                msg, properties=properties, classvars=classvars, classatts=classatts
             )
-            raise ValueError(msg)
 
     # _MISSING_TYPE should be first (default fields last)
     # XXX: not tested

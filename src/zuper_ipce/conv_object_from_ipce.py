@@ -1,15 +1,14 @@
 import datetime
 import inspect
 import traceback
-from dataclasses import Field, is_dataclass
+from dataclasses import Field, fields, is_dataclass, MISSING
 from decimal import Decimal
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast, Dict, Optional
 
 import numpy as np
 import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
-from zuper_commons.text import indent, pretty_dict
 from zuper_typing.annotations_tricks import (
     get_FixedTuple_args,
     get_Optional_arg,
@@ -44,9 +43,8 @@ from .constants import (
     SCHEMA_ID,
 )
 from .numpy_encoding import numpy_array_from_ipce
-from .structures import FakeValues
+from .structures import FakeValues, ZTypeError, ZValueError
 from .types import IPCE
-from .utils_text import oyaml_dump
 
 
 def object_from_ipce(
@@ -75,16 +73,7 @@ def object_from_ipce(
             fn = write_out_yaml(prefix + "_schema", schema)
             msg += f"\n object schema in {fn}"
 
-        # if False:
-
-        # if isinstance(mj, dict) and '$schema' in mj:
-        #     schema = mj.pop('$schema')
-        # else:
-        #     schema = None
-
-        # msg += '\n\n' + indent(yaml.dump(mj)[:1000], ' ipce ')
-        # msg += '\n\n' + indent(traceback.format_exc(), '| ')
-        raise TypeError(msg) from e
+        raise ZTypeError(msg) from e
 
 
 def object_from_ipce_(
@@ -112,8 +101,8 @@ def object_from_ipce_(
 
     if expect_type in trivial:
         if not isinstance(mj, expect_type):
-            msg = f"Expected trivial expect_type = {expect_type}, got {mj!r}"
-            raise TypeError(msg)
+            msg = f"Expected trivial expect_type @expect_type, got @mj_yaml."
+            raise ZTypeError(msg, expect_type=expect_type, mj_yaml=mj)
         else:
             return mj
 
@@ -125,8 +114,8 @@ def object_from_ipce_(
             and not is_Any(expect_type)
             and not expect_type is object
         ):
-            msg = f"Found {mj}, an object of type {T}, but wanted {expect_type}"
-            raise ValueError(msg)
+            msg = f"Found an object of type @T, but wanted @expect_type"
+            raise ZValueError(msg, mj=mj, T=T, expect_type=expect_type)
         return mj
 
     if isinstance(mj, list):
@@ -142,8 +131,8 @@ def object_from_ipce_(
         elif expect_type is object:
             return None
         else:
-            msg = f"The value is None but the expected type is {expect_type}."
-            raise TypeError(msg)  # XXX
+            msg = f"The value is None but the expected type is @expect_type."
+            raise ZTypeError(msg, expect_type=expect_type)
 
     assert isinstance(mj, dict), type(mj)
     from .conv_typelike_from_ipce import typelike_from_ipce
@@ -165,8 +154,8 @@ def object_from_ipce_(
             # check_isinstance(expect_type, type)
             K = expect_type
         else:
-            msg = f"Cannot find a schema and expect_type=None.\n{mj}"
-            raise ValueError(msg)
+            msg = f"Cannot find a schema and expect_type=None."
+            raise ZValueError(msg, mj_yaml=mj)
 
     if K is np.ndarray:
         return numpy_array_from_ipce(mj)
@@ -189,24 +178,13 @@ def object_from_ipce_(
             res = object_from_ipce_SetLike(None, mj, global_symbols, encountered)
             return res
 
-        # logger.error(f'fall back on unknown (K={K}) for {id(mj)} = {mj}')
-        # raise Exception()
         K = Dict[str, Any]
 
         return object_from_ipce_dict(K, mj, global_symbols, encountered)
 
-        #
-        # msg = f'Not implemented - K = Any'
-        # msg += '\n\n' + indent(yaml.dump(mj), ' > ')
-        # raise NotImplementedError(msg)
+    msg = f"Invalid type or type suggestion."
 
-    from zuper_ipcl.debug_print_ import debug_print
-
-    msg = (
-        f"Invalid type or type suggestion {K} - {is_Intersection(K)} - {debug_print(K)}"
-    )
-    raise TypeError(msg)
-    # assert False, (type(K), K, mj, expect_type)  # pragma: no cover
+    raise ZTypeError(msg, K=K)
 
 
 def looks_like_set(d: dict):
@@ -244,8 +222,8 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
             return T(seq)
 
         else:
-            msg = f"The object is a list, but expected {expect_type}.\nOb: {mj}"
-            raise TypeError(msg)
+            msg = f"The object is a list, but expected different"
+            raise ZTypeError(msg, expect_type=expect_type, mj=mj)
     else:
         suggest = None
         seq = [
@@ -265,20 +243,17 @@ def object_from_ipce_optional(expect_type, mj, global_symbols, encountered) -> I
 
 
 def object_from_ipce_union(expect_type, mj, global_symbols, encountered) -> IPCE:
-    errors = {}
+    errors = []
     ts = get_Union_args(expect_type)
     for T in ts:
         try:
             return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
         except BaseException:
-            errors[str(T)] = traceback.format_exc()
-    msg = f"Cannot deserialize with any of {ts}"
+            errors.append(dict(T=T, e=traceback.format_exc()))
+    msg = f"Cannot deserialize with any type."
     fn = write_out_yaml(f"object{id(mj)}", mj)
     msg += f"\n ipce in {fn}"
-    msg += "\n\n" + pretty_dict("tries", errors)
-
-    # msg += '\n'.join(str(e) for e in errors)
-    raise ValueError(msg)
+    raise ZValueError(msg, ts=ts, errors=errors)
 
 
 def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) -> IPCE:
@@ -292,10 +267,7 @@ def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) 
     msg = f"Cannot deserialize with any of {ts}"
     fn = write_out_yaml(f"object{id(mj)}", mj)
     msg += f"\n ipce in {fn}"
-    msg += "\n\n" + pretty_dict("tries", errors)
-
-    # msg += '\n'.join(str(e) for e in errors)
-    raise ValueError(msg)
+    raise ZValueError(msg, errors=errors)
 
 
 def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
@@ -321,6 +293,13 @@ def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
         assert False
 
 
+def get_class_fields(K) -> Dict[str, Field]:
+    class_fields: Dict[str, Field] = {}
+    for f in fields(K):
+        class_fields[f.name] = f
+    return class_fields
+
+
 def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
     # assert  isinstance(K, type), K
     global_symbols = dict(global_symbols)
@@ -338,17 +317,11 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
         if k in anns:
             expect_type = anns[k]
 
-            # if is_Optional(expect_type):
-            #     expect_type = get_Optional_arg(expect_type)
-
             if inspect.isabstract(expect_type):  # pragma: no cover
-                msg = (
-                    f'Trying to instantiate abstract class for field "{k}" of class {K}'
+                msg = f'Trying to instantiate abstract class for field "{k}" of class {K}.'
+                raise ZTypeError(
+                    msg, expect_type=expect_type, mj=mj, annotation=anns[k]
                 )
-                msg += f"\n annotation = {anns[k]}"
-                msg += f"\n expect_type = {expect_type}"
-                msg += f"\n\n%s" % indent(oyaml_dump(mj), " > ")
-                raise TypeError(msg)
 
             if k in hints:
                 expect_type = typelike_from_ipce(hints[k], global_symbols, encountered)
@@ -359,48 +332,44 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 )
 
             except BaseException as e:  # pragma: no cover
-                msg = f"Cannot deserialize attribute {k!r} of {K.__name__} (expect: {expect_type})"
-                msg += f"\n annotations of class {K.__name__} = {K.__annotations__}"
-                msg += f"\n anns[{k!r}] = {anns[k]}"
+                msg = f"Cannot deserialize attribute {k!r} of {K.__name__}."
+
                 fn = write_out_yaml(f"instance_of_{K.__name__}_attribute_{k}", v)
                 msg += f"\n mj[{k!r}] in {fn}"
                 fn = write_out_yaml(f"instance_of_{K.__name__}", mj)
                 msg += f"\n mj in {fn}"
-                # msg += '\n\n' + indent(yaml.dump(v)[:400], '  ')
-                # msg += '\n\n' + indent(traceback.format_exc(), '| ')
 
-                raise TypeError(msg) from e
+                raise ZTypeError(
+                    msg,
+                    K_annotations=K.__annotations__,
+                    expect_type=expect_type,
+                    ann_K=anns[k],
+                    K_name=K.__name__,
+                ) from e
+
+    class_fields = get_class_fields(K)
 
     for k, T in anns.items():
         if is_ClassVar(T):
             continue
         if not k in mj:
-            if hasattr(K, k):
-                V = getattr(K, k)
-                attrs[k] = V
+            f = class_fields[k]
+            if f.default != MISSING:
+                attrs[k] = f.default
+            elif f.default_factory != MISSING:
+                attrs[k] = f.default_factory()
             else:
-                msg = f"Cannot find field {k!r} in data for class {K}. (T = {T}) Know {sorted(mj)}"
-                msg += f"\n annotations: {anns}"
-                raise ValueError(msg)
+                msg = f"Cannot find field {k!r} in data for class {K.__name__} and no default available"
+                raise ZValueError(msg, anns=anns, T=T, known=sorted(mj), f=f)
 
     for k, v in attrs.items():
         assert not isinstance(v, Field), (k, v)
     try:
         return K(**attrs)
     except TypeError as e:  # pragma: no cover
-        msg = f"Cannot instantiate type with attrs {attrs}:\n{K}"
-        msg += f"\n\n Bases: {K.__bases__}"
-        anns = getattr(K, "__annotations__", "none")
-        msg += f"\n{anns}"
-        df = getattr(K, "__dataclass_fields__", "none")
-        # noinspection PyUnresolvedReferences
-        msg += f"\n{df}"
+        msg = f"Cannot instantiate type {K.__name__}."
 
-        msg += f"because:\n{e}"  # XXX
-        raise TypeError(msg) from e
-
-
-from . import logger
+        raise ZTypeError(msg, K=K, attrs=attrs, bases=K.__bases__, fields=anns) from e
 
 
 def ignore_aliases(self, data):
@@ -452,12 +421,9 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
 
         except (TypeError, NotImplementedError) as e:  # pragma: no cover
             msg = f'Cannot deserialize element at index "{k}".'
-            msg += f"\n\n D = {D}"
-            msg += "\n\n" + indent(oyaml_dump(mj), "> ")
-            msg += f"\n\n Expected V = {expect_type_V}"
-
-            msg += f"\n\n v = {oyaml_dump(v)}"
-            raise TypeError(msg) from e
+            raise ZTypeError(
+                msg, expect_type_V=expect_type_V, v=v, D=D, mj_yaml=mj
+            ) from e
     if isinstance(K, type) and issubclass(K, str):
         ob.update(attrs)
         return ob

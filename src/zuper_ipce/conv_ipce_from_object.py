@@ -1,6 +1,6 @@
 import datetime
 import traceback
-from dataclasses import fields, is_dataclass
+from dataclasses import fields, is_dataclass, dataclass
 from decimal import Decimal
 from typing import Any, Dict, Optional, Tuple
 
@@ -8,8 +8,6 @@ import cbor2
 import numpy as np
 from frozendict import frozendict
 
-from zuper_commons.text import pretty_dict, indent
-from .conv_ipce_from_typelike import ipce_from_typelike_ndarray
 from zuper_typing.annotations_tricks import (
     get_Optional_arg,
     get_Union_args,
@@ -18,6 +16,7 @@ from zuper_typing.annotations_tricks import (
     is_Callable,
     is_Dict,
     is_List,
+    is_NewType,
     is_Optional,
     is_Sequence,
     is_Set,
@@ -25,8 +24,6 @@ from zuper_typing.annotations_tricks import (
     is_TupleLike,
     is_Union,
     is_VarTuple,
-    name_for_type_like,
-    is_NewType,
 )
 from zuper_typing.my_dict import (
     get_CustomDict_args,
@@ -39,8 +36,9 @@ from zuper_typing.my_dict import (
     is_SetLike,
 )
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT
+from .conv_ipce_from_typelike import ipce_from_typelike, ipce_from_typelike_ndarray
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
-from .structures import FakeValues
+from .structures import FakeValues, ZTypeError, ZValueError
 from .types import IPCE, TypeLike
 from .utils_text import get_sha256_base58
 
@@ -57,12 +55,8 @@ def ipce_from_object(
         )
     except TypeError as e:
         msg = f"ipce_from_object() for type {type(ob)} failed."
-        raise TypeError(msg) from e
+        raise ZTypeError(msg, ob=ob) from e
 
-    # if isinstance(res, dict) and SCHEMA_ATT in res:
-    #     schema = res[SCHEMA_ATT]
-    #     if False:
-    #         validate(res, schema)
     assert_canonical_ipce(res)
     return res
 
@@ -82,14 +76,19 @@ def ipce_from_object_(
         if unconstrained or (suggest_type is type(None)) or is_Optional(suggest_type):
             return ob
         else:
-            raise TypeError(f"ob is None but suggest_type is {suggest_type}")
+            raise ZTypeError(
+                f"ob is None but suggest_type is @suggest_type",
+                suggest_type=suggest_type,
+            )
 
     if is_Optional(suggest_type):
         assert ob is not None  # from before
         T = get_Optional_arg(suggest_type)
         return ipce_from_object_(ob, globals_, with_schema, suggest_type=T)
+
     if is_Union(suggest_type):
         return ipce_from_object_union(ob, globals_, with_schema, suggest_type)
+
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
             msg = "Cannot serialize dates without a timezone."
@@ -98,8 +97,8 @@ def ipce_from_object_(
     trivial = (bool, int, str, float, bytes, Decimal, datetime.datetime)
     if suggest_type in trivial:
         if not isinstance(ob, suggest_type):
-            msg = f"Expected this to be a {suggest_type}, got {type(ob)}"
-            raise TypeError(msg)
+            msg = f"Expected this to be @suggest_type."
+            raise ZTypeError(msg, suggest_type=suggest_type, T=type(ob))
         return ob
 
     if isinstance(ob, trivial):
@@ -114,8 +113,6 @@ def ipce_from_object_(
         return ipce_from_object_tuple(
             ob, globals_, suggest_type=suggest_type, with_schema=with_schema
         )
-
-    from .conv_ipce_from_typelike import ipce_from_typelike
 
     if isinstance(ob, slice):
         return ipce_from_object_slice(ob, with_schema)
@@ -188,15 +185,11 @@ def ipce_from_object_union(ob, globals_, with_schema, suggest_type) -> IPCE:
             return ipce_from_object(
                 ob, globals_=globals_, with_schema=with_schema, suggest_type=Ti
             )
-        except BaseException as e:
+        except BaseException:
             errors.append((Ti, traceback.format_exc()))
 
     msg = "Cannot save union."
-    for Ti, m in errors:
-        msg += "\n\n" + indent(m, "", name_for_type_like(Ti) + ": ")
-
-    d = {"value": ob}
-    raise TypeError(pretty_dict(msg, d))
+    raise ZTypeError(msg, value=ob, errors=errors)
 
 
 def ipce_from_object_list(ob, globals_, suggest_type, with_schema: bool) -> IPCE:
@@ -206,8 +199,8 @@ def ipce_from_object_list(ob, globals_, suggest_type, with_schema: bool) -> IPCE
         elif is_ListLike(suggest_type):
             suggest_type_l = get_ListLike_arg(suggest_type)
         else:
-            msg = f"suggest_type = {suggest_type} does not make sense for a list"
-            raise TypeError(msg)
+            msg = f"suggest_type does not make sense for a list"
+            raise ZTypeError(msg, suggest_type=suggest_type)
     else:
         suggest_type_l = None
     return [
@@ -230,8 +223,8 @@ def ipce_from_object_tuple(
             else:
                 suggest_type_l = [None] * len(ob)
         else:
-            msg = f"suggest_type = {suggest_type} does not make sense for a tuple"
-            raise TypeError(msg)
+            msg = f"suggest_type   does not make sense for a tuple"
+            raise ZTypeError(msg, suggest_type=suggest_type)
     else:
         suggest_type_l = [None] * len(ob)
     res = []
@@ -243,7 +236,7 @@ def ipce_from_object_tuple(
 
 
 def ipce_from_object_dataclass_instance(
-    ob, globals_, with_schema: bool, suggest_type: Optional[type]
+    ob: dataclass, globals_, with_schema: bool, suggest_type: Optional[type]
 ) -> IPCE:
     globals_ = dict(globals_)
     res = {}
@@ -264,16 +257,6 @@ def ipce_from_object_dataclass_instance(
         v = getattr(ob, k)
 
         try:
-
-            # if is_ClassVar(suggest_type):
-            #     continue
-
-            # if v is None:
-            #     if is_Optional(suggest_type):
-            #         continue
-
-            # if is_Optional(suggest_type):
-            #     suggest_type = get_Optional_arg(suggest_type)
 
             if f.default == v:
                 continue
@@ -296,9 +279,7 @@ def ipce_from_object_dataclass_instance(
             msg += (
                 f"\nThe schema for {type(ob)} says that it should be of type {f.type}."
             )
-
-            msg += "\n" + f"{v}"
-            raise ValueError(msg) from e
+            raise ZValueError(msg, type_=f.type) from e
     if hints:
         res[HINTS_ATT] = hints
     res = sorted_dict_with_cbor_ordering(res)
@@ -309,12 +290,10 @@ def ipce_from_object_dataclass_instance(
 def ipce_from_object_dict(
     ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool
 ):
-    # logger.info(f'dict_to_ipce suggest_type: {suggest_type}')
-    # assert suggest_type is not None
     assert not is_Optional(suggest_type), suggest_type
     res = {}
     suggest_type, K, V = get_best_type_for_serializing_dict(ob, suggest_type)
-    # logger.info(f'Using suggest_type for dict = {suggest_type}')
+
     from .conv_ipce_from_typelike import ipce_from_typelike
 
     if with_schema:
