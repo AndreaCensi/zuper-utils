@@ -89,7 +89,7 @@ def test_defaults1():
     mj = ipce_from_typelike(DummyImageSourceConfig)
     print(json.dumps(mj, indent=2))
 
-    T2 = typelike_from_ipce(mj)
+    T2: Type[dataclass] = typelike_from_ipce(mj)
     print(dataclasses.fields(T2))
 
     assert_type_roundtrip(DummyImageSourceConfig)

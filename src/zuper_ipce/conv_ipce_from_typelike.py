@@ -112,7 +112,7 @@ from .structures import FakeValues
 
 
 def ipce_from_typelike(
-    T: Any,
+    T: object,
     *,
     globals0: Optional[dict] = None,
     processing: Optional[ProcessingDict] = None,

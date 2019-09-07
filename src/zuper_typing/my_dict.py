@@ -72,11 +72,11 @@ def get_CustomDict_args(x: Type[CustomDict]) -> Tuple[TypeLike, TypeLike]:
     return x.__dict_type__
 
 
-def is_CustomSet(x: TypeLike) -> bool:
+def is_CustomSet(x) -> bool:
     return isinstance(x, type) and issubclass(x, CustomSet)
 
 
-def is_CustomList(x: TypeLike) -> bool:
+def is_CustomList(x) -> bool:
     return isinstance(x, type) and issubclass(x, CustomList)
 
 
@@ -84,15 +84,15 @@ def is_CustomDict(x):
     return isinstance(x, type) and issubclass(x, CustomDict)
 
 
-def is_SetLike(x: TypeLike) -> bool:
+def is_SetLike(x) -> bool:
     return (x is set) or is_Set(x) or is_CustomSet(x)
 
 
-def is_ListLike(x: TypeLike) -> bool:
+def is_ListLike(x) -> bool:
     return (x is list) or is_List(x) or is_CustomList(x)
 
 
-def is_DictLike(x: TypeLike) -> bool:
+def is_DictLike(x) -> bool:
     return (x is dict) or is_Dict(x) or is_CustomDict(x)
 
 

@@ -1,4 +1,3 @@
-import typing
 from datetime import datetime
 from decimal import Decimal
 from numbers import Number
@@ -16,9 +15,7 @@ from typing import (
     Union,
 )
 
-from zuper_typing.constants import PYTHON_36
-from .my_intersection import get_Intersection_args, is_Intersection, make_Intersection
-from .uninhabited import is_Uninhabited
+from .aliases import TypeLike
 from .annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
@@ -28,8 +25,8 @@ from .annotations_tricks import (
     get_List_arg,
     get_Optional_arg,
     get_Sequence_arg,
-    get_TypeVar_name,
     get_Type_arg,
+    get_TypeVar_name,
     get_Union_args,
     get_VarTuple_arg,
     is_Any,
@@ -44,7 +41,6 @@ from .annotations_tricks import (
     is_NewType,
     is_Optional,
     is_Sequence,
-    is_Tuple,
     is_Type,
     is_TypeVar,
     is_Union,
@@ -57,22 +53,21 @@ from .annotations_tricks import (
 from .my_dict import (
     get_CustomList_arg,
     get_DictLike_args,
+    get_ListLike_arg,
     get_SetLike_arg,
     is_CustomList,
     is_DictLike,
     is_DictLike_canonical,
+    is_ListLike,
+    is_ListLike_canonical,
     is_SetLike,
     is_SetLike_canonical,
     make_dict,
     make_list,
     make_set,
-    is_ListLike,
-    get_ListLike_arg,
-    is_ListLike_canonical,
 )
-
-
-from .aliases import TypeLike
+from .my_intersection import get_Intersection_args, is_Intersection, make_Intersection
+from .uninhabited import is_Uninhabited
 
 
 def get_name_without_brackets(name: str) -> str:
@@ -170,6 +165,7 @@ def replace_typevars(
             return cls
         return make_set(V)
     elif is_CustomList(cls):
+
         V0 = get_CustomList_arg(cls)
         V = r(V0)
         if V0 == V:

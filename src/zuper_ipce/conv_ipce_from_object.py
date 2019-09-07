@@ -2,7 +2,7 @@ import datetime
 import traceback
 from dataclasses import dataclass, fields, is_dataclass
 from decimal import Decimal
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple, Type
 
 import cbor2
 import numpy as np
@@ -24,6 +24,7 @@ from zuper_typing.annotations_tricks import (
     is_TupleLike,
     is_Union,
     is_VarTuple,
+    is_SpecialForm,
 )
 from zuper_typing.exceptions import ZNotImplementedError, ZTypeError, ZValueError
 from zuper_typing.my_dict import (
@@ -45,14 +46,18 @@ from .utils_text import get_sha256_base58
 
 
 def ipce_from_object(
-    ob, *, globals_: GlobalsDict = None, suggest_type=None, with_schema: bool = True
+    ob: object,
+    suggest_type: TypeLike = object,
+    *,
+    globals_: GlobalsDict = None,
+    with_schema: bool = True,
 ) -> IPCE:
     # logger.debug(f'ipce_from_object({ob})')
     if globals_ is None:
         globals_ = {}
     try:
         res = ipce_from_object_(
-            ob, globals_, suggest_type=suggest_type, with_schema=with_schema
+            ob, suggest_type, globals_=globals_, with_schema=with_schema
         )
     except TypeError as e:
         msg = "ipce_from_object() for type @t failed."
@@ -62,15 +67,13 @@ def ipce_from_object(
     return res
 
 
-def is_unconstrained(t: Optional[TypeLike]):
-    return (t is None) or is_Any(t) or (t is object)
+def is_unconstrained(t: TypeLike):
+    assert t is not None
+    return is_Any(t) or (t is object)
 
 
 def ipce_from_object_(
-    ob,
-    globals_: GlobalsDict,
-    with_schema: bool,
-    suggest_type: Optional[TypeLike] = None,
+    ob: object, suggest_type: TypeLike, *, globals_: GlobalsDict, with_schema: bool
 ) -> IPCE:
     unconstrained = is_unconstrained(suggest_type)
     if ob is None:
@@ -85,10 +88,14 @@ def ipce_from_object_(
     if is_Optional(suggest_type):
         assert ob is not None  # from before
         T = get_Optional_arg(suggest_type)
-        return ipce_from_object_(ob, globals_, with_schema, suggest_type=T)
+        return ipce_from_object_(
+            ob, suggest_type=T, globals_=globals_, with_schema=with_schema
+        )
 
     if is_Union(suggest_type):
-        return ipce_from_object_union(ob, globals_, with_schema, suggest_type)
+        return ipce_from_object_union(
+            ob, suggest_type=suggest_type, globals_=globals_, with_schema=with_schema
+        )
 
     if isinstance(ob, datetime.datetime):
         if not ob.tzinfo:
@@ -107,59 +114,47 @@ def ipce_from_object_(
 
     if isinstance(ob, list):
         return ipce_from_object_list(
-            ob, globals_, suggest_type=suggest_type, with_schema=with_schema
+            ob, globals_=globals_, suggest_type=suggest_type, with_schema=with_schema
         )
 
     if isinstance(ob, tuple):
         return ipce_from_object_tuple(
-            ob, globals_, suggest_type=suggest_type, with_schema=with_schema
+            ob, suggest_type, globals_=globals_, with_schema=with_schema
         )
 
     if isinstance(ob, slice):
-        return ipce_from_object_slice(ob, with_schema)
+        return ipce_from_object_slice(ob, with_schema=with_schema)
 
     if isinstance(ob, set):
         return ipce_from_object_set(
-            ob, globals_, suggest_type=suggest_type, with_schema=with_schema
+            ob, suggest_type, globals_=globals_, with_schema=with_schema
         )
 
     if isinstance(ob, (dict, frozendict)):
         return ipce_from_object_dict(
-            ob, globals_, suggest_type=suggest_type, with_schema=with_schema
+            ob, suggest_type, globals_=globals_, with_schema=with_schema
         )
 
     if isinstance(ob, type):
         return ipce_from_typelike(ob, globals0=globals_, processing={})
 
-    if (
-        is_Any(ob)
-        or is_List(ob)
-        or is_Dict(ob)
-        or is_Set(ob)
-        or is_Tuple(ob)
-        or is_Callable(ob)
-        or is_Union(ob)
-        or is_Sequence(ob)
-        or is_Optional(ob)
-        or is_NewType(ob)
-    ):
-        # TODO: put more here
+    if is_SpecialForm(ob):
         return ipce_from_typelike(ob, globals0=globals_, processing={})
 
     if isinstance(ob, np.ndarray):
-        return ipce_from_object_numpy(ob, with_schema)
+        return ipce_from_object_numpy(ob, with_schema=with_schema)
 
     assert not isinstance(ob, type), ob
     if is_dataclass(ob):
         return ipce_from_object_dataclass_instance(
-            ob, globals_, with_schema=with_schema, suggest_type=suggest_type
+            ob, suggest_type, globals_=globals_, with_schema=with_schema
         )
 
     msg = "I do not know a way to convert object @ob of type @T."
     raise ZNotImplementedError(msg, ob=ob, T=type(ob))
 
 
-def ipce_from_object_numpy(ob, with_schema) -> IPCE:
+def ipce_from_object_numpy(ob, *, with_schema) -> IPCE:
     from .numpy_encoding import ipce_from_numpy_array
 
     res = ipce_from_numpy_array(ob)
@@ -168,7 +163,7 @@ def ipce_from_object_numpy(ob, with_schema) -> IPCE:
     return res
 
 
-def ipce_from_object_slice(ob, with_schema):
+def ipce_from_object_slice(ob, *, with_schema):
     from .conv_ipce_from_typelike import ipce_from_typelike_slice
 
     res = {"start": ob.start, "step": ob.step, "stop": ob.stop}
@@ -178,7 +173,9 @@ def ipce_from_object_slice(ob, with_schema):
     return res
 
 
-def ipce_from_object_union(ob, globals_, with_schema, suggest_type) -> IPCE:
+def ipce_from_object_union(
+    ob: object, suggest_type: TypeLike, *, globals_, with_schema
+) -> IPCE:
     ts = get_Union_args(suggest_type)
     errors = []
     for Ti in ts:
@@ -190,44 +187,47 @@ def ipce_from_object_union(ob, globals_, with_schema, suggest_type) -> IPCE:
             errors.append((Ti, traceback.format_exc()))
 
     msg = "Cannot save union."
-    raise ZTypeError(msg, value=ob, errors=errors)
+    raise ZTypeError(msg, suggest_type=suggest_type, value=ob)
+    # errors=errors)
 
 
-def ipce_from_object_list(ob, globals_, suggest_type, with_schema: bool) -> IPCE:
-    if suggest_type is not None:
-        if suggest_type is object or is_Any(suggest_type):
-            suggest_type_l = Any
-        elif is_ListLike(suggest_type):
-            suggest_type_l = get_ListLike_arg(suggest_type)
-        else:
-            msg = "suggest_type does not make sense for a list"
-            raise ZTypeError(msg, suggest_type=suggest_type)
+def ipce_from_object_list(
+    ob, suggest_type: TypeLike, *, globals_: dict, with_schema: bool
+) -> IPCE:
+    assert suggest_type is not None
+
+    if suggest_type is object or is_Any(suggest_type):
+        suggest_type_l = object
+    elif is_ListLike(suggest_type):
+        T = cast(Type[List], suggest_type)
+        suggest_type_l = get_ListLike_arg(T)
     else:
-        suggest_type_l = None
+        msg = "suggest_type does not make sense for a list"
+        raise ZTypeError(msg, suggest_type=suggest_type)
+
     return [
         ipce_from_object(
-            _, globals_=globals_, suggest_type=suggest_type_l, with_schema=with_schema
+            _, suggest_type=suggest_type_l, globals_=globals_, with_schema=with_schema
         )
         for _ in ob
     ]
 
 
 def ipce_from_object_tuple(
-    ob: tuple, globals_, suggest_type, with_schema: bool
+    ob: tuple, suggest_type: TypeLike, *, globals_, with_schema: bool
 ) -> IPCE:
-    if suggest_type is not None:
-        if suggest_type is object or is_Any(suggest_type):
-            suggest_type_l = [Any] * len(ob)
-        elif is_TupleLike(suggest_type):
-            if is_VarTuple(suggest_type):
-                suggest_type_l = [get_VarTuple_arg(suggest_type)] * len(ob)
-            else:
-                suggest_type_l = [None] * len(ob)
+
+    if suggest_type is object or is_Any(suggest_type):
+        suggest_type_l = [object] * len(ob)
+    elif is_TupleLike(suggest_type):
+        if is_VarTuple(suggest_type):
+            suggest_type_l = [get_VarTuple_arg(suggest_type)] * len(ob)
         else:
-            msg = "suggest_type does not make sense for a tuple."
-            raise ZTypeError(msg, suggest_type=suggest_type)
+            suggest_type_l = [object] * len(ob)
     else:
-        suggest_type_l = [None] * len(ob)
+        msg = "suggest_type does not make sense for a tuple."
+        raise ZTypeError(msg, suggest_type=suggest_type)
+
     res = []
     for i, (_, T) in enumerate(zip(ob, suggest_type_l)):
         x = ipce_from_object(
@@ -239,7 +239,7 @@ def ipce_from_object_tuple(
 
 
 def ipce_from_object_dataclass_instance(
-    ob: dataclass, globals_, with_schema: bool, suggest_type: Optional[type]
+    ob: dataclass, suggest_type: Optional[type], *, globals_, with_schema: bool
 ) -> IPCE:
     globals_ = dict(globals_)
     res = {}
@@ -289,7 +289,11 @@ def ipce_from_object_dataclass_instance(
 
 
 def ipce_from_object_dict(
-    ob: dict, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool
+    ob: dict,
+    suggest_type: Optional[TypeLike],
+    *,
+    globals_: GlobalsDict,
+    with_schema: bool,
 ):
     assert not is_Optional(suggest_type), suggest_type
     res = {}
@@ -323,12 +327,12 @@ def ipce_from_object_dict(
 
 
 def ipce_from_object_set(
-    ob: set, globals_: GlobalsDict, suggest_type: Optional[type], with_schema: bool
+    ob: set, suggest_type: Optional[type], *, globals_: GlobalsDict, with_schema: bool
 ):
     if suggest_type is not None and is_SetLike(suggest_type):
         V = get_SetLike_arg(suggest_type)
     else:
-        V = None
+        V = object
 
     res = {}
 
@@ -361,12 +365,12 @@ def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:
     if len(set(type_keys)) == 1:
         K = type_keys[0]
     else:
-        K = Any
+        K = object
 
     if len(set(type_values)) == 1:
         V = type_values[0]
     else:
-        V = Any
+        V = object
     return K, V
 
 
@@ -378,7 +382,7 @@ def get_best_type_for_serializing_dict(
         K, V = get_CustomDict_args(T)
     elif is_DictLike(suggest_type):
         K, V = get_DictLike_args(suggest_type)
-    elif (suggest_type is None) or is_Any(suggest_type):
+    elif is_unconstrained(suggest_type):
         K, V = guess_type_for_naked_dict(ob)
     else:  # pragma: no cover
         assert False, suggest_type

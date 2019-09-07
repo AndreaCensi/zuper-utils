@@ -335,8 +335,8 @@ def object_from_ipce_intersection(
 
 def object_from_ipce_tuple(
     mj: IPCE,
+    expect_type: TypeLike,
     *,
-    expect_type: Optional[TypeLike],
     global_symbols,
     encountered,
     opt: DeserializationOptions,

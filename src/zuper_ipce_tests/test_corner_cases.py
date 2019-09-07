@@ -56,7 +56,7 @@ def test_corner_cases03():
 
 
 def test_corner_cases04():
-    ipce_from_object({1: 2}, suggest_type=None)
+    ipce_from_object({1: 2})
 
 
 def test_corner_cases05():

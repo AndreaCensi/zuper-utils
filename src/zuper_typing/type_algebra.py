@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, is_dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 from zuper_typing.annotations_tricks import (
     get_FixedTuple_args,
@@ -12,8 +12,8 @@ from zuper_typing.annotations_tricks import (
     is_TypeVar,
     is_VarTuple,
     make_Tuple,
-    make_VarTuple,
     make_Union,
+    make_VarTuple,
 )
 from zuper_typing.my_dict import (
     get_DictLike_args,
@@ -26,7 +26,7 @@ from zuper_typing.my_dict import (
     make_list,
     make_set,
 )
-from zuper_typing.my_intersection import Intersection, make_Intersection
+from zuper_typing.my_intersection import make_Intersection
 from zuper_typing.uninhabited import is_Uninhabited, make_Uninhabited
 
 
