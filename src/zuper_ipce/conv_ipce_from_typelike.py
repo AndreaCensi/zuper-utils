@@ -41,6 +41,12 @@ from zuper_typing.annotations_tricks import (
     is_VarTuple,
 )
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2
+from zuper_typing.exceptions import (
+    ZAssertionError,
+    ZNotImplementedError,
+    ZTypeError,
+    ZValueError,
+)
 from zuper_typing.my_dict import (
     get_DictLike_args,
     get_ListLike_arg,
@@ -102,20 +108,19 @@ from .schema_caching import (
     TRE,
 )
 from .schema_utils import make_ref, make_url
-from .structures import (
-    FakeValues,
-    ZTypeError,
-    ZValueError,
-    ZAssertionError,
-    ZNotImplementedError,
-)
+from .structures import FakeValues
 
 
 def ipce_from_typelike(
-    T: Any, globals0: dict, processing: ProcessingDict = None
+    T: Any,
+    *,
+    globals0: Optional[dict] = None,
+    processing: Optional[ProcessingDict] = None,
 ) -> JSONSchema:
     if processing is None:
         processing = {}
+    if globals0 is None:
+        globals0 = {}
     c = IFTContext(globals0, processing, ())
     tr = ipce_from_typelike_tr(T, c)
     schema = tr.schema
@@ -685,7 +690,9 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                             if isinstance(the_att, type):
                                 classatts[name] = f(the_att)
                             else:
-                                classatts[name] = ipce_from_object(the_att, c.globals_)
+                                classatts[name] = ipce_from_object(
+                                    the_att, globals_=c.globals_
+                                )
 
                 else:
                     # logger.info(f'ClassVar {tt} is not Type, going through f')
@@ -697,7 +704,9 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         if isinstance(the_att, type):
                             classatts[name] = f(the_att)
                         else:
-                            classatts[name] = ipce_from_object(the_att, c.globals_)
+                            classatts[name] = ipce_from_object(
+                                the_att, globals_=c.globals_
+                            )
 
             else:  # not classvar
                 schema = f(t)
@@ -713,7 +722,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
                         JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options}
                     )
                     schema_union_of_one["default"] = ipce_from_object(
-                        default, c.globals_
+                        default, globals_=c.globals_
                     )
                     schema_union_of_one = sorted_dict_with_cbor_ordering(
                         schema_union_of_one

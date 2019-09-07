@@ -6,16 +6,16 @@ from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
 
 def test_serialize_klasses0():
-    assert_type_roundtrip(type, {})
+    assert_type_roundtrip(type)
 
     @dataclass
     class A:
         a: int
 
-    Aj = ipce_from_object(A, {})
+    Aj = ipce_from_object(A)
     pprint(Aj=Aj)
 
-    assert_object_roundtrip(A, {}, expect_equality=False)  # because of classes
+    assert_object_roundtrip(A, expect_equality=False)  # because of classes
 
 
 def test_serialize_klasses1():
@@ -34,7 +34,7 @@ def test_serialize_klasses1():
 
     x = MyLanguage(D({"A": A}))
 
-    assert_type_roundtrip(MyLanguage, {})
+    assert_type_roundtrip(MyLanguage)
     #
     # x2: MyLanguage = object_from_ipce(ipce_from_object(x), {}, {})
     # print(f' x: {x}')
@@ -44,9 +44,7 @@ def test_serialize_klasses1():
     # assert x == x2
 
     expect_equality = False
-    assert_object_roundtrip(
-        x, {}, expect_equality=expect_equality
-    )  # because of classes
+    assert_object_roundtrip(x, expect_equality=expect_equality)  # because of classes
 
 
 def test_serialize_klasses2():
@@ -59,9 +57,7 @@ def test_serialize_klasses2():
         a: int
 
     a = MyLanguage(A)
-    assert_type_roundtrip(MyLanguage, {})
+    assert_type_roundtrip(MyLanguage)
 
     expect_equality = False
-    assert_object_roundtrip(
-        a, {}, expect_equality=expect_equality
-    )  # because of classes
+    assert_object_roundtrip(a, expect_equality=expect_equality)  # because of classes

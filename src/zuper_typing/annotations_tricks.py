@@ -1,14 +1,16 @@
 import typing
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
 
+from zuper_typing.aliases import TypeLike
 from .constants import NAME_ARG, PYTHON_36
 
 paranoid = False
 
 
 # noinspection PyProtectedMember
-def is_Optional(x):
+def is_Optional(x: TypeLike) -> bool:
     if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
         return (
             isinstance(x, typing._Union)
             and len(x.__args__) >= 2
@@ -23,7 +25,10 @@ def is_Optional(x):
         )
 
 
-def get_Optional_arg(x):
+X = TypeVar("X")
+
+
+def get_Optional_arg(x: Type[Optional[X]]) -> Type[X]:
     assert is_Optional(x)
     args = x.__args__
     if len(args) == 2:
@@ -36,6 +41,7 @@ def get_Optional_arg(x):
 def is_Union(x):
     """ Union[X, None] is not considered a Union"""
     if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
         return not is_Optional(x) and isinstance(x, typing._Union)
     else:
         return (
@@ -141,6 +147,7 @@ def is_ForwardRef(x):
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
         return isinstance(x, typing._ForwardRef)
     else:
         return isinstance(x, typing.ForwardRef)
@@ -155,6 +162,7 @@ def make_ForwardRef(n):
         return CacheFor.cache[n]
 
     if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
         res = typing._ForwardRef(n)
     else:
         res = typing.ForwardRef(n)

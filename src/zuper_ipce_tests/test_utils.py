@@ -10,6 +10,7 @@ from nose.tools import assert_equal
 
 from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
 from zuper_ipce import logger
+from zuper_ipce.constants import DeserializationOptions
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
@@ -35,17 +36,22 @@ from zuper_typing.my_intersection import is_Intersection, get_Intersection_args
 from zuper_typing_tests.test_utils import known_failure
 
 
-def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
+def assert_type_roundtrip(
+    T, *, use_globals: Optional[dict] = None, expect_type_equal: bool = True
+):
+    if use_globals is None:
+        use_globals = {}
     # assert T is not None
     # rl = RecLogger()
     # resolve_types(T)
-    schema0 = ipce_from_typelike(T, use_globals)
+    schema0 = ipce_from_typelike(T, globals0=use_globals)
 
     # why 2?
-    schema = ipce_from_typelike(T, use_globals)
+    schema = ipce_from_typelike(T, globals0=use_globals)
     save_object(T, ipce=schema)
 
-    T2 = typelike_from_ipce(schema, {}, {})
+    opt = DeserializationOptions()
+    T2 = typelike_from_ipce(schema, encountered={}, global_symbols={}, opt=opt)
 
     # TODO: in 3.6 does not hold for Dict, Union, etc.
     # if hasattr(T, '__qualname__'):
@@ -65,7 +71,7 @@ def assert_type_roundtrip(T, use_globals: dict, expect_type_equal: bool = True):
         # assert_same_types(T2, T)
         assert_equivalent_types(T, T2, assume_yes=set())
 
-    schema2 = ipce_from_typelike(T2, use_globals)
+    schema2 = ipce_from_typelike(T2, globals0=use_globals)
     if schema != schema2:  # pragma: no cover
         msg = "Different schemas"
         d = {
@@ -300,7 +306,7 @@ def save_object(x: object, ipce: object):
     except:
         return
     print(f"saving {x}")
-    x2 = object_from_ipce(ipce, {}, {})
+    x2 = object_from_ipce(ipce)
     ipce_bytes = cbor2.dumps(ipce, canonical=True, value_sharing=True)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
     from zuper_ipcl.debug_print_ import debug_print
@@ -329,7 +335,11 @@ import os
 
 
 def assert_object_roundtrip(
-    x1, use_globals, expect_equality=True, works_without_schema=True
+    x1,
+    *,
+    use_globals: Optional[dict] = None,
+    expect_equality=True,
+    works_without_schema=True,
 ):
     """
 
@@ -340,8 +350,10 @@ def assert_object_roundtrip(
         and different Dataclasses with the same fields do not compare equal.
 
     """
+    if use_globals is None:
+        use_globals = {}
 
-    y1 = ipce_from_object(x1, use_globals)
+    y1 = ipce_from_object(x1, globals_=use_globals)
     y1_cbor: bytes = cbor.dumps(y1)
 
     save_object(x1, ipce=y1)
@@ -352,11 +364,11 @@ def assert_object_roundtrip(
     y1es = json.dumps(y1e, indent=2)
 
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
-    y1eslo = object_from_ipce(y1esl, use_globals)
+    y1eslo = object_from_ipce(y1esl, global_symbols=use_globals)
 
-    x1b = object_from_ipce(y1, use_globals)
+    x1b = object_from_ipce(y1, global_symbols=use_globals)
 
-    x1bj = ipce_from_object(x1b, use_globals)
+    x1bj = ipce_from_object(x1b, globals_=use_globals)
 
     check_equality(x1, x1b, expect_equality)
 
@@ -382,9 +394,9 @@ def assert_object_roundtrip(
 
     # once again, without schema
     if works_without_schema:
-        z1 = ipce_from_object(x1, use_globals, with_schema=False)
+        z1 = ipce_from_object(x1, globals_=use_globals, with_schema=False)
         z2 = cbor.loads(cbor.dumps(z1))
-        u1 = object_from_ipce(z2, use_globals, expect_type=type(x1))
+        u1 = object_from_ipce(z2, global_symbols=use_globals, expect_type=type(x1))
         check_equality(x1, u1, expect_equality)
 
     return locals()

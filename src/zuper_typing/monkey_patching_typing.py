@@ -39,7 +39,7 @@ def original_dict_getitem(a):
     return previous_getitem(Dict, a)
 
 
-if monkey_patch_Generic:
+if monkey_patch_Generic:  # pragma: no cover
     if PYTHON_36:  # pragma: no cover
         GenericMeta.__getitem__ = ZenericFix.__getitem__
     else:

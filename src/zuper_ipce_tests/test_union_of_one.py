@@ -10,7 +10,7 @@ def test_u_of_one():
     class A:
         v: int = 2
 
-    ipce = ipce_from_typelike(A, {})
+    ipce = ipce_from_typelike(A)
     print(oyaml_dump(ipce))
 
     expect = """\

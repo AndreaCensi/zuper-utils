@@ -1,7 +1,7 @@
 from dataclasses import is_dataclass
 from typing import TypeVar
 
-from zuper_ipce.structures import ZValueError
+from zuper_typing.exceptions import ZValueError
 from .types import IPCE
 
 D = TypeVar("D")

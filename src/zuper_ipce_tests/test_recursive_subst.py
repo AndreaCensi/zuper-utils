@@ -74,7 +74,7 @@ def test_rec1():
     logger.info(pretty_dict("T3", T3.__annotations__))
     assert_equivalent_types(A, T3, set())
 
-    assert_type_roundtrip(A, {})
+    assert_type_roundtrip(A)
 
 
 def test_recursive_fwd():

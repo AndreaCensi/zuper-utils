@@ -1,33 +1,8 @@
+from typing import Tuple
+
+from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import name_for_type_like
 from .constants import INTERSECTION_ATT, PYTHON_36
-
-#
-# def Intersection_item(cls, params):
-#     from .annotations_tricks import name_for_type_like
-#     from .zeneric2 import as_tuple
-#
-#     types = as_tuple(params)
-#     name = f'Intersection[{",".join(name_for_type_like(_) for _ in types)}]'
-#
-#     annotations = {}
-#     any_dataclass = any(is_dataclass(_) for _ in types)
-#     for t in types:
-#         a = getattr(t, ANNOTATIONS_ATT, {})
-#         annotations.update(a)
-#
-#     res = {ANNOTATIONS_ATT: annotations, INTERSECTION_ATT: types}
-#
-#     for k in annotations:
-#         for t in types:
-#             if hasattr(t, k):
-#                 res[k] = getattr(t, k)
-#
-#     C = type(name, params, res)
-#     if any_dataclass:
-#         C = dataclass(C)
-#
-#     return C
-
 
 if PYTHON_36:  # pragma: no cover
 
@@ -88,10 +63,10 @@ def make_Intersection(ts: tuple) -> type:
     return res
 
 
-def is_Intersection(T):
+def is_Intersection(T: TypeLike) -> bool:
     return hasattr(T, INTERSECTION_ATT)
 
 
-def get_Intersection_args(T):
+def get_Intersection_args(T: TypeLike) -> Tuple[TypeLike, ...]:
     assert is_Intersection(T)
     return getattr(T, INTERSECTION_ATT)

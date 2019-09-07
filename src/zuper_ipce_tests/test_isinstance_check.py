@@ -37,8 +37,8 @@ def test2():
 
     c1 = C4(1, 2.0)
 
-    C4_ = object_from_ipce(ipce_from_object(C4, {}, {}), {}, {})
-    c1_ = object_from_ipce(ipce_from_object(c1, {}, {}), {}, {})
+    C4_ = object_from_ipce(ipce_from_object(C4))
+    c1_ = object_from_ipce(ipce_from_object(c1))
 
     assert isinstance(c1, C4)
     # noinspection PyTypeChecker
@@ -59,8 +59,8 @@ def test3():
 
     c1 = C5(1)
 
-    C5_ = cast(type, object_from_ipce(ipce_from_object(C5, {}, {}), {}, {}))
-    c1_ = object_from_ipce(ipce_from_object(c1, {}, {}), {}, {})
+    C5_ = cast(type, object_from_ipce(ipce_from_object(C5)))
+    c1_ = object_from_ipce(ipce_from_object(c1))
 
     # different class
     assert C5 is not C5_

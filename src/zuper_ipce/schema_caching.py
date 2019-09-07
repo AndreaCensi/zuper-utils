@@ -2,7 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, Tuple
 
-from zuper_ipce.structures import ZValueError
+from zuper_typing.exceptions import ZValueError
 from .constants import JSONSchema, REF_ATT, SCHEMA_ATT, SCHEMA_ID
 from .ipce_attr import make_key
 from .ipce_spec import assert_canonical_ipce

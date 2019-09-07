@@ -45,7 +45,7 @@ def test_boxed2():
 
     n1 = C(inside=13)
 
-    assert_object_roundtrip(n1, {"BoxedZ": BoxedZ})
+    assert_object_roundtrip(n1, use_globals={"BoxedZ": BoxedZ})
 
 
 @raises(TypeError)

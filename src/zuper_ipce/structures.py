@@ -5,27 +5,11 @@ from zuper_typing.monkey_patching_typing import my_dataclass
 from zuper_typing.zeneric2 import ZenericFix
 
 
-class ZTypeError(ZException, TypeError):
+class CannotFindSchemaReference(ZException):
     pass
 
 
-class ZValueError(ZException, ValueError):
-    pass
-
-
-class ZAssertionError(ZException, AssertionError):
-    pass
-
-
-class ZNotImplementedError(ZException, NotImplementedError):
-    pass
-
-
-class CannotFindSchemaReference(Exception):
-    pass
-
-
-class CannotResolveTypeVar(Exception):
+class CannotResolveTypeVar(ZException):
     pass
 
 

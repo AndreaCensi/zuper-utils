@@ -22,7 +22,7 @@ def test_numpy_01():
     class C:
         data: np.ndarray = field(metadata=dict(contract="array[HxWx3](uint8)"))
 
-    assert_type_roundtrip(C, {})
+    assert_type_roundtrip(C)
 
 
 def test_numpy_02():
@@ -37,7 +37,7 @@ def test_numpy_02():
 
     x = np.array(0.23)
     c = C(x)
-    assert_object_roundtrip(c, {})
+    assert_object_roundtrip(c)
 
 
 #

@@ -15,7 +15,7 @@ def test_not_implemented_set():
         f: Set[int]
 
     e = MyClass({1, 2, 3})
-    assert_object_roundtrip(e, {})  # pragma: no cover
+    assert_object_roundtrip(e)  # pragma: no cover
 
 
 def test_is_set01():
@@ -34,17 +34,17 @@ def test_is_set03():
 
 def test_rt():
     T = Set[int]
-    assert_type_roundtrip(T, {}, expect_type_equal=False)
+    assert_type_roundtrip(T, expect_type_equal=False)
 
 
 def test_rt_yes():
     T = make_set(int)
-    assert_type_roundtrip(T, {}, expect_type_equal=True)
+    assert_type_roundtrip(T, expect_type_equal=True)
 
 
 def test_rt2():
     T = make_set(int)
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_not_implemented_set_2():
@@ -57,7 +57,7 @@ def test_not_implemented_set_2():
         f: Set[A]
 
     e = MyClass({A(1), A(2)})
-    assert_object_roundtrip(e, {})  # pragma: no cover
+    assert_object_roundtrip(e)  # pragma: no cover
 
 
 def test_set_any():
@@ -68,7 +68,7 @@ def test_set_any():
     v = {"a"}
     a = A(v)
 
-    assert_object_roundtrip(a, {})
+    assert_object_roundtrip(a)
 
 
 def test_set_any2():
@@ -80,27 +80,27 @@ def test_set_any2():
     v = make_set(str)(v)
     a = A(v)
 
-    ipce_v = ipce_from_object(v, {})
+    ipce_v = ipce_from_object(v)
     print(oyaml_dump(ipce_v))
 
     schema = ipce_v["$schema"]
-    T = typelike_from_ipce(schema, {}, {})
+    T = typelike_from_ipce(schema)
     print(T)
 
-    ipce = ipce_from_object(a, {})
+    ipce = ipce_from_object(a)
     print(oyaml_dump(ipce))
 
-    assert_object_roundtrip(a, {})
+    assert_object_roundtrip(a)
 
 
 def test_set_any3():
     v = {"a"}
     v = make_set(str)(v)
 
-    assert_object_roundtrip(v, {})
+    assert_object_roundtrip(v)
 
 
 def test_set_any4():
     v = {"a"}
 
-    assert_object_roundtrip(v, {})
+    assert_object_roundtrip(v)

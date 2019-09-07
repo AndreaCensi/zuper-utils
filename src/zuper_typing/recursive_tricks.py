@@ -71,10 +71,8 @@ from .my_dict import (
     is_ListLike_canonical,
 )
 
-if PYTHON_36:  # pragma: no cover
-    TypeLike = type
-else:
-    TypeLike = Union[type, typing._SpecialForm]
+
+from .aliases import TypeLike
 
 
 def get_name_without_brackets(name: str) -> str:

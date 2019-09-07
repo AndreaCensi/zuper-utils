@@ -49,6 +49,8 @@ test-failed:
 
 docker-36-build:
 	docker build -f Dockerfile.python3.6 -t python36 .
+docker-36-build-no-cache:
+	docker build -f Dockerfile.python3.6 -t python36 --no-cache .
 
 docker_params=-v $(PWD)/test_objects:/project/test_objects -w /project
 

@@ -1,7 +1,7 @@
 from collections import UserString
 from typing import Callable, Dict, NewType
 
-from zuper_ipce.structures import ZValueError
+from zuper_typing.exceptions import ZValueError
 
 
 def valid_email(s):

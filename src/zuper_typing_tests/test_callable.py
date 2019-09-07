@@ -74,19 +74,19 @@ def test_NamedArg_eq():
 def test_callable_1():
     T = Callable[[], int]
 
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_callable_2():
     T = Callable[[NamedArg(int, "A")], int]
 
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_callable_3():
     T = Callable[[int], int]
 
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_back():

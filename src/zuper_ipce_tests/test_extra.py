@@ -60,8 +60,8 @@ def test_type02():
     assert C0.__annotations__["data0"] == X
     assert C1.__annotations__["data0"] == V
 
-    assert_type_roundtrip(C0, {})
-    assert_type_roundtrip(C1, {})
+    assert_type_roundtrip(C0)
+    assert_type_roundtrip(C1)
 
 
 def test_type05():
@@ -107,7 +107,7 @@ def test_type05():
         E.__annotations__["forked2"].__args__[0].__name__, MyEntity[A].__name__
     )
 
-    assert_type_roundtrip(MyEntity, {})
+    assert_type_roundtrip(MyEntity)
 
 
 def test_type06():
@@ -150,15 +150,15 @@ def test_type06():
         C.__annotations__["signed_proposal"].__name__,
         "Signed[EntityUpdateProposal[Values]]",
     )
-    print(oyaml_dump(ipce_from_typelike(C, {}, {})))
+    print(oyaml_dump(ipce_from_typelike(C)))
     #
     # assert_equal(E.__name__, 'Entity[A]')
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)
     # pprint('Annotations of E', **E.__annotations__)
     # assert_equal(E.__annotations__['forked'].__args__[0].__name__, Entity[A].__name__)
 
-    assert_type_roundtrip(A, {})
-    assert_type_roundtrip(B, {})
+    assert_type_roundtrip(A)
+    assert_type_roundtrip(B)
 
 
 def test_another():
@@ -172,7 +172,7 @@ def test_another():
 
         parent: "Optional[Entity4[Any]]" = None
 
-    assert_type_roundtrip(Entity4, {})
+    assert_type_roundtrip(Entity4)
 
 
 if __name__ == "__main__":

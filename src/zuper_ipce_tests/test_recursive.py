@@ -10,7 +10,7 @@ def test_recursive01():
         a: int
         parent: "Rec1"
 
-    assert_type_roundtrip(Rec1, {})
+    assert_type_roundtrip(Rec1)
 
 
 def test_recursive02():
@@ -19,7 +19,7 @@ def test_recursive02():
         a: int
         parent: "Optional[Rec2]"
 
-    assert_type_roundtrip(Rec2, {})
+    assert_type_roundtrip(Rec2)
 
 
 def test_recursive03():
@@ -28,4 +28,4 @@ def test_recursive03():
         a: int
         parent: Optional["Rec3"]
 
-    assert_type_roundtrip(Rec3, {})
+    assert_type_roundtrip(Rec3)

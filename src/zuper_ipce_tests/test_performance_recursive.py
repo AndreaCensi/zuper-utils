@@ -62,7 +62,7 @@ def create_chain(nlevels, x):
 def test_recursive_chain_ipce():
     t = create_chain(100, 0)
 
-    ipce: IPCE = ipce_from_object(t, {})
+    ipce: IPCE = ipce_from_object(t)
     print(ipce)
 
 
@@ -71,7 +71,7 @@ def test_recursive_ipce():
     t = create_tree(n, 2, 0)
     # print(debug_print(t))
     # ipce: IPCE = ipce_from_object(t, {})
-    assert_object_roundtrip(t, {})
+    assert_object_roundtrip(t)
 
 
 #

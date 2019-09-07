@@ -71,7 +71,7 @@ def test_serialize_generic_typevar():
 
         x: X
 
-    assert_type_roundtrip(MN1, {})
+    assert_type_roundtrip(MN1)
 
     # noinspection PyDataclass
     f1 = fields(MN1)
@@ -85,7 +85,7 @@ def test_serialize_generic_typevar():
     assert f1 == f1b
 
     # M2 = assert_type_roundtrip(M1, {})
-    assert_type_roundtrip(MN1int, {})
+    assert_type_roundtrip(MN1int)
 
 
 def test_serialize_generic():
@@ -99,15 +99,15 @@ def test_serialize_generic():
 
     M1int = MP1[int]
 
-    assert_type_roundtrip(MP1, {})
-    assert_type_roundtrip(M1int, {})
+    assert_type_roundtrip(MP1)
+    assert_type_roundtrip(M1int)
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = ipce_from_typelike(MP1, {})
+    s = ipce_from_typelike(MP1)
     # print(json.dumps(s, indent=3))
 
-    M2 = typelike_from_ipce(s, {}, {})
+    M2 = typelike_from_ipce(s)
     # noinspection PyUnresolvedReferences
     M2int = M2[int]
     assert_equal(MP1.__module__, M2.__module__)
@@ -148,10 +148,10 @@ def test_serialize_generic_optional():
 
     m1a = M1int(x=2)
     m1b = M1int(x=3)
-    s = ipce_from_typelike(MR1, {})
+    s = ipce_from_typelike(MR1)
     print("M1 schema: \n" + oyaml_dump(s))
 
-    M2 = typelike_from_ipce(s, {}, {})
+    M2 = typelike_from_ipce(s)
     assert "xo" in MR1.__annotations__, MR1.__annotations__
     assert "xo" in M2.__annotations__, M2.__annotations__
 
@@ -173,8 +173,8 @@ def test_serialize_generic_optional():
     assert_equal(MR1.__module__, M2.__module__)
     assert_equal(sorted(M1int.__annotations__), sorted(M2int.__annotations__))
 
-    assert_type_roundtrip(MR1, {})
-    assert_type_roundtrip(M1int, {})
+    assert_type_roundtrip(MR1)
+    assert_type_roundtrip(M1int)
 
     m2a = M2int(x=2)
     m2b = M2int(x=3)
@@ -205,21 +205,21 @@ def test_more():
     print(Entity0.__annotations__["parent"].__repr__())
     assert not isinstance(Entity0.__annotations__["parent"], str)
     # raise Exception()
-    schema = ipce_from_typelike(Entity0, {}, {})
+    schema = ipce_from_typelike(Entity0)
     print(oyaml_dump(schema))
-    T = typelike_from_ipce(schema, {}, {})
+    T = typelike_from_ipce(schema)
     print(T.__annotations__)
 
-    assert_type_roundtrip(Entity0, {})
+    assert_type_roundtrip(Entity0)
 
     EI = Entity0[int]
 
     assert_equal(EI.__annotations__["parent"].__args__[0].__name__, "Entity0[int]")
-    assert_type_roundtrip(EI, {})
+    assert_type_roundtrip(EI)
 
     x = EI(data0=3, parent=EI(data0=4))
 
-    assert_object_roundtrip(x, {})  # {'Entity': Entity, 'X': X})
+    assert_object_roundtrip(x)  # {'Entity': Entity, 'X': X})
 
 
 @known_failure
@@ -245,8 +245,7 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
-    T = typelike_from_ipce(schema, {}, {})
-    print(T.__annotations__)
+    T = typelike_from_ipce(schema)
 
 
 def test_more2():
@@ -259,28 +258,30 @@ def test_more2():
 
         parent: "Optional[Entity11[X]]" = None
 
-    ipce_from_typelike(Entity11, {})
+    ipce_from_typelike(Entity11)
 
     EI = Entity11[int]
 
-    assert_type_roundtrip(Entity11, {})
-    assert_type_roundtrip(EI, {})
+    assert_type_roundtrip(Entity11)
+    assert_type_roundtrip(EI)
 
     @dataclass
     class Entity42(Generic[Y]):
         parent: Optional[Entity11[Y]] = None
 
-    ipce_from_typelike(Entity42, {})
+    ipce_from_typelike(Entity42)
 
-    assert_type_roundtrip(Entity42, {})  # boom
+    assert_type_roundtrip(Entity42)  # boom
 
     E2I = Entity42[int]
-    assert_type_roundtrip(E2I, {})
+    assert_type_roundtrip(E2I)
 
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     assert_object_roundtrip(
-        x, {"Entity11": Entity11, "Entity42": Entity42}, works_without_schema=False
+        x,
+        use_globals={"Entity11": Entity11, "Entity42": Entity42},
+        works_without_schema=False,
     )
 
 
@@ -307,14 +308,14 @@ def test_more2b():
 
     assert_equal(Entity13.__doc__, None)
 
-    assert_type_roundtrip(Entity12, {})
-    assert_type_roundtrip(Entity13, {})
+    assert_type_roundtrip(Entity12)
+    assert_type_roundtrip(Entity13)
 
     EI = Entity12[int]
     # print(EI.__annotations__['parent'])
     E2I = Entity13[int]
-    assert_type_roundtrip(EI, {})
-    assert_type_roundtrip(E2I, {})
+    assert_type_roundtrip(EI)
+    assert_type_roundtrip(E2I)
 
     parent2 = E2I.__annotations__["parent"]
     print(parent2)
@@ -322,7 +323,9 @@ def test_more2b():
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     # print(type(x).__name__)
     assert_object_roundtrip(
-        x, {"Entity12": Entity12, "Entity13": Entity13}, works_without_schema=False
+        x,
+        use_globals={"Entity12": Entity12, "Entity13": Entity13},
+        works_without_schema=False,
     )
 
 
@@ -352,14 +355,14 @@ def test_more3_simpler():
         XT: ClassVar[Type[X]]
         a: int
 
-    ipce = ipce_from_typelike(MyClass, {})
+    ipce = ipce_from_typelike(MyClass)
     print(oyaml_dump(ipce))
-    assert_type_roundtrip(MyClass, {})
+    assert_type_roundtrip(MyClass)
     #
     # # type_to_schema(MyClass, {})
 
     C = MyClass[int]
-    assert_type_roundtrip(C, {})
+    assert_type_roundtrip(C)
 
 
 def test_more3b_simpler():
@@ -369,14 +372,14 @@ def test_more3b_simpler():
     class MyClass(Generic[X]):
         XT: ClassVar[Type[X]]
 
-    ipce = ipce_from_typelike(MyClass, {})
+    ipce = ipce_from_typelike(MyClass)
     print(oyaml_dump(ipce))
-    assert_type_roundtrip(MyClass, {})
+    assert_type_roundtrip(MyClass)
     #
     # # type_to_schema(MyClass, {})
 
     C = MyClass[int]
-    assert_type_roundtrip(C, {})
+    assert_type_roundtrip(C)
 
 
 def test_more3():
@@ -394,27 +397,27 @@ def test_more3():
         def method(self, x: X) -> Y:
             return type(self).YT(x)
 
-    assert_type_roundtrip(MyClass, {})
+    assert_type_roundtrip(MyClass)
 
     # type_to_schema(MyClass, {})
 
     C = MyClass[int, str]
-    assert_type_roundtrip(C, {})
+    assert_type_roundtrip(C)
     # print(f'Annotations for C: {C.__annotations__}')
     assert_equal(C.__annotations__["XT"], ClassVar[type])
     assert_equal(C.XT, int)
     assert_equal(C.__annotations__["YT"], ClassVar[type])
     assert_equal(C.YT, str)
 
-    schema = ipce_from_typelike(C, {})
+    schema = ipce_from_typelike(C)
     # print(json.dumps(schema, indent=2))
-    typelike_from_ipce(schema, {}, {})
+    typelike_from_ipce(schema)
     # print(f'Annotations for C2: {C2.__annotations__}')
     e = C(2)
     r = e.method(1)
     assert r == "1"
 
-    assert_object_roundtrip(e, {})
+    assert_object_roundtrip(e)
 
 
 def test_entity():
@@ -447,8 +450,8 @@ def test_entity():
     qn = Entity43.__qualname__
     assert "Entity43[X]" in qn, qn
 
-    T = ipce_from_typelike(Entity43, {}, {})
-    C = typelike_from_ipce(T, {}, {})
+    T = ipce_from_typelike(Entity43)
+    C = typelike_from_ipce(T)
     print(oyaml_dump(T))
     print(C.__annotations__)
 
@@ -456,7 +459,7 @@ def test_entity():
 
     # resolve_types(Entity2, locals())
     # assert_type_roundtrip(Entity2, locals())
-    assert_type_roundtrip(Entity43, {})
+    assert_type_roundtrip(Entity43)
     Entity43_int = Entity43[int]
 
     assert_equal(Entity43_int.__name__, "Entity43[int]")
@@ -466,7 +469,7 @@ def test_entity():
 
     logger.info("\n\nIgnore above\n\n")
 
-    assert_type_roundtrip(Entity43_int, {})
+    assert_type_roundtrip(Entity43_int)
 
 
 @known_failure
@@ -490,10 +493,10 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
-    C = typelike_from_ipce(schema, {}, {})
-    print(C.__annotations__)
-
-    assert not is_ForwardRef(C.__annotations__["parent"].__args__[0])
+    C = typelike_from_ipce(schema)
+    # print(C.__annotations__)
+    #
+    # assert not is_ForwardRef(C.__annotations__["parent"].__args__[0])
 
 
 def test_classvar1():
@@ -501,7 +504,7 @@ def test_classvar1():
     class C:
         v: ClassVar[int] = 1
 
-    assert_type_roundtrip(C, {})
+    assert_type_roundtrip(C)
     # schema = type_to_schema(C, {})
     # C2: C = schema_to_type(schema, {}, {})
     #
@@ -516,11 +519,11 @@ def test_classvar2():
         v: ClassVar[X] = 1
 
     C = CG[int]
-    schema = ipce_from_typelike(C, {})
-    C2: C = typelike_from_ipce(schema, {}, {})
+    schema = ipce_from_typelike(C)
+    C2: C = typelike_from_ipce(schema)
 
-    assert_type_roundtrip(C, {})
-    assert_type_roundtrip(CG, {})
+    assert_type_roundtrip(C)
+    assert_type_roundtrip(CG)
 
     assert_equal(C.v, C2.v)
 
@@ -593,9 +596,9 @@ def test_signing():
 
     s = Signed1[str](key=PublicKey1(key=b""), signature_data=b"xxx", data="message")
 
-    assert_type_roundtrip(Signed1, {})
-    assert_type_roundtrip(Signed1[str], {})
-    assert_object_roundtrip(s, {})
+    assert_type_roundtrip(Signed1)
+    assert_type_roundtrip(Signed1[str])
+    assert_object_roundtrip(s)
 
 
 def test_derived1():
@@ -617,9 +620,9 @@ def test_derived1():
     # assert S.__doc__ in ['Signed3[int](data:int)', 'Signed3[int](data: int)']
     assert S.__doc__ in [None], S.__doc__
     assert_equal(Y.__doc__, """hello""")
-    assert_type_roundtrip(Y, {})
+    assert_type_roundtrip(Y)
 
-    assert_type_roundtrip(Signed3, {})
+    assert_type_roundtrip(Signed3)
 
 
 def test_derived2_no_doc():
@@ -634,9 +637,9 @@ def test_derived2_no_doc():
     class Z(S):
         pass
 
-    assert_type_roundtrip(Z, {})
+    assert_type_roundtrip(Z)
 
-    assert_type_roundtrip(S, {})
+    assert_type_roundtrip(S)
 
 
 def test_derived2_subst():
@@ -667,9 +670,9 @@ def test_derived2_subst():
 
     pprint(**Y.__annotations__)
 
-    schema = ipce_from_typelike(Y, {}, {})
+    schema = ipce_from_typelike(Y)
     print(oyaml_dump(schema))
-    TY = typelike_from_ipce(schema, {}, {})
+    TY = typelike_from_ipce(schema)
 
     pprint("annotations", **TY.__annotations__)
     P = TY.__annotations__["parent"]
@@ -677,7 +680,7 @@ def test_derived2_subst():
 
     # raise Exception()
     # raise Exception()
-    assert_type_roundtrip(Y, {})
+    assert_type_roundtrip(Y)
 
 
 def test_derived3_subst():
@@ -687,14 +690,15 @@ def test_derived3_subst():
     class Signed3(Generic[X]):
         data: Optional[X]
 
+    # noinspection PyDataclass
     print(fields(Signed3))
-    assert_type_roundtrip(Signed3, {})
+    assert_type_roundtrip(Signed3)
 
     S = Signed3[int]
-    assert_type_roundtrip(S, {})
+    assert_type_roundtrip(S)
 
     x = S(data=2)
-    assert_object_roundtrip(x, {})
+    assert_object_roundtrip(x)
 
 
 def test_entity_field():
@@ -702,7 +706,7 @@ def test_entity_field():
     class Entity44:
         parent: "Optional[Entity44]" = None
 
-    assert_type_roundtrip(Entity44, {})
+    assert_type_roundtrip(Entity44)
 
 
 def test_entity_field2():
@@ -710,7 +714,7 @@ def test_entity_field2():
     class Entity45:
         parent: "Optional[Entity45]"
 
-    assert_type_roundtrip(Entity45, {})
+    assert_type_roundtrip(Entity45)
 
 
 def test_entity_field3():
@@ -720,7 +724,7 @@ def test_entity_field3():
     class Entity46(Generic[X]):
         parent: "Optional[Entity46[X]]"
 
-    assert_type_roundtrip(Entity46, {})
+    assert_type_roundtrip(Entity46)
 
 
 def test_classvar_not_type1():
@@ -728,7 +732,7 @@ def test_classvar_not_type1():
     class Entity47:
         parent: ClassVar[int] = 2
 
-    assert_type_roundtrip(Entity47, {})
+    assert_type_roundtrip(Entity47)
 
 
 def test_classvar_not_type2():
@@ -736,7 +740,7 @@ def test_classvar_not_type2():
     class Entity48:
         parent: ClassVar[int]
 
-    assert_type_roundtrip(Entity48, {})
+    assert_type_roundtrip(Entity48)
 
 
 def test_classvar_type_not_typvar():
@@ -744,7 +748,7 @@ def test_classvar_type_not_typvar():
     class Entity49:
         parent: ClassVar[Type[int]]
 
-    assert_type_roundtrip(Entity49, {})
+    assert_type_roundtrip(Entity49)
 
 
 # XXX: __post_init__ only used for make_type(cls, bindings), rather than for dataclass

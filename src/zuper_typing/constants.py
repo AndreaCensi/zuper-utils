@@ -11,7 +11,7 @@ BINDINGS_ATT = "__binding__"
 
 enable_type_checking = True
 cache_enabled = True
-monkey_patch_Generic = True
+monkey_patch_Generic = False
 
 
 class MakeTypeCache:
@@ -21,13 +21,14 @@ class MakeTypeCache:
 from .logging import logger
 import os
 
-vname = "ZUPER_TYPING_PATCH"
-if vname in os.environ:
-    logger.info(f"Enabling monkey_patch_Generic because of {vname}")
-    monkey_patch_Generic = True
-else:
-    logger.info(f"Disabling monkey_patch_Generic because of {vname}")
-    monkey_patch_Generic = False
+#
+# vname = "ZUPER_TYPING_PATCH"
+# if vname in os.environ: # pragma: no cover
+#     logger.info(f"Enabling monkey_patch_Generic because of {vname}")
+#     monkey_patch_Generic = True
+# else:  # pragma: no cover
+#     logger.info(f"Disabling monkey_patch_Generic because of {vname}")
+#     monkey_patch_Generic = False
 
 circle_job = os.environ.get("CIRCLE_JOB", None)
 # logger.info(f"Circle JOB: {circle_job!r}")

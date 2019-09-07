@@ -20,41 +20,41 @@ symbols = {}
 @relies_on_missing_features
 def test_type1():
     T = Type
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_type2():
     T = type
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 @relies_on_missing_features
 def test_newtype():
     T = NewType("T", str)
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_dict1():
     c = {}
-    assert_object_roundtrip(c, symbols)
+    assert_object_roundtrip(c, use_globals=symbols)
 
 
 def test_dict2():
     T = Dict[str, Any]
     # <class 'zuper_json.my_dict.Dict[str,Any]'>
-    assert_type_roundtrip(T, symbols, expect_type_equal=False)
+    assert_type_roundtrip(T, use_globals=symbols, expect_type_equal=False)
 
 
 def test_dict4():
     # T = Dict[str, Any]
     # <class 'zuper_json.my_dict.Dict[str,Any]'>
     ob = {}
-    object_from_ipce(ob, {}, expect_type=Any)
+    object_from_ipce(ob, expect_type=Any)
 
 
 def test_type__any():
     T = Any
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_type_any2():
@@ -63,7 +63,7 @@ def test_type_any2():
         a: Any
 
     c = C(a={})
-    assert_object_roundtrip(c, symbols)
+    assert_object_roundtrip(c, use_globals=symbols)
 
 
 def test_type__any3():
@@ -72,11 +72,11 @@ def test_type__any3():
         a: Any
 
     c = C(a=1)
-    assert_object_roundtrip(c, symbols)
+    assert_object_roundtrip(c, use_globals=symbols)
 
 
 def test_type__any4():
-    assert_object_roundtrip(Any, symbols)
+    assert_object_roundtrip(Any, use_globals=symbols)
 
 
 def test_defaults1():
@@ -86,19 +86,19 @@ def test_defaults1():
         images_per_episode: int = 120
         num_episodes: int = 10
 
-    mj = ipce_from_typelike(DummyImageSourceConfig, {})
+    mj = ipce_from_typelike(DummyImageSourceConfig)
     print(json.dumps(mj, indent=2))
 
-    T2 = typelike_from_ipce(mj, {}, {})
+    T2 = typelike_from_ipce(mj)
     print(dataclasses.fields(T2))
 
-    assert_type_roundtrip(DummyImageSourceConfig, {})
+    assert_type_roundtrip(DummyImageSourceConfig)
 
 
 def test_type_slice():
-    assert_object_roundtrip(slice, {})
+    assert_object_roundtrip(slice)
 
 
 def test_type_slice2():
     s = slice(1, 2, 3)
-    assert_object_roundtrip(s, {})
+    assert_object_roundtrip(s)

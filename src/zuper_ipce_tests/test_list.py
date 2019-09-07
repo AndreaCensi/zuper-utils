@@ -15,7 +15,7 @@ def test_list_1():
         f: List[int]
 
     e = MyClass([1, 2, 3])
-    assert_object_roundtrip(e, {})
+    assert_object_roundtrip(e)
 
 
 def test_tuple1a():
@@ -23,7 +23,7 @@ def test_tuple1a():
     class MyClass:
         f: Tuple[int, ...]
 
-    assert_type_roundtrip(MyClass, {})
+    assert_type_roundtrip(MyClass)
 
 
 def test_tuple1():
@@ -32,7 +32,7 @@ def test_tuple1():
         f: Tuple[int, ...]
 
     e = MyClass((1, 2, 3))
-    assert_object_roundtrip(e, {})
+    assert_object_roundtrip(e)
 
 
 def test_tuple2a():
@@ -40,7 +40,7 @@ def test_tuple2a():
     class MyClass:
         f: Tuple[int, str]
 
-    assert_type_roundtrip(MyClass, {})
+    assert_type_roundtrip(MyClass)
 
 
 def test_tuple2():
@@ -49,7 +49,7 @@ def test_tuple2():
         f: Tuple[int, str]
 
     e = MyClass((1, "a"))
-    assert_object_roundtrip(e, {})
+    assert_object_roundtrip(e)
 
 
 def test_tuple_inside_class():
@@ -60,7 +60,7 @@ def test_tuple_inside_class():
         f: Any
 
     e = MyClass((1, 2))
-    assert_object_roundtrip(e, {}, works_without_schema=False)
+    assert_object_roundtrip(e, works_without_schema=False)
 
 
 @raises(AssertionError)
@@ -72,7 +72,7 @@ def test_tuple_inside_class_withoutschema():
         f: Any
 
     e = MyClass((1, 2))
-    assert_object_roundtrip(e, {}, works_without_schema=True)
+    assert_object_roundtrip(e, works_without_schema=True)
 
 
 def test_Optional_fields():
@@ -82,7 +82,7 @@ def test_Optional_fields():
         g: Optional[int] = None
 
     e = MyClass(1)
-    assert_object_roundtrip(e, {}, works_without_schema=True)
+    assert_object_roundtrip(e, works_without_schema=True)
 
 
 def test_another():
@@ -105,10 +105,10 @@ $schema:
 
 """
     ipce = oyaml_load(a)
-    r = typelike_from_ipce(ipce, {}, {})
+    r = typelike_from_ipce(ipce)
     print(r)
 
-    assert_type_roundtrip(r, {})
+    assert_type_roundtrip(r)
 
 
 if __name__ == "__main__":

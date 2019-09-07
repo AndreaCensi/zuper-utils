@@ -10,12 +10,12 @@ def test_bool1():
 
     a = M(True)
 
-    assert_object_roundtrip(a, {})
-    assert_type_roundtrip(M, {})
+    assert_object_roundtrip(a)
+    assert_type_roundtrip(M)
 
 
 def test_none1():
-    assert_type_roundtrip(type(None), {})
+    assert_type_roundtrip(type(None))
 
     @dataclass
     class M:
@@ -23,5 +23,5 @@ def test_none1():
 
     a = M(None)
 
-    assert_object_roundtrip(a, {})
-    assert_type_roundtrip(M, {})
+    assert_object_roundtrip(a)
+    assert_type_roundtrip(M)

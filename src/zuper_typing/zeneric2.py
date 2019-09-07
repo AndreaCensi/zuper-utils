@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, ClassVar, Dict, Tuple
 
+
 from .annotations_tricks import (
     get_ClassVar_arg,
     get_Type_arg,
@@ -26,6 +27,7 @@ from .recursive_tricks import (
     get_name_without_brackets,
     NoConstructorImplemented,
     replace_typevars,
+    TypeLike,
 )
 from .subcheck import can_be_used_as2
 
@@ -34,19 +36,41 @@ def as_tuple(x) -> Tuple:
     return x if isinstance(x, tuple) else (x,)
 
 
-if PYTHON_36:
+if PYTHON_36:  # pragma: no cover
     from typing import GenericMeta
 
+    # noinspection PyUnresolvedReferences
     old_one = GenericMeta.__getitem__
 else:
     old_one = None
+
+# if PYTHON_36:
+#     logger.info('In Python 3.6')
+#     class ZMeta:
+#         @staticmethod
+#         def __getitem__(self, params):
+#             # pprint('P36', params=params, self=self)
+#             if self is typing.Generic:
+#                 return ZenericFix.__class_getitem__(params)
+#
+#             if self is typing.Dict:
+#                 K, V = params
+#                 if K is not str:
+#                     from zuper_typing.my_dict import make_dict
+#
+#                     return make_dict(K, V)
+#
+#             # noinspection PyArgumentList
+#             return old_one(self, params)
+# else:
+#     ZMeta = object
 
 
 class ZenericFix:
     # class CannotInstantiate(TypeError):
     #     ...
-
-    if PYTHON_36:
+    #
+    if PYTHON_36:  # pragma: no cover
 
         def __getitem__(self, params):
             # pprint('P36', params=params, self=self)
@@ -100,18 +124,15 @@ class ZenericFix:
 
         class GenericProxy(metaclass=FakeGenericMeta):
             @abstractmethod
-            def need(self):
+            def need(self) -> None:
                 """"""
 
             @classmethod
-            def __class_getitem__(cls2, params2):
+            def __class_getitem__(cls, params2) -> type:
                 # logger.info(f'GenericProxy.__class_getitem__ params = {params2}')
                 types2 = as_tuple(params2)
 
                 bindings = {}
-
-                # if types == types2:
-                #     return cls2
 
                 for T, U in zip(types, types2):
                     bindings[T] = U
@@ -124,11 +145,11 @@ class ZenericFix:
                         if not issubclass(U, T.__bound__):
                             msg = (
                                 f'For type parameter "{T.__name__}", expected a'
-                                f'subclass of "{T.__bound__.__name__}", found {U}.'
+                                f'subclass of "{T.__bound__.__name__}", found @U.'
                             )
-                            raise TypeError(msg)
+                            raise TypeError(msg)  # , U=U)
 
-                res = make_type(cls2, bindings)
+                res = make_type(cls, bindings)
                 return res
 
         name = "Generic[%s]" % ",".join(name_for_type_like(_) for _ in types)
@@ -199,13 +220,16 @@ from typing import Optional
 
 
 class Fake:
-    def __init__(self, myt, symbols):
+    symbols: dict
+    myt: type
+
+    def __init__(self, myt, symbols: dict):
         self.myt = myt
         n = name_for_type_like(myt)
         self.name_without = get_name_without_brackets(n)
         self.symbols = symbols
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: type) -> type:
         n = name_for_type_like(item)
         complete = f"{self.name_without}[{n}]"
         if complete in self.symbols:
@@ -219,6 +243,7 @@ def resolve_types(
 ):
     if nrefs is None:
         nrefs = {}
+
     assert is_dataclass(T)
     # rl = RecLogger()
 
@@ -250,7 +275,7 @@ def resolve_types(
             symbols[x.__name__] = x
 
     # logger.debug(f'symbols: {symbols}')
-    annotations = getattr(T, "__annotations__", {})
+    annotations: Dict[str, TypeLike] = getattr(T, "__annotations__", {})
 
     for k, v in annotations.items():
         if not isinstance(v, str) and is_ClassVar(v):
@@ -271,7 +296,7 @@ def resolve_types(
             continue
         except TypeError as e:  # pragma: no cover
             msg = f'Cannot resolve type for attribute "{k}".'
-            raise TypeError(msg) from e
+            raise ZTypeError(msg) from e
     for f in fields(T):
         assert f.name in annotations
         # msg = f'Cannot get annotation for field {f.name!r}'

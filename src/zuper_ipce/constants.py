@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Dict, NewType, cast
 
 JSONSchema = NewType("JSONSchema", dict)
@@ -71,6 +72,12 @@ SCHEMA_CID = cast(
         SCHEMA_ATT: SCHEMA_ID,
     },
 )
+
+
+@dataclass
+class DeserializationOptions:
+    use_remembered_classes: bool = True
+
 
 USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)

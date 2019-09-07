@@ -1,6 +1,7 @@
 from dataclasses import is_dataclass
-from typing import Any, ClassVar, Tuple
+from typing import Any, ClassVar, Dict, Set, Tuple, Type, List
 
+from zuper_typing.aliases import TypeLike
 from .annotations_tricks import (
     get_Dict_args,
     get_Dict_name_K_V,
@@ -42,19 +43,6 @@ class CustomList(list):
 class CustomDict(dict):
     __dict_type__: ClassVar[Tuple[type, type]]
 
-    # def __setitem__(self, key, val):
-    #     K, V = self.__dict_type__
-    #
-    #     if False:
-    #         if not isinstance(key, K):
-    #             msg = f'Invalid key; expected {K}, got {type(key)}'
-    #             raise ValueError(msg)
-    #         # XXX: this should be for many more cases
-    #         if isinstance(V, type) and not isinstance(val, V):
-    #             msg = f'Invalid value; expected {V}, got {type(val)}'
-    #             raise ValueError(msg)
-    #     dict.__setitem__(self, key, val)
-
     def __hash__(self):
         try:
             return self._cached_hash
@@ -69,26 +57,26 @@ class CustomDict(dict):
         return type(self)(self)
 
 
-def get_CustomSet_arg(x):
+def get_CustomSet_arg(x: Type[CustomSet]) -> TypeLike:
     assert is_CustomSet(x)
     return x.__set_type__
 
 
-def get_CustomList_arg(x):
+def get_CustomList_arg(x: Type[CustomList]) -> TypeLike:
     assert is_CustomList(x)
     return x.__list_type__
 
 
-def get_CustomDict_args(x):
+def get_CustomDict_args(x: Type[CustomDict]) -> Tuple[TypeLike, TypeLike]:
     assert is_CustomDict(x), x
     return x.__dict_type__
 
 
-def is_CustomSet(x):
+def is_CustomSet(x: TypeLike) -> bool:
     return isinstance(x, type) and issubclass(x, CustomSet)
 
 
-def is_CustomList(x):
+def is_CustomList(x: TypeLike) -> bool:
     return isinstance(x, type) and issubclass(x, CustomList)
 
 
@@ -96,31 +84,31 @@ def is_CustomDict(x):
     return isinstance(x, type) and issubclass(x, CustomDict)
 
 
-def is_SetLike(x):
+def is_SetLike(x: TypeLike) -> bool:
     return (x is set) or is_Set(x) or is_CustomSet(x)
 
 
-def is_ListLike(x):
+def is_ListLike(x: TypeLike) -> bool:
     return (x is list) or is_List(x) or is_CustomList(x)
 
 
-def is_DictLike(x):
+def is_DictLike(x: TypeLike) -> bool:
     return (x is dict) or is_Dict(x) or is_CustomDict(x)
 
 
-def is_ListLike_canonical(x):
+def is_ListLike_canonical(x: TypeLike) -> bool:
     return is_CustomList(x)
 
 
-def is_DictLike_canonical(x):
+def is_DictLike_canonical(x: TypeLike) -> bool:
     return is_CustomDict(x)
 
 
-def is_SetLike_canonical(x):
+def is_SetLike_canonical(x: TypeLike) -> bool:
     return is_CustomSet(x)
 
 
-def get_SetLike_arg(x):
+def get_SetLike_arg(x: Type[Set]) -> TypeLike:
     if x is set:
         return Any
 
@@ -133,7 +121,7 @@ def get_SetLike_arg(x):
     assert False, x
 
 
-def get_ListLike_arg(x):
+def get_ListLike_arg(x: Type[List]) -> TypeLike:
     if x is list:
         return Any
 
@@ -141,12 +129,13 @@ def get_ListLike_arg(x):
         return get_List_arg(x)
 
     if is_CustomList(x):
-        return x.__list_type__
+        # noinspection PyTypeChecker
+        return get_CustomList_arg(x)
 
     assert False, x
 
 
-def get_DictLike_args(x):
+def get_DictLike_args(x: Type[Dict]) -> Tuple[TypeLike, TypeLike]:
     assert is_DictLike(x), x
     if is_Dict(x):
         return get_Dict_args(x)
@@ -158,13 +147,13 @@ def get_DictLike_args(x):
         assert False, x
 
 
-def get_DictLike_name(T):
+def get_DictLike_name(T: Type[Dict]) -> str:
     assert is_DictLike(T)
     K, V = get_DictLike_args(T)
     return get_Dict_name_K_V(K, V)
 
 
-def get_ListLike_name(x):
+def get_ListLike_name(x: Type[List]) -> str:
     X = get_ListLike_arg(x)
     return "List[%s]" % name_for_type_like(X)
 

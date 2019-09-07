@@ -23,8 +23,8 @@ def test_subclass1():
 
     b = B(1, True)
 
-    assert_type_roundtrip(B, {})
-    assert_object_roundtrip(b, {})
+    assert_type_roundtrip(B)
+    assert_object_roundtrip(b)
 
 
 def test_subclass2_generic():
@@ -40,8 +40,8 @@ def test_subclass2_generic():
 
     b = B(1, True)
 
-    assert_type_roundtrip(B, {})
-    assert_object_roundtrip(b, {})
+    assert_type_roundtrip(B)
+    assert_object_roundtrip(b)
 
 
 def test_subclass3_generic():
@@ -60,11 +60,11 @@ def test_subclass3_generic():
 
     assert S3B0.__name__ == "S3B0[X]", S3B0.__name__
 
-    assert_type_roundtrip(S3B0, {})
+    assert_type_roundtrip(S3B0)
 
-    assert_type_roundtrip(S3A, {})
-    assert_type_roundtrip(S3B, {})
-    assert_object_roundtrip(b, {})
+    assert_type_roundtrip(S3A)
+    assert_type_roundtrip(S3B)
+    assert_object_roundtrip(b)
 
 
 if __name__ == "__main__":

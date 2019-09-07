@@ -15,7 +15,7 @@ def test_ipce_intersection1():
         a: int
 
     I = make_Intersection((A, B))
-    assert_type_roundtrip(I, {})
+    assert_type_roundtrip(I)
 
 
 def test_intersection1():
@@ -28,7 +28,7 @@ def test_intersection1():
         b: str
 
     AB = Intersection[A1, B1]
-    assert_type_roundtrip(AB, {}, expect_type_equal=False)
+    assert_type_roundtrip(AB, expect_type_equal=False)
 
 
 def test_intersection2():
@@ -45,4 +45,4 @@ def test_intersection2():
 
     print(AB.__annotations__)
     e = AB(a=1, b="2")
-    assert_object_roundtrip(e, {})  # raise here
+    assert_object_roundtrip(e)  # raise here

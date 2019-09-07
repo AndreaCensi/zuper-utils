@@ -1,6 +1,6 @@
 class Unh:
     def __init__(self):
-        raise Exception()
+        raise Exception()  # pragma: no cover
 
 
 def make_Uninhabited():

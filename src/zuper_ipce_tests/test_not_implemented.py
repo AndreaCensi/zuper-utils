@@ -12,31 +12,31 @@ if not USE_REMEMBERED_CLASSES:  # pragma: no cover
         class A1b:
             a: List[int] = field(default_factory=list)
 
-        F = assert_type_roundtrip(A1b, {}, expect_type_equal=False)
+        F = assert_type_roundtrip(A1b, expect_type_equal=False)
         F(a=[])
         F()
 
 
 def test_object():
     T = object
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_slice():
     T = slice
-    assert_type_roundtrip(T, {})
+    assert_type_roundtrip(T)
 
 
 def test_slice1():
     T = slice(1, None, None)
-    assert_object_roundtrip(T, {})
+    assert_object_roundtrip(T)
 
 
 def test_slice2():
     T = slice(1, 2, None)
-    assert_object_roundtrip(T, {})
+    assert_object_roundtrip(T)
 
 
 def test_slice3():
     T = slice(1, 2, 3)
-    assert_object_roundtrip(T, {})
+    assert_object_roundtrip(T)

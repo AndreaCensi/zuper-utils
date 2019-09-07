@@ -14,23 +14,23 @@ def test_tuples1():
 
     a = M((1, "32"))
 
-    assert_object_roundtrip(a, {})
-    assert_type_roundtrip(M, {})
+    assert_object_roundtrip(a)
+    assert_type_roundtrip(M)
 
 
 def test_tuples3():
     T = Tuple[str, int]
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_tuples2():
     T = Tuple[str, ...]
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_list1():
     T = make_list(str)
-    assert_type_roundtrip(T, symbols)
+    assert_type_roundtrip(T, use_globals=symbols)
 
 
 def test_list2():
@@ -39,4 +39,4 @@ def test_list2():
         a: List[str]
 
     a = M(["a", "b"])
-    assert_object_roundtrip(a, symbols)
+    assert_object_roundtrip(a, use_globals=symbols)

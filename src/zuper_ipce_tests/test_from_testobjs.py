@@ -58,7 +58,7 @@ def check_case(fn: str):
         ipce_cbor = gzip.decompress(ipce_gz)
         ipce = cbor2.loads(ipce_cbor)
         # logger.info(f'ipce:\n\n{yaml.dump(ipce)}')
-        ob = object_from_ipce(ipce, {})
+        ob = object_from_ipce(ipce)
         # logger.info(f'ob:\n\n{ob}')
         ipce2 = ipce_from_object(ob)
         # logger.info(f'ipce2:\n\n{yaml.dump(ipce2)}')

@@ -9,6 +9,8 @@ from zuper_typing.annotations_tricks import (
     is_Union,
     make_Union,
 )
+from zuper_typing.recursive_tricks import replace_typevars
+from zuper_typing.uninhabited import make_Uninhabited
 
 
 def test_making_union():
@@ -66,3 +68,8 @@ def test_multiple_union2():
     ts = (int, type(None))
     U = make_Union(*ts)
     assert is_Optional(U)
+
+
+def test_unh():
+    u = make_Uninhabited()
+    replace_typevars(u, bindings={}, symbols={})

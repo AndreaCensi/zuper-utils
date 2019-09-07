@@ -22,6 +22,7 @@ from zuper_typing.annotations_tricks import (
     is_Union,
     is_VarTuple,
 )
+from zuper_typing.exceptions import ZTypeError, ZValueError
 from zuper_typing.my_dict import (
     get_DictLike_args,
     get_ListLike_arg,
@@ -35,6 +36,7 @@ from zuper_typing.my_dict import (
 )
 from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from .constants import (
+    DeserializationOptions,
     HINTS_ATT,
     JSC_TITLE,
     JSC_TITLE_TYPE,
@@ -43,19 +45,32 @@ from .constants import (
     SCHEMA_ID,
 )
 from .numpy_encoding import numpy_array_from_ipce
-from .structures import FakeValues, ZTypeError, ZValueError
-from .types import IPCE
+from .structures import FakeValues
+from .types import IPCE, TypeLike
 
 
 def object_from_ipce(
     mj: IPCE,
-    global_symbols: Dict,
+    *,
+    global_symbols: Optional[Dict] = None,
     encountered: Optional[dict] = None,
     expect_type: Optional[type] = None,
+    opt: Optional[DeserializationOptions] = None,
 ) -> object:
+    if opt is None:
+        opt = DeserializationOptions()
+    if global_symbols is None:
+        global_symbols = {}
+    if encountered is None:
+        encountered = {}
+
     try:
         res = object_from_ipce_(
-            mj, global_symbols, encountered=encountered, expect_type=expect_type
+            mj,
+            global_symbols=global_symbols,
+            encountered=encountered,
+            expect_type=expect_type,
+            opt=opt,
         )
         return res
 
@@ -78,24 +93,21 @@ def object_from_ipce(
 
 def object_from_ipce_(
     mj: IPCE,
+    *,
     global_symbols,
-    encountered: Optional[dict] = None,
-    expect_type: Optional[type] = None,
+    opt: DeserializationOptions,
+    encountered: Optional[dict],
+    expect_type: Optional[type],
 ) -> object:
-    if encountered is None:
-        encountered = {}
-
+    args = dict(global_symbols=global_symbols, encountered=encountered, opt=opt)
     if is_Optional(expect_type):
-        return object_from_ipce_optional(expect_type, mj, global_symbols, encountered)
+        return object_from_ipce_optional(mj, expect_type=expect_type, **args)
 
     if is_Union(expect_type):
-        return object_from_ipce_union(expect_type, mj, global_symbols, encountered)
+        return object_from_ipce_union(mj, expect_type=expect_type, **args)
 
     if is_Intersection(expect_type):
-        return object_from_ipce_intersection(
-            expect_type, mj, global_symbols, encountered
-        )
-
+        return object_from_ipce_intersection(mj, expect_type=expect_type, **args)
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
     trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
 
@@ -119,7 +131,7 @@ def object_from_ipce_(
         return mj
 
     if isinstance(mj, list):
-        return object_from_ipce_list(mj, global_symbols, encountered, expect_type)
+        return object_from_ipce_list(mj, expect_type=expect_type, **args)
 
     if mj is None:
         if expect_type is None:
@@ -139,14 +151,20 @@ def object_from_ipce_(
 
     if mj.get(SCHEMA_ATT, "") == SCHEMA_ID:
         schema = cast(JSONSchema, mj)
-        return typelike_from_ipce(schema, global_symbols, encountered)
+        return typelike_from_ipce(
+            schema, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
     if mj.get(JSC_TITLE, None) == JSC_TITLE_TYPE:
         schema = cast(JSONSchema, mj)
-        return typelike_from_ipce(schema, global_symbols, encountered)
+        return typelike_from_ipce(
+            schema, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
 
     if SCHEMA_ATT in mj:
         sa = mj[SCHEMA_ATT]
-        K = typelike_from_ipce(sa, global_symbols, encountered)
+        K = typelike_from_ipce(
+            sa, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
         # logger.debug(f' loaded K = {K} from {mj}')
     else:
         if expect_type is not None:
@@ -161,26 +179,40 @@ def object_from_ipce_(
         return numpy_array_from_ipce(mj)
 
     if is_DictLike(K):
-        return object_from_ipce_dict(K, mj, global_symbols, encountered)
+        return object_from_ipce_dict(
+            mj, D=K, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
 
     if is_SetLike(K):
-        res = object_from_ipce_SetLike(K, mj, global_symbols, encountered)
+        res = object_from_ipce_SetLike(
+            mj, D=K, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
         return res
 
     if is_dataclass(K):
-        return object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered)
+        return object_from_ipce_dataclass_instance(
+            mj, K=K, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
 
     if K is slice:
         return object_from_ipce_slice(mj)
 
     if is_Any(K) or K is object:
         if looks_like_set(mj):
-            res = object_from_ipce_SetLike(None, mj, global_symbols, encountered)
+            res = object_from_ipce_SetLike(
+                mj,
+                D=None,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                opt=opt,
+            )
             return res
 
         K = Dict[str, Any]
 
-        return object_from_ipce_dict(K, mj, global_symbols, encountered)
+        return object_from_ipce_dict(
+            mj, D=K, global_symbols=global_symbols, encountered=encountered, opt=opt
+        )
 
     msg = f"Invalid type or type suggestion."
 
@@ -198,26 +230,36 @@ def object_from_ipce_slice(mj) -> slice:
     return slice(start, stop, step)
 
 
-def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
+def object_from_ipce_list(
+    mj: IPCE, *, global_symbols, encountered, expect_type, opt: DeserializationOptions
+) -> IPCE:
+    def rec(x):
+        return object_from_ipce(
+            x,
+            global_symbols=global_symbols,
+            encountered=encountered,
+            expect_type=suggest,
+            opt=opt,
+        )
+
     if expect_type is not None:
         # logger.info(f'expect_type for list is {expect_type}')
         if is_Any(expect_type) or expect_type is object:
             suggest = None
-            seq = [
-                object_from_ipce(_, global_symbols, encountered, expect_type=suggest)
-                for _ in mj
-            ]
+            seq = [rec(_) for _ in mj]
             T = make_list(Any)
             return T(seq)
         elif is_TupleLike(expect_type):
-            # noinspection PyTypeChecker
-            return object_from_ipce_tuple(expect_type, mj, global_symbols, encountered)
+            return object_from_ipce_tuple(
+                mj,
+                expect_type=expect_type,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                opt=opt,
+            )
         elif is_ListLike(expect_type):
             suggest = get_ListLike_arg(expect_type)
-            seq = [
-                object_from_ipce(_, global_symbols, encountered, expect_type=suggest)
-                for _ in mj
-            ]
+            seq = [rec(_) for _ in mj]
             T = make_list(suggest)
             return T(seq)
 
@@ -226,28 +268,41 @@ def object_from_ipce_list(mj, global_symbols, encountered, expect_type) -> IPCE:
             raise ZTypeError(msg, expect_type=expect_type, mj=mj)
     else:
         suggest = None
-        seq = [
-            object_from_ipce(_, global_symbols, encountered, expect_type=suggest)
-            for _ in mj
-        ]
+        seq = [rec(_) for _ in mj]
         T = make_list(Any)
         return T(seq)
 
 
-def object_from_ipce_optional(expect_type, mj, global_symbols, encountered) -> IPCE:
+def object_from_ipce_optional(
+    mj: IPCE, *, expect_type, global_symbols, encountered, opt: DeserializationOptions
+) -> IPCE:
     if mj is None:
         return mj
     K = get_Optional_arg(expect_type)
 
-    return object_from_ipce(mj, global_symbols, encountered, expect_type=K)
+    return object_from_ipce(
+        mj,
+        global_symbols=global_symbols,
+        encountered=encountered,
+        expect_type=K,
+        opt=opt,
+    )
 
 
-def object_from_ipce_union(expect_type, mj, global_symbols, encountered) -> IPCE:
+def object_from_ipce_union(
+    mj: IPCE, *, expect_type, global_symbols, encountered, opt: DeserializationOptions
+) -> IPCE:
     errors = []
     ts = get_Union_args(expect_type)
     for T in ts:
         try:
-            return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
+            return object_from_ipce(
+                mj,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                expect_type=T,
+                opt=opt,
+            )
         except BaseException:
             errors.append(dict(T=T, e=traceback.format_exc()))
     msg = f"Cannot deserialize with any type."
@@ -256,12 +311,20 @@ def object_from_ipce_union(expect_type, mj, global_symbols, encountered) -> IPCE
     raise ZValueError(msg, ts=ts, errors=errors)
 
 
-def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) -> IPCE:
+def object_from_ipce_intersection(
+    mj: IPCE, *, expect_type, global_symbols, encountered, opt: DeserializationOptions
+) -> IPCE:
     errors = {}
     ts = get_Intersection_args(expect_type)
     for T in ts:
         try:
-            return object_from_ipce(mj, global_symbols, encountered, expect_type=T)
+            return object_from_ipce(
+                mj,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                expect_type=T,
+                opt=opt,
+            )
         except BaseException:
             errors[str(T)] = traceback.format_exc()
     msg = f"Cannot deserialize with any of @ts"
@@ -270,14 +333,25 @@ def object_from_ipce_intersection(expect_type, mj, global_symbols, encountered) 
     raise ZValueError(msg, errors=errors, ts=ts)
 
 
-def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
+def object_from_ipce_tuple(
+    mj: IPCE,
+    *,
+    expect_type: Optional[TypeLike],
+    global_symbols,
+    encountered,
+    opt: DeserializationOptions,
+):
     if is_FixedTuple(expect_type):
         seq = []
         ts = get_FixedTuple_args(expect_type)
         for expect_type_i, ob in zip(ts, mj):
             seq.append(
                 object_from_ipce(
-                    ob, global_symbols, encountered, expect_type=expect_type_i
+                    ob,
+                    global_symbols=global_symbols,
+                    encountered=encountered,
+                    expect_type=expect_type_i,
+                    opt=opt,
                 )
             )
 
@@ -286,7 +360,14 @@ def object_from_ipce_tuple(expect_type, mj, global_symbols, encountered):
         T = get_VarTuple_arg(expect_type)
         seq = []
         for i, ob in enumerate(mj):
-            seq.append(object_from_ipce(ob, global_symbols, encountered, expect_type=T))
+            r = object_from_ipce(
+                ob,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                expect_type=T,
+                opt=opt,
+            )
+            seq.append(r)
 
         return tuple(seq)
     else:
@@ -300,7 +381,9 @@ def get_class_fields(K) -> Dict[str, Field]:
     return class_fields
 
 
-def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
+def object_from_ipce_dataclass_instance(
+    mj: IPCE, *, K, global_symbols, encountered, opt: DeserializationOptions
+):
     # assert  isinstance(K, type), K
     global_symbols = dict(global_symbols)
     global_symbols[K.__name__] = K
@@ -324,11 +407,20 @@ def object_from_ipce_dataclass_instance(K, mj, global_symbols, encountered):
                 )
 
             if k in hints:
-                expect_type = typelike_from_ipce(hints[k], global_symbols, encountered)
+                expect_type = typelike_from_ipce(
+                    hints[k],
+                    global_symbols=global_symbols,
+                    encountered=encountered,
+                    opt=opt,
+                )
 
             try:
                 attrs[k] = object_from_ipce(
-                    v, global_symbols, encountered, expect_type=expect_type
+                    v,
+                    global_symbols=global_symbols,
+                    encountered=encountered,
+                    expect_type=expect_type,
+                    opt=opt,
                 )
 
             except BaseException as e:  # pragma: no cover
@@ -397,7 +489,9 @@ def write_out_yaml(prefix, v):
     return fn
 
 
-def object_from_ipce_dict(D, mj, global_symbols, encountered):
+def object_from_ipce_dict(
+    mj, *, D, global_symbols, encountered, opt: DeserializationOptions
+):
     K, V = get_DictLike_args(D)
     D = make_dict(K, V)
     ob = D()
@@ -416,7 +510,11 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
 
         try:
             attrs[k] = object_from_ipce(
-                v, global_symbols, encountered, expect_type=expect_type_V
+                v,
+                expect_type=expect_type_V,
+                global_symbols=global_symbols,
+                encountered=encountered,
+                opt=opt,
             )
 
         except (TypeError, NotImplementedError) as e:  # pragma: no cover
@@ -438,7 +536,9 @@ def object_from_ipce_dict(D, mj, global_symbols, encountered):
         return ob
 
 
-def object_from_ipce_SetLike(D, mj, global_symbols, encountered):
+def object_from_ipce_SetLike(
+    mj, *, D, global_symbols, encountered, opt: DeserializationOptions
+):
     if D is None:
         V = Any
     else:
@@ -451,7 +551,13 @@ def object_from_ipce_SetLike(D, mj, global_symbols, encountered):
         if k == SCHEMA_ATT:
             continue
 
-        vob = object_from_ipce(v, global_symbols, encountered, expect_type=V)
+        vob = object_from_ipce(
+            v,
+            expect_type=V,
+            global_symbols=global_symbols,
+            encountered=encountered,
+            opt=opt,
+        )
 
         # logger.info(f'loaded k = {k} vob = {vob}')
         res.add(vob)

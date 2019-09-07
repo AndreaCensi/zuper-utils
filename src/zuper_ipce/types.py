@@ -8,4 +8,7 @@ IPCE = Union[
 ]
 
 __all__ = ["IPCE"]
-TypeLike = Union[type, _SpecialForm]
+
+from zuper_typing.aliases import TypeLike
+
+_ = TypeLike
