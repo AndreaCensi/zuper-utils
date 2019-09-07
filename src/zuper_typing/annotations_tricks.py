@@ -7,6 +7,38 @@ from .constants import NAME_ARG, PYTHON_36
 paranoid = False
 
 
+def is_TypeLike(x) -> bool:
+    if isinstance(x, type):
+        return True
+    else:
+        return is_SpecialForm(x)
+
+
+def is_SpecialForm(x):
+    """ Does not include: ClassVar, NamedArg, Type, TypeVar
+        Does include: ForwardRef, NewType,
+    """
+    if (
+        is_Any(x)
+        or is_Callable(x)
+        or is_Dict(x)
+        or is_Tuple(x)
+        or is_ForwardRef(x)
+        or is_Iterable(x)
+        or is_Iterator(x)
+        or is_List(x)
+        or is_NewType(x)
+        or is_Optional(x)
+        or is_Sequence(x)
+        or is_Set(x)
+        or is_Tuple(x)
+        or is_Union(x)
+    ):
+        return True
+
+    return False
+
+
 # noinspection PyProtectedMember
 def is_Optional(x: TypeLike) -> bool:
     if PYTHON_36:  # pragma: no cover
