@@ -65,7 +65,7 @@ def test_corner_cases04():
 
 
 def test_corner_cases05():
-    ipce_from_object(12, suggest_type=Optional[int])
+    ipce_from_object(12, Optional[int])
 
 
 @raises(ValueError)
@@ -238,28 +238,28 @@ def test_Type1():
 def test_error_list1():
     a = [1, 2, 3]
     S = int
-    ipce_from_object(a, suggest_type=S)
+    ipce_from_object(a, S)
 
 
 @raises(TypeError)
 def test_error_list2():
     a = [1, 2, 3]
     S = Union[int, str]
-    ipce_from_object(a, suggest_type=S)
+    ipce_from_object(a, S)
 
 
 @raises(ValueError)
 def test_error_list2b():
     a = [1, 2, 3]
     S = Union[int, str]
-    object_from_ipce(a, expect_type=S)
+    object_from_ipce(a, S)
 
 
 @raises(TypeError)
 def test_error_scalar1():
     a = "s"
     S = Union[int, bool]
-    _ipce = ipce_from_object(a, suggest_type=S)
+    _ipce = ipce_from_object(a, S)
 
 
 @raises(ValueError)
@@ -492,7 +492,7 @@ def test_corner_list1():
 def test_corner_list2():
     x = [1, 2, 3]
     T = Dict[str, str]
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 @raises(ValueError)
@@ -514,11 +514,11 @@ def test_corner_tuple2():
     ipce_from_object(x, T)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_tuple3():
     x = (1, "a")
     T = Dict[str, str]
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 def test_corner_none3():
@@ -569,7 +569,7 @@ def test_corner_none2b():
 def test_corner_list_Any():
     x = [1, 2]
     T = Any
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 @raises(ValueError)

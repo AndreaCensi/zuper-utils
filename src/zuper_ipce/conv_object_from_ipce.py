@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
-from zuper_ipce.conv_ipce_from_object import is_unconstrained
+from zuper_ipce.types import is_unconstrained
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce_sr
 from zuper_ipce.exceptions import (
     IPCE_PASS_THROUGH,
