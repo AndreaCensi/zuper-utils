@@ -2,7 +2,7 @@ class SchemaCache:
     key2schema = {}
 
 
-def make_key(x):
+def make_key(x: object) -> tuple:
     k0 = id(type(x))
     k1 = getattr(x, "__qualname__", None)
     k2 = getattr(x, "__name__", None)

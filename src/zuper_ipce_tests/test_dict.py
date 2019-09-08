@@ -12,20 +12,6 @@ from zuper_typing import dataclass
 from zuper_typing.my_dict import get_DictLike_args, make_dict, make_list, make_set
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 
-if False:
-
-    @raises(ValueError)
-    def test_dict_check_key():
-        D = Dict[int, int]
-        d = D()
-        d["a"] = 2
-
-    @raises(ValueError)
-    def test_dict_check_value():
-        D = Dict[int, int]
-        d = D()
-        d[2] = "a"
-
 
 def test_dict_int_int0():
     D = make_dict(int, int)
@@ -56,6 +42,7 @@ def test_dict_int_int():
 
 @raises(ValueError)
 def test_dict_err():
+    # noinspection PyTypeChecker
     make_dict(int, "str")
 
 

@@ -64,7 +64,7 @@ def test_union_3():
     assert_object_roundtrip(ec2)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_none1():
     @dataclass
     class A:

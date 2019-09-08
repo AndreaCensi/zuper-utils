@@ -28,7 +28,7 @@ class TRE:
     schema: JSONSchema
     used: Dict[str, str] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         try:
             assert_canonical_schema(self.schema)
         except ValueError as e:  # pragma: no cover

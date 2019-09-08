@@ -321,7 +321,7 @@ def get_NewType_name(x):
 def get_NewType_repr(x):
     n = get_NewType_name(x)
     p = get_NewType_arg(x)
-    if is_Any(p):
+    if is_Any(p) or p is object:
         return f"NewType({n!r})"
     else:
         sp = name_for_type_like(p)

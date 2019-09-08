@@ -6,11 +6,12 @@ import warnings
 from dataclasses import _FIELDS, Field, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
-from typing import Any, cast, List, Optional, Tuple, Type, TypeVar
+from typing import cast, List, Optional, Tuple, Type, TypeVar, Dict, Set
 
 import numpy as np
 
 from zuper_typing import dataclass
+from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
@@ -100,6 +101,7 @@ from .constants import (
     X_CLASSVARS,
     X_ORDER,
     X_PYTHON_MODULE_ATT,
+    IESO,
 )
 from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
 from .schema_caching import (
@@ -112,17 +114,20 @@ from .structures import FakeValues
 
 
 def ipce_from_typelike(
-    T: object,
+    T: TypeLike,
     *,
     globals0: Optional[dict] = None,
     processing: Optional[ProcessingDict] = None,
+    ieso: Optional[IESO] = None,
 ) -> JSONSchema:
+    if ieso is None:
+        ieso = IESO(with_schema=True)
     if processing is None:
         processing = {}
     if globals0 is None:
         globals0 = {}
     c = IFTContext(globals0, processing, ())
-    tr = ipce_from_typelike_tr(T, c)
+    tr = ipce_from_typelike_tr(T, c, ieso=ieso)
     schema = tr.schema
     assert_canonical_ipce(schema)
     return schema
@@ -135,7 +140,7 @@ class IFTContext:
     context: Tuple[str, ...]
 
 
-def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
+def ipce_from_typelike_tr(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     if hasattr(T, "__name__"):
         if T.__name__ in c.processing:
             ref = c.processing[T.__name__]
@@ -185,7 +190,7 @@ def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
 
                 c = dataclasses.replace(c, globals_=globals2)
 
-        tr: TRE = ipce_from_typelike_tr_(T, c)
+        tr: TRE = ipce_from_typelike_tr_(T, c=c, ieso=ieso)
 
         if use_ipce_from_typelike_cache:
             set_ipce_from_typelike_cache(T, tr.used, tr.schema)
@@ -205,14 +210,14 @@ def ipce_from_typelike_tr(T: Any, c: IFTContext) -> TRE:
         raise ZTypeError(msg, T=T, c=c) from e
 
 
-def ipce_from_typelike_DictLike(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_DictLike(T: Type[Dict], c: IFTContext, ieso: IESO) -> TRE:
     assert is_DictLike(T), T
     K, V = get_DictLike_args(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Dict_name_K_V(K, V)
     if isinstance(K, type) and issubclass(K, str):
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
-        tr = ipce_from_typelike_tr(V, c)
+        tr = ipce_from_typelike_tr(V, c=c, ieso=ieso)
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
         res = sorted_dict_with_cbor_ordering(res)
@@ -220,7 +225,7 @@ def ipce_from_typelike_DictLike(T, c: IFTContext) -> TRE:
     else:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
         props = FakeValues[K, V]
-        tr = ipce_from_typelike_tr(props, c)
+        tr = ipce_from_typelike_tr(props, c=c, ieso=ieso)
         # logger.warning(f'props IPCE:\n\n {yaml.dump(tr.schema)}')
 
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
@@ -229,26 +234,26 @@ def ipce_from_typelike_DictLike(T, c: IFTContext) -> TRE:
         return TRE(res, tr.used)
 
 
-def ipce_from_typelike_SetLike(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_SetLike(T: Type[Set], c: IFTContext, ieso: IESO) -> TRE:
     assert is_SetLike(T), T
     V = get_SetLike_arg(T)
     res = cast(JSONSchema, {JSC_TYPE: JSC_OBJECT})
     res[JSC_TITLE] = get_Set_name_V(V)
     res[JSC_PROPERTY_NAMES] = SCHEMA_CID
-    tr = ipce_from_typelike_tr(V, c)
+    tr = ipce_from_typelike_tr(V, c=c, ieso=ieso)
     res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
     res[SCHEMA_ATT] = SCHEMA_ID
     res = sorted_dict_with_cbor_ordering(res)
     return TRE(res, tr.used)
 
 
-def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_TupleLike(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     assert is_TupleLike(T), T
 
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -276,7 +281,8 @@ def ipce_from_typelike_TupleLike(T, c: IFTContext) -> TRE:
         assert False
 
 
-def ipce_from_typelike_NewType(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_NewType(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
+    _ = c, ieso
     name = get_NewType_name(T)
     used = {}
     res = cast(JSONSchema, {})
@@ -287,14 +293,14 @@ def ipce_from_typelike_NewType(T, c: IFTContext) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_ListLike(T, c: IFTContext) -> TRE:
+def ipce_from_typelike_ListLike(T: Type[List], c: IFTContext, ieso: IESO) -> TRE:
     assert is_ListLike(T), T
     items = get_ListLike_arg(T)
     res = cast(JSONSchema, {})
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -306,13 +312,13 @@ def ipce_from_typelike_ListLike(T, c: IFTContext) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_Callable(T: Type, c: IFTContext) -> TRE:
+def ipce_from_typelike_Callable(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     assert is_Callable(T), T
     cinfo = get_Callable_info(T)
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -337,7 +343,7 @@ def ipce_from_typelike_Callable(T: Type, c: IFTContext) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
+def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     if T is None:
         msg = "None is not a type!"
         raise ZValueError(msg)
@@ -382,7 +388,7 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         return TRE(res)
 
     if T is slice:
-        return ipce_from_typelike_slice()
+        return ipce_from_typelike_slice(ieso=ieso)
 
     if T is Decimal:
         res = cast(
@@ -421,24 +427,26 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         return TRE(res)
 
     if is_Union(T):
-        return ipce_from_typelike_Union(T, c)
+        return ipce_from_typelike_Union(T, c=c, ieso=ieso)
 
     if is_Optional(T):
-        return ipce_from_typelike_Optional(T, c)
+        return ipce_from_typelike_Optional(T, c=c, ieso=ieso)
 
     if is_DictLike(T):
-        return ipce_from_typelike_DictLike(T, c)
+        T = cast(Type[Dict], T)
+        return ipce_from_typelike_DictLike(T, c=c, ieso=ieso)
 
     if is_SetLike(T):
-        return ipce_from_typelike_SetLike(T, c)
+        T = cast(Type[Set], T)
+        return ipce_from_typelike_SetLike(T, c=c, ieso=ieso)
 
     if is_Intersection(T):
-        return ipce_from_typelike_Intersection(T, c)
+        return ipce_from_typelike_Intersection(T, c=c, ieso=ieso)
 
     if is_Callable(T):
-        return ipce_from_typelike_Callable(T, c)
+        return ipce_from_typelike_Callable(T, c=c, ieso=ieso)
     if is_NewType(T):
-        return ipce_from_typelike_NewType(T, c)
+        return ipce_from_typelike_NewType(T, c=c, ieso=ieso)
 
     if is_Sequence(T):
         msg = "Translating Sequence into List"
@@ -446,14 +454,15 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
         # raise ValueError(msg)
         V = get_Sequence_arg(T)
         T = List[V]
-        return ipce_from_typelike_ListLike(T, c)
+        return ipce_from_typelike_ListLike(T, c=c, ieso=ieso)
 
     if is_ListLike(T):
-        return ipce_from_typelike_ListLike(T, c)
+        T = cast(Type[List], T)
+        return ipce_from_typelike_ListLike(T, c=c, ieso=ieso)
 
     if is_TupleLike(T):
         # noinspection PyTypeChecker
-        return ipce_from_typelike_TupleLike(T, c)
+        return ipce_from_typelike_TupleLike(T, c=c, ieso=ieso)
 
     if is_Type(T):
         raise NotImplementedError(T)
@@ -461,7 +470,7 @@ def ipce_from_typelike_tr_(T: Type, c: IFTContext) -> TRE:
     assert isinstance(T, type), T
 
     if is_dataclass(T):
-        return ipce_from_typelike_dataclass(T, c)
+        return ipce_from_typelike_dataclass(T, c=c, ieso=ieso)
 
     if T is np.ndarray:
         return ipce_from_typelike_ndarray()
@@ -481,12 +490,12 @@ def ipce_from_typelike_ndarray() -> TRE:
     return TRE(res)
 
 
-def ipce_from_typelike_slice() -> TRE:
+def ipce_from_typelike_slice(ieso: IESO) -> TRE:
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID})
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_SLICE
     c = IFTContext({}, {}, ())
-    tr = ipce_from_typelike_tr(Optional[int], c)
+    tr = ipce_from_typelike_tr(Optional[int], c=c, ieso=ieso)
     properties = {
         "start": tr.schema,  # TODO
         "stop": tr.schema,  # TODO
@@ -497,12 +506,12 @@ def ipce_from_typelike_slice() -> TRE:
     return TRE(res, tr.used)
 
 
-def ipce_from_typelike_Intersection(T, c: IFTContext):
+def ipce_from_typelike_Intersection(T: TypeLike, c: IFTContext, ieso: IESO):
     args = get_Intersection_args(T)
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -512,7 +521,7 @@ def ipce_from_typelike_Intersection(T, c: IFTContext):
     return TRE(res, used)
 
 
-def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
+def get_mentioned_names(T: TypeLike, context=()) -> typing.Iterator[str]:
     if T in context:
         return
     c2 = context + (T,)
@@ -534,14 +543,17 @@ def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
         t = get_VarTuple_arg(T)
         yield from get_mentioned_names(t, c2)
     elif is_ListLike(T):
+        T = cast(Type[List], T)
         t = get_ListLike_arg(T)
         yield from get_mentioned_names(t, c2)
 
     elif is_DictLike(T):
+        T = cast(Type[Dict], T)
         K, V = get_DictLike_args(T)
         yield from get_mentioned_names(K, c2)
         yield from get_mentioned_names(V, c2)
     elif is_SetLike(T):
+        T = cast(Type[Set], T)
         t = get_SetLike_arg(T)
         yield from get_mentioned_names(t, c2)
 
@@ -560,7 +572,7 @@ def get_mentioned_names(T, context=()) -> typing.Iterator[str]:
         pass
 
 
-def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
+def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     # from zuper_ipcl.debug_print_ import debug_print
     # d = {'processing': processing, 'globals_': globals_}
     # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
@@ -576,8 +588,8 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
 
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -615,7 +627,7 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
             # noinspection PyTypeHints
             c.globals_[t2.__name__] = t2
 
-            bound = t2.__bound__ or Any
+            bound = t2.__bound__ or object
             schema = f(bound)
             schema = copy.copy(schema)
             schema[ID_ATT] = url
@@ -640,11 +652,11 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     names = list(fields_)
     ordered = sorted(names)
 
-    def T_has_attribute(n):
+    def T_has_attribute(n: str) -> bool:
         if hasattr(T, n):
             # special case
-            the_att = getattr(T, n)
-            if isinstance(the_att, Field):
+            the_att2 = getattr(T, n)
+            if isinstance(the_att2, Field):
                 # actually attribute not there
                 return False
             else:
@@ -759,12 +771,12 @@ def ipce_from_typelike_dataclass(T: Type, c: IFTContext) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_Union(t, c: IFTContext) -> TRE:
+def ipce_from_typelike_Union(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     types = get_Union_args(t)
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 
@@ -774,12 +786,12 @@ def ipce_from_typelike_Union(t, c: IFTContext) -> TRE:
     return TRE(res, used)
 
 
-def ipce_from_typelike_Optional(t, c: IFTContext) -> TRE:
+def ipce_from_typelike_Optional(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     types = [get_Optional_arg(t), type(None)]
     used = {}
 
-    def f(x):
-        tr = ipce_from_typelike_tr(x, c)
+    def f(x: TypeLike) -> JSONSchema:
+        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
 

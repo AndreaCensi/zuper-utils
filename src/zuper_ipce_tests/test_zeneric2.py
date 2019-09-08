@@ -1,7 +1,7 @@
 import typing
 from dataclasses import fields
 from numbers import Number
-from typing import ClassVar, Type
+from typing import ClassVar, Type, cast
 
 import yaml
 from nose.tools import assert_equal, raises
@@ -245,7 +245,7 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
-    T = typelike_from_ipce(schema)
+    _T = typelike_from_ipce(schema)
 
 
 def test_more2():
@@ -493,7 +493,7 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
-    C = typelike_from_ipce(schema)
+    _C = typelike_from_ipce(schema)
     # print(C.__annotations__)
     #
     # assert not is_ForwardRef(C.__annotations__["parent"].__args__[0])
@@ -520,7 +520,7 @@ def test_classvar2():
 
     C = CG[int]
     schema = ipce_from_typelike(C)
-    C2: C = typelike_from_ipce(schema)
+    C2 = cast(Type[CG[int]], typelike_from_ipce(schema))
 
     assert_type_roundtrip(C)
     assert_type_roundtrip(CG)
@@ -830,7 +830,7 @@ def test_same_forward():
 
 
 def test_debug_print_str_multiple_lines():
-    a = debug_print_str("a\nb", prefix="prefix")
+    debug_print_str("a\nb", prefix="prefix")
 
 
 if __name__ == "__main__":

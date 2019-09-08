@@ -16,6 +16,7 @@ from typing import (
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import logger
+from zuper_ipce.constants import IESO
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
@@ -52,7 +53,7 @@ def test_corner_cases02():
 
 
 def test_corner_cases03():
-    assert None is object_from_ipce(None, expect_type=None)
+    assert None is object_from_ipce(None)
 
 
 def test_corner_cases04():
@@ -65,6 +66,7 @@ def test_corner_cases05():
 
 @raises(ValueError)
 def test_corner_cases09():
+    # noinspection PyTypeChecker
     ipce_from_typelike(None)
 
 
@@ -80,7 +82,7 @@ def test_property_error():
     # noinspection PyTypeChecker
     ob = MyClass32("not an int")
     # ipce_to_object(ob, {}, {}, expect_type=MyClass32)
-    res = ipce_from_object(ob)
+    _res = ipce_from_object(ob)
     # print(yaml.dump(res))
 
 
@@ -92,7 +94,7 @@ def test_not_know():
     ipce_from_object(C())
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_cases07():
     can0 = can_be_used_as2(int, bool)
     assert not can0, can0
@@ -103,7 +105,7 @@ def test_corner_cases07():
     object_from_ipce(12, expect_type=T)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_cases08():
     T = Optional[bool]
     assert not can_be_used_as2(int, T).result
@@ -120,11 +122,23 @@ def test_newtype1():
 
 
 def test_newtype2():
+    T = NewType("a", object)
+    assert is_NewType(T)
+    A = get_NewType_arg(T)
+    assert A is object, A
+    r = "NewType('a')"
+    assert_equal(get_NewType_repr(T), r)
+    assert_equal(name_for_type_like(T), r)
+
+
+def test_newtype2b():
     T = NewType("a", Any)
     assert is_NewType(T)
-    assert is_Any(get_NewType_arg(T))
-    assert_equal(get_NewType_repr(T), "NewType('a')")
-    assert_equal(name_for_type_like(T), "NewType('a')")
+    A = get_NewType_arg(T)
+    assert is_Any(A), A
+    r = "NewType('a')"
+    assert_equal(get_NewType_repr(T), r)
+    assert_equal(name_for_type_like(T), r)
 
 
 def test_list0():
@@ -207,7 +221,7 @@ a: true
     print(T.__annotations__)
     assert T.__annotations__["a"] is bool, T.__annotations__
 
-    ob = object_from_ipce(ipce)
+    _ob = object_from_ipce(ipce)
 
 
 def test_Type1():
@@ -229,7 +243,7 @@ def test_error_list2():
     ipce_from_object(a, suggest_type=S)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_error_list2b():
     a = [1, 2, 3]
     S = Union[int, str]
@@ -240,10 +254,10 @@ def test_error_list2b():
 def test_error_scalar1():
     a = "s"
     S = Union[int, bool]
-    ipce = ipce_from_object(a, suggest_type=S)
+    _ipce = ipce_from_object(a, suggest_type=S)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_error_scalar2():
     a = "s"
     S = Union[int, bool]
@@ -256,14 +270,14 @@ def test_corner_optional():
     object_from_ipce(a, expect_type=S)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_union():
     a = {}
     S = Union[str, int]
     object_from_ipce(a, expect_type=S)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_noclass():
     a = {}
 
@@ -276,7 +290,7 @@ def test_corner_noclass():
 def test_classvars():
     @dataclass
     class MyConstant:
-        a: Any
+        a: object
 
     @dataclass
     class MyNominal:
@@ -465,7 +479,8 @@ def test_type():
 def test_corner_list1():
     x = [1, 2, 3]
     T = Optional[List[int]]
-    ipce_from_object(x, globals_={}, suggest_type=T, with_schema=True)
+    ieso = IESO(with_schema=True)
+    ipce_from_object(x, T, ieso=ieso)
 
 
 @raises(TypeError)
@@ -475,23 +490,23 @@ def test_corner_list2():
     ipce_from_object(x, suggest_type=T)
 
 
-@raises(TypeError)
-def test_corner_list2b():
+@raises(ValueError)
+def test_corner_list2b_a():
     x = [1, 2, 3]
     T = Dict[str, str]
-    object_from_ipce(x, expect_type=T)
+    object_from_ipce(x, T)
 
 
 def test_corner_tuple1():
     x = (1, 2, 3)
     T = Optional[Tuple[int, ...]]
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 def test_corner_tuple2():
     x = (1, "a")
     T = Optional[Tuple[int, str]]
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 @raises(TypeError)
@@ -503,19 +518,19 @@ def test_corner_tuple3():
 
 def test_corner_none3():
     x = None
-    T = Any
-    ipce_from_object(x, suggest_type=T)
+    T = object
+    ipce_from_object(x, T)
 
 
 @known_failure
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_int3():
     x = 1
     T = Dict[str, str]
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_corner_int4():
     x = 1
     T = Dict[str, str]
@@ -524,14 +539,26 @@ def test_corner_int4():
 
 def test_corner_none():
     x = None
+    T = object
+    object_from_ipce(x, T)
+
+
+def test_corner_noneb():
+    x = None
     T = Any
-    object_from_ipce(x, expect_type=T)
+    object_from_ipce(x, T)
 
 
 def test_corner_none2():
     x = None
+    T = object
+    ipce_from_object(x, T)
+
+
+def test_corner_none2b():
+    x = None
     T = Any
-    ipce_from_object(x, suggest_type=T)
+    ipce_from_object(x, T)
 
 
 def test_corner_list_Any():

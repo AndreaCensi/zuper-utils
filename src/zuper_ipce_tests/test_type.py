@@ -1,7 +1,11 @@
 import dataclasses
 import json
 
+from nose.tools import raises
+
+from zuper_ipce.exceptions import ZDeserializationErrorSchema
 from zuper_typing import dataclass
+from zuper_typing.exceptions import ZValueError
 from zuper_typing.logging import logger
 
 logger.info("")
@@ -45,11 +49,10 @@ def test_dict2():
     assert_type_roundtrip(T, use_globals=symbols, expect_type_equal=False)
 
 
+@raises(ValueError)
 def test_dict4():
-    # T = Dict[str, Any]
-    # <class 'zuper_json.my_dict.Dict[str,Any]'>
     ob = {}
-    object_from_ipce(ob, expect_type=Any)
+    object_from_ipce(ob, Any)
 
 
 def test_type__any():
@@ -57,6 +60,7 @@ def test_type__any():
     assert_type_roundtrip(T, use_globals=symbols)
 
 
+@raises(ZValueError)
 def test_type_any2():
     @dataclass
     class C:

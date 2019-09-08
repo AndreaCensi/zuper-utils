@@ -4,7 +4,7 @@ from typing import Callable, Dict, NewType
 from zuper_typing.exceptions import ZValueError
 
 
-def valid_email(s):
+def valid_email(s: str) -> None:
     import validate_email
 
     is_valid = validate_email.validate_email(s)
@@ -29,13 +29,13 @@ json_formats: Dict[str, Callable[[str], None]] = {
 }
 
 
-def make_special(name, sformat):
+def make_special(name: str, sformat: str) -> type:
     validator = json_formats[sformat]
 
     class Special(UserString):
         data: str
 
-        def __init__(self, seq):
+        def __init__(self, seq: object):
             UserString.__init__(self, seq)
             if validator is not None:
                 validator(self.data)

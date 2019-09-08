@@ -1,14 +1,14 @@
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from zuper_commons.text import indent
 
 
-def pprint(msg=None, **kwargs):
+def pprint(msg: Optional[str] = None, **kwargs: object) -> None:
     print(pretty_dict(msg, kwargs))
 
 
 def pretty_dict(
-    head: Optional[str], d: Dict[str, Any], omit_falsy=False, sort_keys=False
+    head: Optional[str], d: Dict[str, object], omit_falsy=False, sort_keys=False
 ):
     if not d:
         return head + ":  (empty dict)" if head else "(empty dict)"

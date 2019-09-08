@@ -2,10 +2,22 @@ import datetime
 from dataclasses import is_dataclass
 from decimal import Decimal
 from numbers import Number
-from typing import Callable, ClassVar, List, NewType, Optional, Tuple, Type
+from typing import (
+    Callable,
+    ClassVar,
+    List,
+    NewType,
+    Optional,
+    Tuple,
+    Type,
+    cast,
+    Set,
+    Dict,
+)
 
 import numpy as np
 
+from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
@@ -48,6 +60,9 @@ from zuper_typing.my_dict import (
     make_dict,
     make_list,
     make_set,
+    CustomList,
+    CustomSet,
+    CustomDict,
 )
 
 
@@ -70,7 +85,9 @@ from zuper_typing.my_dict import (
 #     return T
 
 
-def recursive_type_subst(T, f, ignore=()):
+def recursive_type_subst(
+    T: TypeLike, f: Callable[[TypeLike], TypeLike], ignore: tuple = ()
+) -> TypeLike:
     if T in ignore:
         # logger.info(f'ignoring {T} in {ignore}')
         return T
@@ -107,12 +124,14 @@ def recursive_type_subst(T, f, ignore=()):
         else:
             assert False
     elif is_Dict(T):
+        T = cast(Type[Dict], T)
         K, V = get_Dict_args(T)
         K2, V2 = r(K), r(V)
         if (K, V) == (K2, V2):
             return T
         return original_dict_getitem((K, V))
     elif is_CustomDict(T):
+        T = cast(Type[CustomDict], T)
         K, V = get_CustomDict_args(T)
         K2, V2 = r(K), r(V)
         if (K, V) == (K2, V2):
@@ -131,18 +150,21 @@ def recursive_type_subst(T, f, ignore=()):
             return T
         return ClassVar[V2]
     elif is_CustomList(T):
+        T = cast(Type[CustomList], T)
         V = get_CustomList_arg(T)
         V2 = r(V)
         if V == V2:
             return T
         return make_list(V2)
     elif is_Set(T):
+        T = cast(Type[Set], T)
         V = get_Set_arg(T)
         V2 = r(V)
         if V == V2:
             return T
         return make_set(V2)
     elif is_CustomSet(T):
+        T = cast(Type[CustomSet], T)
         V = get_CustomSet_arg(T)
         V2 = r(V)
         if V == V2:

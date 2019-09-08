@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def json2cbor_main():
+def json2cbor_main() -> None:
     fo = open("/dev/stdout", "wb", buffering=0)
     fi = open("/dev/stdin", "rb", buffering=0)
     # noinspection PyTypeChecker
@@ -38,7 +38,7 @@ def json2cbor_main():
         fo.flush()
 
 
-def cbor2json_main():
+def cbor2json_main() -> None:
     fo = open("/dev/stdout", "wb", buffering=0)
     fi = open("/dev/stdin", "rb", buffering=0)
 
@@ -51,7 +51,7 @@ def cbor2json_main():
         fo.flush()
 
 
-def cbor2yaml_main():
+def cbor2yaml_main() -> None:
     fo = open("/dev/stdout", "wb")
     fi = open("/dev/stdin", "rb")
     for j in read_cbor_objects(fi):
@@ -150,7 +150,7 @@ def read_next_either_json_or_cbor(f, timeout=None, waiting_for: str = None) -> d
         return j
 
 
-def tag_hook(decoder, tag, shareable_index=None):
+def tag_hook(decoder, tag, shareable_index=None) -> dict:
     # logger.info(f'tag_hook {tag}')
     if tag.tag != 42:
         return tag

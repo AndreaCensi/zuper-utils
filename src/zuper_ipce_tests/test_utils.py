@@ -5,22 +5,21 @@ from datetime import datetime
 from decimal import Decimal
 
 import cbor2
-import cbor2 as cbor
+
 from nose.tools import assert_equal
 
 from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
 from zuper_ipce import logger
-from zuper_ipce.constants import DeserializationOptions
+from zuper_ipce.constants import IEDO, IEDS, IESO
 from zuper_ipce.conv_ipce_from_object import ipce_from_object
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_ipce.conv_object_from_ipce import object_from_ipce, object_from_ipce_
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.json_utils import (
     decode_bytes_before_json_deserialization,
     encode_bytes_before_json_serialization,
 )
 from zuper_ipce.pretty import pretty_dict
-from zuper_ipce.types import TypeLike
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import *
@@ -32,7 +31,7 @@ from zuper_typing.my_dict import (
     is_ListLike,
     is_SetLike,
 )
-from zuper_typing.my_intersection import is_Intersection, get_Intersection_args
+from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 from zuper_typing_tests.test_utils import known_failure
 
 
@@ -41,17 +40,15 @@ def assert_type_roundtrip(
 ):
     if use_globals is None:
         use_globals = {}
-    # assert T is not None
-    # rl = RecLogger()
-    # resolve_types(T)
+
     schema0 = ipce_from_typelike(T, globals0=use_globals)
 
     # why 2?
     schema = ipce_from_typelike(T, globals0=use_globals)
     save_object(T, ipce=schema)
 
-    opt = DeserializationOptions()
-    T2 = typelike_from_ipce(schema, encountered={}, global_symbols={}, opt=opt)
+    opt = IEDO()
+    T2 = typelike_from_ipce(schema, opt=opt)
 
     # TODO: in 3.6 does not hold for Dict, Union, etc.
     # if hasattr(T, '__qualname__'):
@@ -261,8 +258,10 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             t2 = get_SetLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_ListLike(T1):
+            T1 = cast(Type[List], T1)
             if not is_ListLike(T2):
                 raise NotEquivalent((T1, T2))
+            T2 = cast(Type[List], T2)
             t1 = get_ListLike_arg(T1)
             t2 = get_ListLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
@@ -306,7 +305,7 @@ def save_object(x: object, ipce: object):
     except:
         return
     print(f"saving {x}")
-    x2 = object_from_ipce(ipce)
+    _x2 = object_from_ipce(ipce)
     ipce_bytes = cbor2.dumps(ipce, canonical=True, value_sharing=True)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
     from zuper_ipcl.debug_print_ import debug_print
@@ -352,21 +351,24 @@ def assert_object_roundtrip(
     """
     if use_globals is None:
         use_globals = {}
+    ieds = IEDS(use_globals, {})
+    opt = IEDO()
 
     y1 = ipce_from_object(x1, globals_=use_globals)
-    y1_cbor: bytes = cbor.dumps(y1)
+    y1_cbor: bytes = cbor2.dumps(y1)
 
     save_object(x1, ipce=y1)
 
-    y1 = cbor.loads(y1_cbor)
+    y1 = cbor2.loads(y1_cbor)
 
     y1e = encode_bytes_before_json_serialization(y1)
     y1es = json.dumps(y1e, indent=2)
 
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
-    y1eslo = object_from_ipce(y1esl, global_symbols=use_globals)
 
-    x1b = object_from_ipce(y1, global_symbols=use_globals)
+    y1eslo = object_from_ipce_(y1esl, object, ieds=ieds, opt=opt)
+
+    x1b = object_from_ipce_(y1, object, ieds=ieds, opt=opt)
 
     x1bj = ipce_from_object(x1b, globals_=use_globals)
 
@@ -393,10 +395,11 @@ def assert_object_roundtrip(
         raise AssertionError(msg)
 
     # once again, without schema
+    ieso_false = IESO(with_schema=False)
     if works_without_schema:
-        z1 = ipce_from_object(x1, globals_=use_globals, with_schema=False)
-        z2 = cbor.loads(cbor.dumps(z1))
-        u1 = object_from_ipce(z2, global_symbols=use_globals, expect_type=type(x1))
+        z1 = ipce_from_object(x1, globals_=use_globals, ieso=ieso_false)
+        z2 = cbor2.loads(cbor2.dumps(z1))
+        u1 = object_from_ipce_(z2, type(x1), ieds=ieds, opt=opt)
         check_equality(x1, u1, expect_equality)
 
     return locals()
@@ -405,7 +408,7 @@ def assert_object_roundtrip(
 import numpy as np
 
 
-def check_equality(x1, x1b, expect_equality):
+def check_equality(x1: object, x1b: object, expect_equality: bool) -> None:
     if isinstance(x1b, type) and isinstance(x1, type):
         logger.warning("Skipping type equality check for %s and %s" % (x1b, x1))
     else:
@@ -498,14 +501,19 @@ def test_testing2():
         raise
 
 
-from typing import Any, Optional, Iterator, Tuple, Union
+from typing import Optional, Iterator, Tuple, Union, cast, List
 
 
 @dataclass
 class Patch:
+    __print_order = ["prefix_str", "value1", "value2"]
     prefix: Tuple[Union[str, int], ...]
-    value1: Any
-    value2: Optional[Any]
+    value1: object
+    value2: Optional[object]
+    prefix_str: Optional[str] = None
+
+    def __post_init__(self):
+        self.prefix_str = "/".join(map(str, self.prefix))
 
 
 def patch(o1, o2, prefix: Tuple[Union[str, int], ...]) -> Iterator[Patch]:

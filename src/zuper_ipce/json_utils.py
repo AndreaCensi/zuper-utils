@@ -7,37 +7,11 @@ from .base64_utils import (
 )
 
 
-# def json_dump(x) -> str:
-#     x = recursive_sort(x)
-#
-#     if False:
-#         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
-#                        indent=2)
-#     else:
-#         s = json.dumps(x, ensure_ascii=False, allow_nan=False, check_circular=False,
-#                        separators=(',', ':'))
-#     # (optional): put the links on the same line instead of indenting
-#     # "$schema": {"/": "sha6:92c65f"},
-#
-#     # s = re.sub(r'\n\s+\"/\"(.*)\s*\n\s*', r'"/"\1', s)
-#
-#     return s
-#
-#
-# def recursive_sort(x):
-#     if isinstance(x, dict):
-#         s = sorted(x)
-#         return {k: recursive_sort(x[k]) for k in s}
-#     else:
-#         return x
-
-
 def transform_leaf(x, transform):
     if isinstance(x, dict):
         return {k: transform_leaf(v, transform) for k, v in x.items()}
     if isinstance(x, list):
         return [transform_leaf(_, transform) for _ in x]
-    # if isinstance(x, (str, bool, float, int, type(None))):
     return transform(x)
 
 

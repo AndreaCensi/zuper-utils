@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce import IPCE
@@ -46,7 +46,7 @@ def create_tree(nlevels, branching, x) -> Tree:
 
 @dataclass
 class Chain:
-    data: Any
+    data: object
     next_link: "Optional[Chain]" = None
 
 

@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from nose.tools import raises
 
@@ -57,7 +57,7 @@ def test_tuple_inside_class():
 
     @dataclass
     class MyClass:
-        f: Any
+        f: object
 
     e = MyClass((1, 2))
     assert_object_roundtrip(e, works_without_schema=False)
@@ -69,7 +69,7 @@ def test_tuple_inside_class_withoutschema():
 
     @dataclass
     class MyClass:
-        f: Any
+        f: object
 
     e = MyClass((1, 2))
     assert_object_roundtrip(e, works_without_schema=True)

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Any, Dict, NewType, cast
+from typing import cast, Dict, NewType
 
 JSONSchema = NewType("JSONSchema", dict)
-GlobalsDict = Dict[str, Any]
-ProcessingDict = Dict[str, Any]
-EncounteredDict = Dict[str, Any]
-_SpecialForm = Any
+GlobalsDict = Dict[str, object]
+ProcessingDict = Dict[str, str]
+EncounteredDict = Dict[str, object]
+# _SpecialForm = Any
 
 SCHEMA_ID = "http://json-schema.org/draft-07/schema#"
 SCHEMA_ATT = "$schema"
@@ -74,16 +74,11 @@ SCHEMA_CID = cast(
 )
 
 
-@dataclass
-class DeserializationOptions:
-    use_remembered_classes: bool = True
-
-
 USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
 use_ipce_from_typelike_cache = True
 
-check_types = False
+# check_types = False
 
 CALLABLE_ORDERING = "ordering"
 CALLABLE_RETURN = "return"
@@ -102,3 +97,19 @@ if circle_job == "test-3.7-no-cache":  # pragma: no cover
 
     USE_REMEMBERED_CLASSES = False
     logger.warning("Disabling cache (IPCL:USE_REMEMBERED_CLASSES) due to circle_job.")
+
+
+@dataclass
+class IEDO:
+    use_remembered_classes: bool = True
+
+
+@dataclass
+class IEDS:
+    global_symbols: Dict
+    encountered: Dict
+
+
+@dataclass
+class IESO:
+    with_schema: bool = True

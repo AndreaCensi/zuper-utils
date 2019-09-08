@@ -6,10 +6,12 @@ from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
 from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
 from zuper_ipce.conv_object_from_ipce import object_from_ipce
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce.exceptions import ZInvalidSchema
 from zuper_ipce.structures import CannotFindSchemaReference
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import Generic
 from zuper_typing.annotations_tricks import make_ForwardRef
+from zuper_typing.exceptions import ZValueError
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.my_dict import make_dict
 from zuper_typing_tests.test_utils import known_failure
@@ -217,15 +219,19 @@ def test_ser_dict_object():
 
 from nose.tools import raises, assert_equal
 
+from zuper_ipce import logger
+
 
 def test_bytes1():
     n1 = Contents(b"1234")
     assert_object_roundtrip(n1, use_globals=get_symbols())
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_abnormal_no_schema():
-    object_from_ipce({})
+    res = object_from_ipce({})
+    logger.info(f"res = {res!r}")
+    logger.info(f"type = {type(res)}")
 
 
 def test_lists():
@@ -339,6 +345,7 @@ def test_dict_only():
 
 @raises(ValueError)
 def test_str1():
+    # noinspection PyTypeChecker
     ipce_from_typelike("string-arg")
 
 
@@ -443,7 +450,7 @@ def test_2_error():
 #     eval_field(X, {}, {})
 
 
-@raises(TypeError)
+@raises(ValueError)
 def test_random_json():
     """ Invalid because of $schema """
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}

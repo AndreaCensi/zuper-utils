@@ -3,6 +3,7 @@ from decimal import Decimal
 from numbers import Number
 from typing import (
     Any,
+    cast,
     ClassVar,
     Dict,
     Iterator,
@@ -51,6 +52,7 @@ from .annotations_tricks import (
     make_VarTuple,
 )
 from .my_dict import (
+    CustomList,
     get_CustomList_arg,
     get_DictLike_args,
     get_ListLike_arg,
@@ -106,8 +108,6 @@ def replace_typevars(
 ) -> TypeLike:
     from .logging import logger
 
-    # if already is None:
-    #     already = {}
     r = lambda _: replace_typevars(_, bindings=bindings, symbols=symbols)
     if cls is type:
         return type
@@ -156,7 +156,8 @@ def replace_typevars(
         # logger.debug(f'{K0} -> {K};  {V0} -> {V}')
         if (K0, V0) == (K, V) and (is_canonical or not make_canonical):
             return cls
-        return make_dict(K, V)
+        res = make_dict(K, V)
+        return res
     elif is_SetLike(cls):
         is_canonical = is_SetLike_canonical(cls)
         V0 = get_SetLike_arg(cls)
@@ -165,7 +166,7 @@ def replace_typevars(
             return cls
         return make_set(V)
     elif is_CustomList(cls):
-
+        cls = cast(Type[CustomList], cls)
         V0 = get_CustomList_arg(cls)
         V = r(V0)
         if V0 == V:
@@ -179,6 +180,7 @@ def replace_typevars(
             return cls
         return List[arg2]
     elif is_ListLike(cls):
+        cls = cast(Type[List], cls)
         arg = get_ListLike_arg(cls)
         is_canonical = is_ListLike_canonical(cls)
         arg2 = r(arg)
@@ -187,46 +189,13 @@ def replace_typevars(
         return make_list(arg2)
     # XXX NOTE: must go after CustomDict
     elif hasattr(cls, "__annotations__"):
-        # logger.debug(f'replace in {id(cls)} {cls}  (symbols: {symbols})')
-        # already[id(cls)] = make_ForwardRef(cls.__name__)
+        from zuper_typing.zeneric2 import make_type
 
-        if True:
-            from zuper_typing.zeneric2 import make_type
+        cls2 = make_type(cls, bindings=bindings, symbols=symbols)
 
-            cls2 = make_type(cls, bindings=bindings, symbols=symbols)
-            from .logging import logger
-
-            # logger.info(f'old cls: {cls.__annotations__}')
-            # logger.info(f'new cls2: {cls2.__annotations__}')
-            return cls2
-        else:  # pragma: no cover
-
-            annotations = dict(getattr(cls, "__annotations__", {}))
-            annotations2 = {}
-            nothing_changed = True
-            for k, v0 in list(annotations.items()):
-                v2 = r(v0)
-                nothing_changed &= v0 == v2
-                annotations2[k] = v2
-            if nothing_changed:
-                # logger.info(f'Union unchanged under {f.__name__}: {ts0} == {ts}')
-                return cls
-            from zuper_typing.monkey_patching_typing import my_dataclass
-
-            T2 = my_dataclass(
-                type(
-                    cls.__name__,
-                    (),
-                    {
-                        "__annotations__": annotations2,
-                        "__module__": cls.__module__,
-                        "__doc__": getattr(cls, "__doc__", None),
-                        "__qualname__": getattr(cls, "__qualname__"),
-                    },
-                )
-            )
-            return T2
-
+        # logger.info(f'old cls: {cls.__annotations__}')
+        # logger.info(f'new cls2: {cls2.__annotations__}')
+        return cls2
     elif is_ClassVar(cls):
         is_canonical = True  # XXXis_ClassVar_canonical(cls)
         x = get_ClassVar_arg(cls)

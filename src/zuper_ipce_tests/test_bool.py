@@ -21,7 +21,7 @@ def test_none1():
     class M:
         a: type(None)
 
-    a = M(None)
+    m = M(None)
 
-    assert_object_roundtrip(a)
+    assert_object_roundtrip(m)
     assert_type_roundtrip(M)

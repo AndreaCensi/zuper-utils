@@ -1,5 +1,5 @@
 from dataclasses import is_dataclass
-from typing import TypeVar
+from typing import Tuple, TypeVar
 
 from zuper_typing.exceptions import ZValueError
 from .types import IPCE
@@ -8,7 +8,7 @@ D = TypeVar("D")
 
 
 def sorted_dict_with_cbor_ordering(x: D) -> D:
-    def key(item):
+    def key(item: Tuple[str, object]) -> tuple:
         k, v = item
         return (len(k), k)
 
@@ -18,8 +18,8 @@ def sorted_dict_with_cbor_ordering(x: D) -> D:
     return res
 
 
-def sorted_list_with_cbor_ordering(x):
-    def key(k):
+def sorted_list_with_cbor_ordering(x: list) -> list:
+    def key(k: str) -> Tuple[int, str]:
         return (len(k), k)
 
     return sorted(x, key=key)
@@ -37,7 +37,7 @@ def assert_sorted_dict_with_cbor_ordering(x: dict):
         raise ZValueError(msg, keys=keys, keys2=keys2)
 
 
-def assert_canonical_ipce(ob_ipce: IPCE, max=2):
+def assert_canonical_ipce(ob_ipce: IPCE, max_rec=2):
     if isinstance(ob_ipce, dict):
         if "/" in ob_ipce:
             msg = 'Cannot have "/" in here '
@@ -53,8 +53,8 @@ def assert_canonical_ipce(ob_ipce: IPCE, max=2):
 
         for k, v in ob_ipce.items():
             assert not is_dataclass(v), ob_ipce
-            if max > 0:
-                assert_canonical_ipce(v, max=max - 1)
+            if max_rec > 0:
+                assert_canonical_ipce(v, max_rec=max_rec - 1)
     elif isinstance(ob_ipce, list):
         pass
     elif isinstance(ob_ipce, tuple):
