@@ -252,7 +252,15 @@ def is_TypeVar(x):
     return isinstance(x, typing.TypeVar)
 
 
-def get_TypeVar_name(x):
+def get_TypeVar_bound(x: TypeVar) -> TypeLike:
+    bound = x.__bound__
+    if bound is None:
+        return object
+    else:
+        return bound
+
+
+def get_TypeVar_name(x: TypeVar) -> str:
     assert is_TypeVar(x), x
     return x.__name__
 
