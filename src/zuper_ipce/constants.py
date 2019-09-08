@@ -74,29 +74,29 @@ SCHEMA_CID = cast(
 )
 
 
-USE_REMEMBERED_CLASSES = True
+# USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
-use_ipce_from_typelike_cache = True
+# use_ipce_from_typelike_cache = True
 
 # check_types = False
 
 CALLABLE_ORDERING = "ordering"
 CALLABLE_RETURN = "return"
+#
+# from .logging import logger
+# import os
 
-from .logging import logger
-import os
+# circle_job = os.environ.get("CIRCLE_JOB", None)
+# logger.info(f"Circle JOB: {circle_job!r}")
 
-circle_job = os.environ.get("CIRCLE_JOB", None)
-logger.info(f"Circle JOB: {circle_job!r}")
-
-if circle_job == "test-3.7-no-cache":  # pragma: no cover
-    use_ipce_from_typelike_cache = False
-    logger.warning(
-        "Disabling cache (IPCL:use_ipce_from_typelike_cache) due to circle_job."
-    )
-
-    USE_REMEMBERED_CLASSES = False
-    logger.warning("Disabling cache (IPCL:USE_REMEMBERED_CLASSES) due to circle_job.")
+# if circle_job == "test-3.7-no-cache":  # pragma: no cover
+#     use_ipce_from_typelike_cache = False
+#     logger.warning(
+#         "Disabling cache (IPCL:use_ipce_from_typelike_cache) due to circle_job."
+#     )
+#
+#     USE_REMEMBERED_CLASSES = False
+#     logger.warning("Disabling cache (IPCL:USE_REMEMBERED_CLASSES) due to circle_job.")
 
 
 @dataclass
@@ -112,4 +112,5 @@ class IEDS:
 
 @dataclass
 class IESO:
+    use_ipce_from_typelike_cache: bool = True
     with_schema: bool = True

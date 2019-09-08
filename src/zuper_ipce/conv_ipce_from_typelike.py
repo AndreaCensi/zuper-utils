@@ -96,7 +96,6 @@ from .constants import (
     SCHEMA_BYTES,
     SCHEMA_CID,
     SCHEMA_ID,
-    use_ipce_from_typelike_cache,
     X_CLASSATTS,
     X_CLASSVARS,
     X_ORDER,
@@ -147,7 +146,7 @@ def ipce_from_typelike_tr(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             res = make_ref(ref)
             return TRE(res, {T.__name__: ref})
 
-        if use_ipce_from_typelike_cache:
+        if ieso.use_ipce_from_typelike_cache:
             try:
                 return get_ipce_from_typelike_cache(T, c.processing)
             except KeyError:
@@ -192,7 +191,7 @@ def ipce_from_typelike_tr(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
         tr: TRE = ipce_from_typelike_tr_(T, c=c, ieso=ieso)
 
-        if use_ipce_from_typelike_cache:
+        if ieso.use_ipce_from_typelike_cache:
             set_ipce_from_typelike_cache(T, tr.used, tr.schema)
 
         return tr

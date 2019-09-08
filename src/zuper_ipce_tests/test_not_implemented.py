@@ -1,20 +1,21 @@
 from dataclasses import field
 from typing import List
 
-from zuper_ipce.constants import USE_REMEMBERED_CLASSES
+
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import dataclass
 
-if not USE_REMEMBERED_CLASSES:  # pragma: no cover
-
-    def test_default_arguments():
-        @dataclass
-        class A1b:
-            a: List[int] = field(default_factory=list)
-
-        F = assert_type_roundtrip(A1b, expect_type_equal=False)
-        F(a=[])
-        F()
+# TODO:
+# if not USE_REMEMBERED_CLASSES:  # pragma: no cover
+#
+#     def test_default_arguments():
+#         @dataclass
+#         class A1b:
+#             a: List[int] = field(default_factory=list)
+#
+#         F = assert_type_roundtrip(A1b, expect_type_equal=False)
+#         F(a=[])
+#         F()
 
 
 def test_object():
