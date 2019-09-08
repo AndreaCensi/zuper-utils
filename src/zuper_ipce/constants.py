@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from typing import cast, Dict, NewType
 
 JSONSchema = NewType("JSONSchema", dict)
@@ -73,6 +75,7 @@ SCHEMA_CID = cast(
     },
 )
 
+IPCE_SCALARS = (int, str, float, bytes, datetime, bool, Decimal, type(None))
 
 # USE_REMEMBERED_CLASSES = True
 # PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
