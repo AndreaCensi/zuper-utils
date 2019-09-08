@@ -1,8 +1,8 @@
 import datetime
 import traceback
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import dataclass, Field, fields, is_dataclass, MISSING
 from decimal import Decimal
-from typing import cast, Dict, Optional, Set, TypeVar
+from typing import cast, Dict, Iterator, Optional, Set, TypeVar
 
 import cbor2
 import numpy as np
@@ -15,6 +15,7 @@ from zuper_ipce.guesses import (
     get_tuple_type_suggestion,
 )
 from zuper_ipce.types import is_unconstrained
+from zuper_typing.my_dict import make_dict
 
 X = TypeVar("X")
 from zuper_typing.annotations_tricks import (
@@ -177,6 +178,35 @@ def ipce_from_object_tuple(ob: tuple, st: TypeLike, *, globals_, ieso: IESO) -> 
     return res
 
 
+@dataclass
+class IterAtt:
+    attr: str
+    T: TypeLike
+    value: object
+
+
+def same_as_default(f: Field, value: object) -> bool:
+    if f.default != MISSING:
+        return f.default == value
+    elif f.default_factory != MISSING:
+        default = f.default_factory()
+        return default == value
+    else:
+        return False
+
+
+def iterate_resolved_type_values_without_default(x: dataclass) -> Iterator[IterAtt]:
+    for f in fields(type(x)):
+        k = f.name
+        v0 = getattr(x, k)
+
+        if same_as_default(f, v0):
+            continue
+        k_st = f.type
+
+        yield IterAtt(k, k_st, v0)
+
+
 def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) -> IPCE:
     globals_ = dict(globals_)
     res = {}
@@ -187,24 +217,21 @@ def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) 
         res[SCHEMA_ATT] = ipce_from_typelike(T, globals0=globals_, ieso=ieso)
 
     globals_[T.__name__] = T
-    hints = {}
+    H = make_dict(str, type)
+    hints = H()
 
-    for f in fields(ob):
-        k = f.name
-        fst = f.type
-        if not hasattr(ob, k):  # pragma: no cover
-            assert False, (ob, k)
-        v = getattr(ob, k)
-
+    for ia in iterate_resolved_type_values_without_default(ob):
+        k = ia.attr
+        v = ia.value
+        T = ia.T
         try:
 
-            if f.default == v:
-                continue
+            res[k] = ipce_from_object(v, T, globals_=globals_, ieso=ieso)
 
-            res[k] = ipce_from_object(v, fst, globals_=globals_, ieso=ieso)
             needs_schema = isinstance(v, (list, tuple))
-            if ieso.with_schema and needs_schema and is_unconstrained(f.type):
-                hints[k] = ipce_from_typelike(type(v), globals0=globals_, ieso=ieso)
+            if ieso.with_schema and needs_schema and is_unconstrained(T):
+                # hints[k] = ipce_from_typelike(type(v), globals0=globals_, ieso=ieso)
+                hints[k] = type(v)
 
         except BaseException as e:
             msg = (
@@ -212,9 +239,9 @@ def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) 
                 f"occurred with the attribute {k!r}. It is supposed to be of type @expected "
                 f" but found @found."
             )
-            raise ZValueError(msg, expected=f.type, found=type(ob)) from e
+            raise ZValueError(msg, expected=T, found=type(ob)) from e
     if hints:
-        res[HINTS_ATT] = hints
+        res[HINTS_ATT] = ipce_from_object(hints, ieso=ieso)
     res = sorted_dict_with_cbor_ordering(res)
 
     return res

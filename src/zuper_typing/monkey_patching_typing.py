@@ -345,9 +345,9 @@ def debug_print_str(x: str, *, prefix: str):
     if x.startswith("Qm"):
         x2 = "Qm..." + x[-4:] + " " + prefix
         return termcolor.colored(x2, "magenta")
-    if x.startswith("zd"):
-        x2 = "zd..." + x[-4:] + " " + prefix
-        return termcolor.colored(x2, "magenta")
+    # if x.startswith("zd"):
+    #     x2 = "zd..." + x[-4:] + " " + prefix
+    #     return termcolor.colored(x2, "magenta")
     if x.startswith("-----BEGIN"):
         s = "PEM key" + " " + prefix
         return termcolor.colored(s, "yellow")
