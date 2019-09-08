@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce import IPCE
-from zuper_ipce.conv_ipce_from_object import ipce_from_object
+from zuper_ipce import ipce_from_object
 from zuper_ipce_tests.test_utils import assert_object_roundtrip
 from zuper_typing import dataclass
 

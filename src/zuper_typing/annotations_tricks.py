@@ -51,7 +51,7 @@ def is_Optional(x: TypeLike) -> bool:
     else:
         return (
             isinstance(x, typing._GenericAlias)
-            and (x.__origin__ is Union)
+            and (getattr(x, "__origin__") is Union)
             and len(x.__args__) >= 2
             and x.__args__[-1] is type(None)
         )

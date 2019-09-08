@@ -1,5 +1,6 @@
 from typing import (
     Any,
+    cast,
     ClassVar,
     Dict,
     List,
@@ -15,19 +16,22 @@ from typing import (
 
 from nose.tools import assert_equal, raises
 
-from zuper_ipce import logger
-from zuper_ipce.constants import IESO
-from zuper_ipce.conv_ipce_from_object import ipce_from_object
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.conv_object_from_ipce import object_from_ipce
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce import (
+    IESO,
+    IPCE,
+    ipce_from_object,
+    ipce_from_typelike,
+    logger,
+    object_from_ipce,
+    typelike_from_ipce,
+)
 from zuper_ipce.ipce_spec import assert_sorted_dict_with_cbor_ordering
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import (
-    NotEquivalent,
     assert_equivalent_types,
     assert_object_roundtrip,
     assert_type_roundtrip,
+    NotEquivalent,
 )
 from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import (
@@ -194,7 +198,7 @@ def test_parsing():
     schema_bool = (
         """{$schema: 'http://json-schema.org/draft-07/schema#', type: boolean}"""
     )
-    ipce = oyaml_load(schema_bool)
+    ipce = cast(IPCE, oyaml_load(schema_bool))
     T0 = typelike_from_ipce(ipce)
     assert T0 is bool, T0
     T0 = object_from_ipce(ipce)
@@ -214,7 +218,7 @@ $schema:
   __qualname__: misc
 a: true
     """
-    ipce = oyaml_load(a)
+    ipce = cast(dict, oyaml_load(a))
 
     T = typelike_from_ipce(ipce["$schema"])
     print(T)
@@ -229,6 +233,7 @@ def test_Type1():
     assert is_Type(T)
 
 
+# noinspection PyMissingTypeHints
 @raises(TypeError)
 def test_error_list1():
     a = [1, 2, 3]

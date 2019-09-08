@@ -3,9 +3,9 @@ from typing import Any, cast, Dict, NewType, Optional, TypeVar, Union
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.conv_object_from_ipce import object_from_ipce
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce import ipce_from_typelike
+from zuper_ipce import object_from_ipce
+from zuper_ipce import typelike_from_ipce
 from zuper_ipce.exceptions import ZInvalidSchema
 from zuper_ipce.structures import CannotFindSchemaReference
 from zuper_ipce.utils_text import oyaml_dump

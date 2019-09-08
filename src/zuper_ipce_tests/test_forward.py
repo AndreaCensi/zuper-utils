@@ -2,8 +2,8 @@ from typing import Dict, List, Optional, Set, Tuple, TypeVar, Union
 
 from nose.tools import assert_equal
 
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce import ipce_from_typelike
+from zuper_ipce import typelike_from_ipce
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass, Generic
 from zuper_typing.zeneric2 import resolve_types

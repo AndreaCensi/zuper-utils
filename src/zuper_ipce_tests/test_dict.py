@@ -3,9 +3,9 @@ from typing import Any, Dict
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import logger
-from zuper_ipce.conv_ipce_from_object import ipce_from_object
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
-from zuper_ipce.conv_object_from_ipce import object_from_ipce
+from zuper_ipce import ipce_from_object
+from zuper_ipce import ipce_from_typelike
+from zuper_ipce import object_from_ipce
 from zuper_ipce.pretty import pprint
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass

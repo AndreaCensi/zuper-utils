@@ -12,9 +12,9 @@ logger.info("")
 
 from typing import Type, NewType, Dict, Any, Tuple
 
-from zuper_ipce.conv_object_from_ipce import object_from_ipce
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
+from zuper_ipce import object_from_ipce
+from zuper_ipce import typelike_from_ipce
+from zuper_ipce import ipce_from_typelike
 from zuper_typing_tests.test_utils import relies_on_missing_features
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
 

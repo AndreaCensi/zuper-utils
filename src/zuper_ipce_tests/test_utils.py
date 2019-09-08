@@ -3,18 +3,22 @@ import traceback
 from dataclasses import fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import cast, Iterator, List, Optional, Tuple, Type, Union
 
 import cbor2
-
 from nose.tools import assert_equal
 
 from zuper_commons.fs import write_bytes_to_file, write_ustring_to_utf8_file
-from zuper_ipce import logger
-from zuper_ipce.constants import IEDO, IEDS, IESO
-from zuper_ipce.conv_ipce_from_object import ipce_from_object
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
+from zuper_ipce import (
+    IEDO,
+    IESO,
+    ipce_from_object,
+    ipce_from_typelike,
+    logger,
+    typelike_from_ipce,
+)
+from zuper_ipce.constants import IEDS
 from zuper_ipce.conv_object_from_ipce import object_from_ipce, object_from_ipce_
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
 from zuper_ipce.json_utils import (
     decode_bytes_before_json_deserialization,
     encode_bytes_before_json_serialization,
@@ -22,7 +26,22 @@ from zuper_ipce.json_utils import (
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
-from zuper_typing.annotations_tricks import *
+from zuper_typing.aliases import TypeLike
+from zuper_typing.annotations_tricks import (
+    get_ClassVar_arg,
+    get_FixedTuple_args,
+    get_Optional_arg,
+    get_TypeVar_name,
+    get_Union_args,
+    get_VarTuple_arg,
+    is_Any,
+    is_ClassVar,
+    is_FixedTuple,
+    is_Optional,
+    is_TypeVar,
+    is_Union,
+    is_VarTuple,
+)
 from zuper_typing.my_dict import (
     get_DictLike_args,
     get_ListLike_arg,
@@ -499,9 +518,6 @@ def test_testing2():
     except:
         print(traceback.format_exc())
         raise
-
-
-from typing import Optional, Iterator, Tuple, Union, cast, List
 
 
 @dataclass

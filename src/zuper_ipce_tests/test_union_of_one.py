@@ -1,6 +1,6 @@
 from nose.tools import assert_equal
 
-from zuper_ipce.conv_ipce_from_typelike import ipce_from_typelike
+from zuper_ipce import ipce_from_typelike
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_typing import dataclass
 

@@ -432,7 +432,7 @@ def typelike_from_ipce_dataclass(
             _Field.name = pname
             has_default = JSC_DEFAULT in v
             if has_default:
-                from zuper_ipce.conv_object_from_ipce import object_from_ipce_
+                from .conv_object_from_ipce import object_from_ipce_
 
                 default_value = object_from_ipce_(
                     v[JSC_DEFAULT], ptype, ieds=ieds, opt=opt

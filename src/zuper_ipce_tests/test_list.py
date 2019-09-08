@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 from nose.tools import raises
 
 from zuper_commons.logs import setup_logging
-from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce
+from zuper_ipce import typelike_from_ipce
 from zuper_ipce.utils_text import oyaml_load
 from zuper_typing import dataclass
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
