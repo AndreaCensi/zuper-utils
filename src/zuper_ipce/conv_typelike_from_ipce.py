@@ -437,8 +437,11 @@ def typelike_from_ipce_dataclass(
                 default_value = object_from_ipce_(
                     v[JSC_DEFAULT], ptype, ieds=ieds, opt=opt
                 )
+                if isinstance(default_value, (list, dict, set)):
+                    _Field.default_factory = lambda: type(default_value)(default_value)
+                else:
+                    _Field.default = default_value
 
-                _Field.default = default_value
                 assert not isinstance(default_value, dataclasses.Field)
                 other_set_attr[pname] = default_value
             else:
