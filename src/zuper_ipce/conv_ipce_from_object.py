@@ -266,9 +266,11 @@ def ipce_from_object_dict(ob: dict, st: TypeLike, *, globals_: GlobalsDict, ieso
     else:
         FV = FakeValues[K, V]
 
-        for k, v in ob.items():
-            kj = ipce_from_object(k, globals_=globals_)
-            h = get_sha256_base58(cbor2.dumps(kj)).decode("ascii")
+        for i, (k, v) in enumerate(ob.items()):
+            # kj = ipce_from_object(k, globals_=globals_)
+            # h = get_sha256_base58(cbor2.dumps(kj)).decode("ascii")
+            #
+            h = get_key_for_set_entry(i, len(ob))
             fv = FV(k, v)
             res[h] = ipce_from_object(fv, globals_=globals_, ieso=ieso)
     res = sorted_dict_cbor_ord(res)
@@ -286,7 +288,7 @@ def ipce_from_object_set(ob: set, st: TypeLike, *, globals_: GlobalsDict, ieso: 
         res[SCHEMA_ATT] = ipce_from_typelike(ST, globals0=globals_, ieso=ieso)
 
     for i, v in enumerate(ob):
-        h = f"set:{i}"
+        h = get_key_for_set_entry(i, len(ob))
         vj = ipce_from_object(v, V, globals_=globals_, ieso=ieso)
         # h = "set:" + get_sha256_base58(cbor2.dumps(vj)).decode("ascii")
 
@@ -294,3 +296,10 @@ def ipce_from_object_set(ob: set, st: TypeLike, *, globals_: GlobalsDict, ieso: 
 
     res = sorted_dict_cbor_ord(res)
     return res
+
+
+def get_key_for_set_entry(i: int, n: int):
+    ndigits = len(str(n))
+    format = f"%0{ndigits}d"
+    x = format % i
+    return f"set:{x}"
