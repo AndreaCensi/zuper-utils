@@ -438,7 +438,7 @@ def typelike_from_ipce_dataclass(
                     v[JSC_DEFAULT], ptype, ieds=ieds, opt=opt
                 )
                 if isinstance(default_value, (list, dict, set)):
-                    _Field.default_factory = lambda: type(default_value)(default_value)
+                    _Field.default_factory = MyDefaultFactory(default_value)
                 else:
                     _Field.default = default_value
 
@@ -564,3 +564,12 @@ def fix_annotations_with_self_reference(
 
     for f in dataclasses.fields(T):
         f.type = T.__annotations__[f.name]
+
+
+class MyDefaultFactory:
+    def __init__(self, value):
+        self.value = value
+
+    def __call__(self):
+        v = self.value
+        return type(v)(v)
