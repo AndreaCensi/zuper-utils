@@ -11,6 +11,7 @@ from typing import cast, Dict, List, Optional, Set, Tuple, Type, TypeVar
 import numpy as np
 
 from zuper_ipce import IPCE
+from zuper_lang.logging_utils import zlinfo
 from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
@@ -42,6 +43,7 @@ from zuper_typing.annotations_tricks import (
     is_Union,
     is_VarTuple,
     is_TypeLike,
+    get_fields_including_static,
 )
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2
 from zuper_typing.exceptions import (
@@ -652,16 +654,16 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     classatts = {}
 
     required = []
-    fields_ = getattr(T, _FIELDS)
+    all_fields: Dict[str, Field] = get_fields_including_static(T)
+    # zlinfo('IPCE fields', fields=fields_, T_id=id(T), T=T, T_fields=id(T))
     # noinspection PyUnusedLocal
-    afield: Field
     from .conv_ipce_from_object import ipce_from_object
 
-    names = list(fields_)
+    names = list(all_fields)
     ordered = sorted(names)
 
     for name in ordered:
-        afield = fields_[name]
+        afield = all_fields[name]
 
         t = afield.type
 

@@ -1,6 +1,8 @@
 import typing
 from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
 
+from dataclasses import Field
+
 from zuper_typing.aliases import TypeLike
 from .constants import NAME_ARG, PYTHON_36
 
@@ -11,7 +13,13 @@ def is_TypeLike(x) -> bool:
     if isinstance(x, type):
         return True
     else:
-        return is_SpecialForm(x)
+        return (
+            is_SpecialForm(x)
+            or is_ClassVar(x)
+            or is_MyNamedArg(x)
+            or is_Type(x)
+            or is_TypeVar(x)
+        )
 
 
 def is_SpecialForm(x):
@@ -833,3 +841,11 @@ def get_Callable_info(x) -> CallableInfo:
         ordering=tuple(ordering),
         returns=returns,
     )
+
+
+def get_fields_including_static(x) -> Dict[str, Field]:
+    """ returns the fields including classvars """
+    from dataclasses import _FIELDS
+
+    fields = getattr(x, _FIELDS)
+    return fields
