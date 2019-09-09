@@ -3,7 +3,7 @@ import dataclasses
 import datetime
 import typing
 import warnings
-from dataclasses import _FIELDS, Field, is_dataclass, replace
+from dataclasses import Field, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
 from typing import cast, Dict, List, Optional, Set, Tuple, Type, TypeVar
@@ -11,13 +11,13 @@ from typing import cast, Dict, List, Optional, Set, Tuple, Type, TypeVar
 import numpy as np
 
 from zuper_ipce import IPCE
-from zuper_lang.logging_utils import zlinfo
 from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_Callable_info,
     get_ClassVar_arg,
     get_Dict_name_K_V,
+    get_fields_including_static,
     get_FixedTuple_args,
     get_ForwardRef_arg,
     get_NewType_name,
@@ -39,11 +39,10 @@ from zuper_typing.annotations_tricks import (
     is_Sequence,
     is_TupleLike,
     is_Type,
+    is_TypeLike,
     is_TypeVar,
     is_Union,
     is_VarTuple,
-    is_TypeLike,
-    get_fields_including_static,
 )
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2
 from zuper_typing.exceptions import (
@@ -656,12 +655,11 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     required = []
     all_fields: Dict[str, Field] = get_fields_including_static(T)
-    # zlinfo('IPCE fields', fields=fields_, T_id=id(T), T=T, T_fields=id(T))
-    # noinspection PyUnusedLocal
+
     from .conv_ipce_from_object import ipce_from_object
 
-    names = list(all_fields)
-    ordered = sorted(names)
+    original_order = list(all_fields)
+    ordered = sorted(all_fields)
 
     for name in ordered:
         afield = all_fields[name]
@@ -736,7 +734,7 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     if properties:
         res[JSC_PROPERTIES] = sorted_dict_cbor_ord(properties)
 
-    res[X_ORDER] = names
+    res[X_ORDER] = original_order
 
     res = sorted_dict_cbor_ord(res)
 
