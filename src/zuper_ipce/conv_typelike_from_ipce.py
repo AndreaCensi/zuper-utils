@@ -17,6 +17,9 @@ from typing import (
     TypeVar,
 )
 
+from zuper_commons.types.exceptions import ZException
+from zuper_lang.logging_utils import zlinfo
+
 _X = TypeVar("_X")
 import numpy as np
 
@@ -81,7 +84,6 @@ from .constants import (
 )
 from .structures import CannotFindSchemaReference
 from .types import TypeLike, IPCE
-from .utils_text import oyaml_dump
 
 
 @dataclass
@@ -414,9 +416,9 @@ def typelike_from_ipce_dataclass(
 
     ieds.encountered[schema_id] = Placeholder
 
-    fields = []  # (name, type, Field)
+    fields_triples: List[Tuple[str, TypeLike, Field]] = []  # (name, type, Field)
 
-    names = res.get(X_ORDER, list(properties))
+    ordered = res[X_ORDER]
     # assert_equal(set(names), set(properties), msg=yaml.dump(res))
     # else:
     #     names = list(properties)
@@ -424,7 +426,7 @@ def typelike_from_ipce_dataclass(
 
     # logger.info(f'reading {cls_name} names {names}')
     other_set_attr = {}
-    for pname in names:
+    for pname in ordered:
         if pname in properties:
             v = properties[pname]
             ptype = f(v)
@@ -449,14 +451,13 @@ def typelike_from_ipce_dataclass(
                     msg = (
                         f"Field {pname!r} is not required but I did not find a default"
                     )
-                    msg += "\n\n" + oyaml_dump(res)
-                    raise Exception(msg)
-            fields.append((pname, ptype, _Field))
+                    raise ZException(msg, res=res)
+            fields_triples.append((pname, ptype, _Field))
         elif pname in classvars:
             v = classvars[pname]
             ptype = f(v)
             # logger.info(f'ipce classvar: {pname} {ptype}')
-            fields.append((pname, ClassVar[ptype], field()))
+            fields_triples.append((pname, ClassVar[ptype], field()))
         elif pname in classatts:  # pragma: no cover
             msg = f"Found {pname!r} in @classatts but not in @classvars"
             raise ZValueError(msg, res=res, classatts=classatts, classvars=classvars)
@@ -465,13 +466,16 @@ def typelike_from_ipce_dataclass(
             raise ZValueError(
                 msg, properties=properties, classvars=classvars, classatts=classatts
             )
-
+    check_fields_order(fields_triples)
+    zlinfo(
+        "fields", ordered=ordered, properties=properties, fields_triples=fields_triples
+    )
     # _MISSING_TYPE should be first (default fields last)
     # XXX: not tested
-    def has_default(x) -> bool:
-        return not isinstance(x[2].default, dataclasses._MISSING_TYPE)
-
-    fields = sorted(fields, key=has_default, reverse=False)
+    # def has_default(x) -> bool:
+    #     return not isinstance(x[2].default, dataclasses._MISSING_TYPE)
+    #
+    # fields = sorted(fields, key=has_default, reverse=False)
     #
     # for _, _, the_field in fields:
     #     logger.info(f'- {the_field.name} {the_field}')
@@ -479,7 +483,7 @@ def typelike_from_ipce_dataclass(
     try:
         T = make_dataclass(
             cls_name,
-            fields,
+            fields_triples,
             bases=bases,
             namespace=None,
             init=True,
@@ -532,6 +536,29 @@ def typelike_from_ipce_dataclass(
 
     # assert not "varargs" in T.__dict__, T
     return SRE(T, used)
+
+
+from dataclasses import Field, MISSING
+
+
+def field_has_default(f: Field) -> bool:
+    if f.default != MISSING:
+        return True
+    elif f.default_factory != MISSING:
+        return True
+    else:
+        return False
+
+
+def check_fields_order(fields_triples: List[Tuple[str, TypeLike, Field]]):
+    found_default = None
+    for name, type, f in fields_triples:
+        if field_has_default(f):
+            found_default = name
+        else:
+            if found_default:
+                msg = f"Found out of order fields. Field {name!r} without default found after {found_default!r}."
+                raise ZValueError(msg, fields_triples=fields_triples)
 
 
 def fix_annotations_with_self_reference(

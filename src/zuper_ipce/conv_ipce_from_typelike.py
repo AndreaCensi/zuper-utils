@@ -735,8 +735,8 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
         res[JSC_PROPERTIES] = sorted_dict_cbor_ord(properties)
 
     res[X_ORDER] = original_order
-
-    res = sorted_dict_cbor_ord(res)
+    if sorted_dict_cbor_ord:
+        res = sorted_dict_cbor_ord(res)
 
     if T.__name__ in used:
         used.pop(T.__name__)
