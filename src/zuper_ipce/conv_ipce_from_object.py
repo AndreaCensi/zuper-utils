@@ -285,9 +285,10 @@ def ipce_from_object_set(ob: set, st: TypeLike, *, globals_: GlobalsDict, ieso: 
     if ieso.with_schema:
         res[SCHEMA_ATT] = ipce_from_typelike(ST, globals0=globals_, ieso=ieso)
 
-    for v in ob:
+    for i, v in enumerate(ob):
+        h = f"set:{i}"
         vj = ipce_from_object(v, V, globals_=globals_, ieso=ieso)
-        h = "set:" + get_sha256_base58(cbor2.dumps(vj)).decode("ascii")
+        # h = "set:" + get_sha256_base58(cbor2.dumps(vj)).decode("ascii")
 
         res[h] = vj
 
