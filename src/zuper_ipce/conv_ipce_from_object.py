@@ -28,7 +28,7 @@ from zuper_typing.annotations_tricks import (
 from zuper_typing.exceptions import ZNotImplementedError, ZTypeError, ZValueError
 from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT, IESO
 from .conv_ipce_from_typelike import ipce_from_typelike, ipce_from_typelike_ndarray
-from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
+from .ipce_spec import assert_canonical_ipce, sorted_dict_cbor_ord
 from .structures import FakeValues
 from .types import IPCE, TypeLike
 from .utils_text import get_sha256_base58
@@ -139,7 +139,7 @@ def ipce_from_object_slice(ob, *, ieso: IESO):
     res = {"start": ob.start, "step": ob.step, "stop": ob.stop}
     if ieso.with_schema:
         res[SCHEMA_ATT] = ipce_from_typelike_slice(ieso=ieso).schema
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return res
 
 
@@ -242,7 +242,7 @@ def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) 
             raise ZValueError(msg, expected=T, found=type(ob)) from e
     if hints:
         res[HINTS_ATT] = ipce_from_object(hints, ieso=ieso)
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
 
     return res
 
@@ -271,7 +271,7 @@ def ipce_from_object_dict(ob: dict, st: TypeLike, *, globals_: GlobalsDict, ieso
             h = get_sha256_base58(cbor2.dumps(kj)).decode("ascii")
             fv = FV(k, v)
             res[h] = ipce_from_object(fv, globals_=globals_, ieso=ieso)
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return res
 
 
@@ -291,5 +291,5 @@ def ipce_from_object_set(ob: set, st: TypeLike, *, globals_: GlobalsDict, ieso: 
 
         res[h] = vj
 
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return res

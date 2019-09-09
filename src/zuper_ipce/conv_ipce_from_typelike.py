@@ -6,10 +6,11 @@ import warnings
 from dataclasses import _FIELDS, Field, is_dataclass, replace
 from decimal import Decimal
 from numbers import Number
-from typing import cast, List, Optional, Tuple, Type, TypeVar, Dict, Set
+from typing import cast, Dict, List, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
+from zuper_ipce import IPCE
 from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
@@ -40,6 +41,7 @@ from zuper_typing.annotations_tricks import (
     is_TypeVar,
     is_Union,
     is_VarTuple,
+    is_TypeLike,
 )
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2
 from zuper_typing.exceptions import (
@@ -66,6 +68,7 @@ from .constants import (
     CALLABLE_ORDERING,
     CALLABLE_RETURN,
     ID_ATT,
+    IESO,
     JSC_ADDITIONAL_PROPERTIES,
     JSC_ARRAY,
     JSC_BOOL,
@@ -100,9 +103,8 @@ from .constants import (
     X_CLASSVARS,
     X_ORDER,
     X_PYTHON_MODULE_ATT,
-    IESO,
 )
-from .ipce_spec import assert_canonical_ipce, sorted_dict_with_cbor_ordering
+from .ipce_spec import assert_canonical_ipce, sorted_dict_cbor_ord
 from .schema_caching import (
     get_ipce_from_typelike_cache,
     set_ipce_from_typelike_cache,
@@ -163,12 +165,12 @@ def ipce_from_typelike_tr(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
                     # JSC_DESCRIPTION: T.__doc__
                 },
             )
-            res = sorted_dict_with_cbor_ordering(res)
+            res = sorted_dict_cbor_ord(res)
             return TRE(res)
 
         if T is type(None):
             res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, JSC_TYPE: JSC_NULL})
-            res = sorted_dict_with_cbor_ordering(res)
+            res = sorted_dict_cbor_ord(res)
             return TRE(res)
 
         if isinstance(T, type):
@@ -219,7 +221,7 @@ def ipce_from_typelike_DictLike(T: Type[Dict], c: IFTContext, ieso: IESO) -> TRE
         tr = ipce_from_typelike_tr(V, c=c, ieso=ieso)
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res, tr.used)
     else:
         res[JSC_PROPERTIES] = {SCHEMA_ATT: {}}  # XXX
@@ -229,7 +231,7 @@ def ipce_from_typelike_DictLike(T: Type[Dict], c: IFTContext, ieso: IESO) -> TRE
 
         res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
         res[SCHEMA_ATT] = SCHEMA_ID
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res, tr.used)
 
 
@@ -242,7 +244,7 @@ def ipce_from_typelike_SetLike(T: Type[Set], c: IFTContext, ieso: IESO) -> TRE:
     tr = ipce_from_typelike_tr(V, c=c, ieso=ieso)
     res[JSC_ADDITIONAL_PROPERTIES] = tr.schema
     res[SCHEMA_ATT] = SCHEMA_ID
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, tr.used)
 
 
@@ -263,7 +265,7 @@ def ipce_from_typelike_TupleLike(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
         res[JSC_TYPE] = JSC_ARRAY
         res[JSC_ITEMS] = f(items)
         res[JSC_TITLE] = get_Tuple_name(T)
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res, used)
     elif is_FixedTuple(T):
         args = get_FixedTuple_args(T)
@@ -274,7 +276,7 @@ def ipce_from_typelike_TupleLike(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
         res[JSC_TITLE] = get_Tuple_name(T)
         for a in args:
             res[JSC_ITEMS].append(f(a))
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res, used)
     else:
         assert False
@@ -288,7 +290,7 @@ def ipce_from_typelike_NewType(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = "NewType"
     res[JSC_TITLE] = name
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 
@@ -307,7 +309,7 @@ def ipce_from_typelike_ListLike(T: Type[List], c: IFTContext, ieso: IESO) -> TRE
     res[JSC_TYPE] = JSC_ARRAY
     res[JSC_ITEMS] = f(items)
     res[JSC_TITLE] = get_ListLike_name(T)
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 
@@ -338,7 +340,7 @@ def ipce_from_typelike_Callable(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     p[CALLABLE_RETURN] = f(cinfo.returns)
     res[CALLABLE_ORDERING] = list(cinfo.ordering)
     # print(res)
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 
@@ -360,17 +362,17 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     if T is str:
         res = cast(JSONSchema, {JSC_TYPE: JSC_STRING, SCHEMA_ATT: SCHEMA_ID})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is bool:
         res = cast(JSONSchema, {JSC_TYPE: JSC_BOOL, SCHEMA_ATT: SCHEMA_ID})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is Number:
         res = cast(JSONSchema, {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is float:
@@ -378,12 +380,12 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             JSONSchema,
             {JSC_TYPE: JSC_NUMBER, SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: JSC_TITLE_FLOAT},
         )
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is int:
         res = cast(JSONSchema, {JSC_TYPE: JSC_INTEGER, SCHEMA_ATT: SCHEMA_ID})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is slice:
@@ -394,7 +396,7 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             JSONSchema,
             {JSC_TYPE: JSC_STRING, JSC_TITLE: JSC_TITLE_DECIMAL, SCHEMA_ATT: SCHEMA_ID},
         )
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is datetime.datetime:
@@ -406,23 +408,23 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
                 SCHEMA_ATT: SCHEMA_ID,
             },
         )
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is bytes:
         res = SCHEMA_BYTES
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if T is object:
         res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: "object"})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     # we cannot use isinstance on typing.Any
     if is_Any(T):  # XXX not possible...
         res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, JSC_TITLE: "Any"})
-        res = sorted_dict_with_cbor_ordering(res)
+        res = sorted_dict_cbor_ord(res)
         return TRE(res)
 
     if is_Union(T):
@@ -483,9 +485,9 @@ def ipce_from_typelike_ndarray() -> TRE:
     res[JSC_TYPE] = JSC_OBJECT
     res[JSC_TITLE] = JSC_TITLE_NUMPY
     properties = {"shape": {}, "dtype": {}, "data": SCHEMA_BYTES}  # TODO  # TODO
-    properties = sorted_dict_with_cbor_ordering(properties)
+    properties = sorted_dict_cbor_ord(properties)
     res[JSC_PROPERTIES] = properties
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res)
 
 
@@ -500,8 +502,8 @@ def ipce_from_typelike_slice(ieso: IESO) -> TRE:
         "stop": tr.schema,  # TODO
         "step": tr.schema,
     }
-    res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
-    res = sorted_dict_with_cbor_ordering(res)
+    res[JSC_PROPERTIES] = sorted_dict_cbor_ord(properties)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, tr.used)
 
 
@@ -516,7 +518,7 @@ def ipce_from_typelike_Intersection(T: TypeLike, c: IFTContext, ieso: IESO):
 
     options = [f(t) for t in args]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ALL_OF: options})
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 
@@ -572,9 +574,6 @@ def get_mentioned_names(T: TypeLike, context=()) -> typing.Iterator[str]:
 
 
 def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
-    # from zuper_ipcl.debug_print_ import debug_print
-    # d = {'processing': processing, 'globals_': globals_}
-    # logger.info(f'type_dataclass_to_schema: {T} {debug_print(d)}')
     assert is_dataclass(T), T
 
     # noinspection PyDataclass
@@ -587,10 +586,20 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     used = {}
 
-    def f(x: TypeLike) -> JSONSchema:
+    def ftl(x: TypeLike) -> JSONSchema:
         tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
         used.update(tr.used)
         return tr.schema
+
+    def fob(x: object) -> IPCE:
+        return ipce_from_object(x, globals_=c.globals_, ieso=ieso)
+
+    def f(x: object) -> IPCE:
+        if is_TypeLike(x):
+            x = cast(TypeLike, x)
+            return ftl(x)
+        else:
+            return fob(x)
 
     res = cast(JSONSchema, {})
 
@@ -627,16 +636,16 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             c.globals_[t2.__name__] = t2
 
             bound = t2.__bound__ or object
-            schema = f(bound)
+            schema = ftl(bound)
             schema = copy.copy(schema)
             schema[ID_ATT] = url
-            schema = sorted_dict_with_cbor_ordering(schema)
+            schema = sorted_dict_cbor_ord(schema)
             definitions[t2.__name__] = schema
 
             c.globals_[t2.__name__] = t2
 
         if definitions:
-            res[JSC_DEFINITIONS] = sorted_dict_with_cbor_ordering(definitions)
+            res[JSC_DEFINITIONS] = sorted_dict_cbor_ord(definitions)
 
     properties = {}
     classvars = {}
@@ -650,18 +659,6 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     names = list(fields_)
     ordered = sorted(names)
-
-    def T_has_attribute(n: str) -> bool:
-        if hasattr(T, n):
-            # special case
-            the_att2 = getattr(T, n)
-            if isinstance(the_att2, Field):
-                # actually attribute not there
-                return False
-            else:
-                return True
-        else:
-            return False
 
     for name in ordered:
         afield = fields_[name]
@@ -687,62 +684,37 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
                             schema = make_ref(ref)
                             classvars[name] = schema
                             used.update({tn: ref})
-                            classatts[name] = f(type)
+                            classatts[name] = ftl(type)
                         else:  # pragma: no cover
                             msg = "Unknown typevar @tn in class @T"
                             raise ZNotImplementedError(msg, tn=tn, T=T, c=c)
                     else:
-                        # classatts[name] = ipce_from_object(u, c.globals_)
-                        # raise NotImplementedError(T)
-                        classvars[name] = f(u)
-                        if T_has_attribute(name):
-                            # special case
-                            the_att = getattr(T, name)
-                            if isinstance(the_att, type):
-                                classatts[name] = f(the_att)
-                            else:
-                                classatts[name] = ipce_from_object(
-                                    the_att, globals_=c.globals_
-                                )
+                        classvars[name] = ftl(u)
+                        try:
+                            the_att = get_T_attribute(T, name)
+                        except AttributeError:
+                            pass
+                        else:
+                            classatts[name] = f(the_att)
 
                 else:
-                    # logger.info(f'ClassVar {tt} is not Type, going through f')
-                    classvars[name] = f(tt)
-                    if T_has_attribute(name):
-                        # special case
-                        the_att = getattr(T, name)
-
-                        if isinstance(the_att, type):
-                            classatts[name] = f(the_att)
-                        else:
-                            classatts[name] = ipce_from_object(
-                                the_att, globals_=c.globals_
-                            )
+                    classvars[name] = ftl(tt)
+                    try:
+                        the_att = get_T_attribute(T, name)
+                    except AttributeError:
+                        pass
+                    else:
+                        classatts[name] = f(the_att)
 
             else:  # not classvar
-                schema = f(t)
+                schema = ftl(t)
 
-                has_default = afield.default is not dataclasses.MISSING
-
-                if has_default:
-                    default = afield.default
-                    # schema = copy.copy(schema)
-
-                    options = [schema]
-                    schema_union_of_one = cast(
-                        JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options}
-                    )
-                    schema_union_of_one["default"] = ipce_from_object(
-                        default, globals_=c.globals_
-                    )
-                    schema_union_of_one = sorted_dict_with_cbor_ordering(
-                        schema_union_of_one
-                    )
-                    schema = schema_union_of_one
-
-                else:
+                try:
+                    default = get_field_default(afield)
+                except KeyError:
                     required.append(name)
-
+                else:
+                    schema = make_schema_with_default(schema, default, c, ieso)
                 properties[name] = schema
 
         except BaseException as e:
@@ -759,15 +731,54 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     assert len(classvars) >= len(classatts), (classvars, classatts)
 
     if properties:
-        res[JSC_PROPERTIES] = sorted_dict_with_cbor_ordering(properties)
+        res[JSC_PROPERTIES] = sorted_dict_cbor_ord(properties)
 
     res[X_ORDER] = names
 
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
 
     if T.__name__ in used:
         used.pop(T.__name__)
     return TRE(res, used)
+
+
+def get_T_attribute(T: TypeLike, n: str) -> object:
+    if hasattr(T, n):
+        # special case
+        the_att2 = getattr(T, n)
+        if isinstance(the_att2, Field):
+            # actually attribute not there
+            raise AttributeError()
+        else:
+            return the_att2
+    else:
+        raise AttributeError()
+
+
+def make_schema_with_default(
+    schema: JSONSchema, default: object, c: IFTContext, ieso: IESO
+) -> JSONSchema:
+    from zuper_ipce import ipce_from_object
+
+    options = [schema]
+    s_u_one = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
+
+    ipce_default = ipce_from_object(default, globals_=c.globals_, ieso=ieso)
+    s_u_one["default"] = ipce_default
+    s_u_one = sorted_dict_cbor_ord(s_u_one)
+    return s_u_one
+
+
+from dataclasses import MISSING
+
+
+def get_field_default(f: Field) -> object:
+    if f.default != MISSING:
+        return f.default
+    elif f.default_factory != MISSING:
+        return f.default_factory()
+    else:
+        raise KeyError("no default")
 
 
 def ipce_from_typelike_Union(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
@@ -781,7 +792,7 @@ def ipce_from_typelike_Union(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     options = [f(t) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 
@@ -796,7 +807,7 @@ def ipce_from_typelike_Optional(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     options = [f(t) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
-    res = sorted_dict_with_cbor_ordering(res)
+    res = sorted_dict_cbor_ord(res)
     return TRE(res, used)
 
 

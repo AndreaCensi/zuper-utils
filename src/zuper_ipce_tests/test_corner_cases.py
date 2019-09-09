@@ -25,7 +25,7 @@ from zuper_ipce import (
     object_from_ipce,
     typelike_from_ipce,
 )
-from zuper_ipce.ipce_spec import assert_sorted_dict_with_cbor_ordering
+from zuper_ipce.ipce_spec import assert_sorted_dict_cbor_ord
 from zuper_ipce.utils_text import oyaml_dump, oyaml_load
 from zuper_ipce_tests.test_utils import (
     assert_equivalent_types,
@@ -575,7 +575,7 @@ def test_corner_list_Any():
 @raises(ValueError)
 def test_corner_ipce():
     res = {"aa": 1, "a": 2}
-    assert_sorted_dict_with_cbor_ordering(res)
+    assert_sorted_dict_cbor_ord(res)
 
 
 def test_corner_same_default_value():
