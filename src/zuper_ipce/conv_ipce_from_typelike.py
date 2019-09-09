@@ -448,6 +448,7 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
     if is_Callable(T):
         return ipce_from_typelike_Callable(T, c=c, ieso=ieso)
+
     if is_NewType(T):
         return ipce_from_typelike_NewType(T, c=c, ieso=ieso)
 
