@@ -50,7 +50,7 @@ def assert_sorted_dict_cbor_ord(x: dict):
         raise ZValueError(msg, keys=keys, keys2=keys2)
 
 
-def assert_canonical_ipce(ob_ipce: IPCE, max_rec=2):
+def assert_canonical_ipce(ob_ipce: IPCE, max_rec=2) -> None:
     if isinstance(ob_ipce, dict):
         if "/" in ob_ipce:
             msg = 'Cannot have "/" in here '

@@ -16,6 +16,7 @@ from typing import (
     Union,
 )
 
+from zuper_typing.literal import is_Literal
 from .aliases import TypeLike
 from .annotations_tricks import (
     get_Callable_info,
@@ -286,6 +287,8 @@ def replace_typevars(
     elif is_Any(cls):
         return cls
     elif is_Uninhabited(cls):
+        return cls
+    elif is_Literal(cls):
         return cls
     elif isinstance(cls, type):
 

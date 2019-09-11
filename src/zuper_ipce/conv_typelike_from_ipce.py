@@ -467,9 +467,9 @@ def typelike_from_ipce_dataclass(
                 msg, properties=properties, classvars=classvars, classatts=classatts
             )
     check_fields_order(fields_triples)
-    zlinfo(
-        "fields", ordered=ordered, properties=properties, fields_triples=fields_triples
-    )
+    # zlinfo(
+    #     "fields", ordered=ordered, properties=properties, fields_triples=fields_triples
+    # )
     # _MISSING_TYPE should be first (default fields last)
     # XXX: not tested
     # def has_default(x) -> bool:
@@ -494,11 +494,11 @@ def typelike_from_ipce_dataclass(
             frozen=False,
         )
     except TypeError:  # pragma: no cover
-
-        msg = "Cannot make dataclass with fields:"
-        for f in fields:
-            msg += f"\n {f}"
-        logger.error(msg)
+        #
+        # msg = "Cannot make dataclass with fields:"
+        # for f in fields:
+        #     msg += f"\n {f}"
+        # logger.error(msg)
         raise
 
     fix_annotations_with_self_reference(T, cls_name, Placeholder)
