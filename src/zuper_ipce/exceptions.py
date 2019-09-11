@@ -15,6 +15,3 @@ class ZSerializationError(ZValueError):
 
 class ZInvalidSchema(ZValueError):
     pass
-
-
-IPCE_PASS_THROUGH = (NotImplementedError, KeyboardInterrupt, MemoryError, TypeError)

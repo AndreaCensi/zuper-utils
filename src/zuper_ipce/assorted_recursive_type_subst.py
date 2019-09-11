@@ -4,15 +4,15 @@ from decimal import Decimal
 from numbers import Number
 from typing import (
     Callable,
+    cast,
     ClassVar,
+    Dict,
     List,
     NewType,
     Optional,
+    Set,
     Tuple,
     Type,
-    cast,
-    Set,
-    Dict,
 )
 
 import numpy as np
@@ -51,6 +51,9 @@ from zuper_typing.annotations_tricks import (
 )
 from zuper_typing.monkey_patching_typing import my_dataclass, original_dict_getitem
 from zuper_typing.my_dict import (
+    CustomDict,
+    CustomList,
+    CustomSet,
     get_CustomDict_args,
     get_CustomList_arg,
     get_CustomSet_arg,
@@ -60,9 +63,6 @@ from zuper_typing.my_dict import (
     make_dict,
     make_list,
     make_set,
-    CustomList,
-    CustomSet,
-    CustomDict,
 )
 
 

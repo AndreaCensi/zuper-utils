@@ -4,7 +4,6 @@ from dataclasses import dataclass, Field, fields, is_dataclass, MISSING
 from decimal import Decimal
 from typing import cast, Dict, Iterator, Optional, Set, TypeVar
 
-import cbor2
 import numpy as np
 from frozendict import frozendict
 
@@ -26,12 +25,11 @@ from zuper_typing.annotations_tricks import (
     is_Union,
 )
 from zuper_typing.exceptions import ZNotImplementedError, ZTypeError, ZValueError
-from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT, IESO
+from .constants import GlobalsDict, HINTS_ATT, SCHEMA_ATT, IESO, IPCE_PASS_THROUGH
 from .conv_ipce_from_typelike import ipce_from_typelike, ipce_from_typelike_ndarray
 from .ipce_spec import assert_canonical_ipce, sorted_dict_cbor_ord
 from .structures import FakeValues
 from .types import IPCE, TypeLike
-from .utils_text import get_sha256_base58
 
 
 def ipce_from_object(
@@ -149,6 +147,8 @@ def ipce_from_object_union(ob: object, st: TypeLike, *, globals_, ieso: IESO) ->
     for Ti in ts:
         try:
             return ipce_from_object(ob, Ti, globals_=globals_, ieso=ieso)
+        except IPCE_PASS_THROUGH:
+            raise
         except BaseException:
             errors.append((Ti, traceback.format_exc()))
 
@@ -233,6 +233,8 @@ def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) 
                 # hints[k] = ipce_from_typelike(type(v), globals0=globals_, ieso=ieso)
                 hints[k] = type(v)
 
+        except IPCE_PASS_THROUGH:
+            raise
         except BaseException as e:
             msg = (
                 f"Could not serialie an object of type {T.__name__!r}. Problem "

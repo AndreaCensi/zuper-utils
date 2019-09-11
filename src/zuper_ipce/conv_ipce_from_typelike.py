@@ -70,6 +70,7 @@ from .constants import (
     CALLABLE_RETURN,
     ID_ATT,
     IESO,
+    IPCE_PASS_THROUGH,
     JSC_ADDITIONAL_PROPERTIES,
     JSC_ARRAY,
     JSC_BOOL,
@@ -198,8 +199,7 @@ def ipce_from_typelike_tr(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             set_ipce_from_typelike_cache(T, tr.used, tr.schema)
 
         return tr
-
-    except NotImplementedError:  # pragma: no cover
+    except IPCE_PASS_THROUGH:  # pragma: no cover
         raise
     except ValueError as e:
         msg = "Cannot get schema for type @T"
@@ -718,6 +718,8 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
                     schema = make_schema_with_default(schema, default, c, ieso)
                 properties[name] = schema
 
+        except IPCE_PASS_THROUGH:  # pragma: no cover
+            raise
         except BaseException as e:
             msg = "Cannot write schema for attribute @name -> @t of type @T."
             raise ZTypeError(msg, name=name, t=t, T=T) from e

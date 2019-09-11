@@ -44,7 +44,6 @@ JSC_ANYOF = "anyOf"
 Z_ATT_LSIZE = "lsize"
 Z_ATT_TSIZE = "tsize"
 
-# GENERIC_ATT = '__generic__'
 X_PYTHON_MODULE_ATT = "__module__"
 ATT_PYTHON_NAME = "__qualname__"
 
@@ -77,34 +76,17 @@ SCHEMA_CID = cast(
 
 IPCE_SCALARS = (int, str, float, bytes, datetime, bool, Decimal, type(None))
 
-# USE_REMEMBERED_CLASSES = True
-# PASS_THROUGH = (KeyboardInterrupt, RecursionError, RuntimeError)
-# use_ipce_from_typelike_cache = True
 
 # check_types = False
 
 CALLABLE_ORDERING = "ordering"
 CALLABLE_RETURN = "return"
-#
-# from .logging import logger
-# import os
-
-# circle_job = os.environ.get("CIRCLE_JOB", None)
-# logger.info(f"Circle JOB: {circle_job!r}")
-
-# if circle_job == "test-3.7-no-cache":  # pragma: no cover
-#     use_ipce_from_typelike_cache = False
-#     logger.warning(
-#         "Disabling cache (IPCL:use_ipce_from_typelike_cache) due to circle_job."
-#     )
-#
-#     USE_REMEMBERED_CLASSES = False
-#     logger.warning("Disabling cache (IPCL:USE_REMEMBERED_CLASSES) due to circle_job.")
 
 
 @dataclass
 class IEDO:
-    use_remembered_classes: bool = True
+    use_remembered_classes: bool
+    remember_deserialized_classes: bool
 
 
 @dataclass
@@ -117,3 +99,6 @@ class IEDS:
 class IESO:
     use_ipce_from_typelike_cache: bool = True
     with_schema: bool = True
+
+
+IPCE_PASS_THROUGH = (NotImplementedError, KeyboardInterrupt, MemoryError, TypeError)

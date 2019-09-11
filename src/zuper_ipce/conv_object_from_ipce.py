@@ -9,8 +9,9 @@ import numpy as np
 import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
+from zuper_ipce.constants import IPCE_PASS_THROUGH
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce_sr
-from zuper_ipce.exceptions import IPCE_PASS_THROUGH, ZDeserializationErrorSchema
+from zuper_ipce.exceptions import ZDeserializationErrorSchema
 from zuper_ipce.types import is_unconstrained
 from zuper_typing.annotations_tricks import (
     get_FixedTuple_args,
@@ -58,7 +59,7 @@ def object_from_ipce(
 ) -> object:
     assert expect_type is not None
     if opt is None:
-        opt = IEDO()
+        opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
     ieds = IEDS({}, {})
 
     try:
@@ -249,6 +250,8 @@ def object_from_ipce_union(
     for T in ts:
         try:
             return object_from_ipce_(mj, T, ieds=ieds, opt=opt)
+        except IPCE_PASS_THROUGH:  # pragma: no cover
+            raise
         except BaseException:
             errors.append(dict(T=T, e=traceback.format_exc()))
     msg = f"Cannot deserialize with any type."
@@ -265,6 +268,8 @@ def object_from_ipce_intersection(
     for T in ts:
         try:
             return object_from_ipce_(mj, T, ieds=ieds, opt=opt)
+        except IPCE_PASS_THROUGH:  # pragma: no cover
+            raise
         except BaseException:
             errors[str(T)] = traceback.format_exc()
     msg = f"Cannot deserialize with any of @ts"
@@ -335,7 +340,8 @@ def object_from_ipce_dataclass_instance(
 
         try:
             attrs[k] = object_from_ipce_(v, et_k, ieds=ieds, opt=opt)
-
+        except IPCE_PASS_THROUGH:  # pragma: no cover
+            raise
         except BaseException as e:  # pragma: no cover
             msg = f"Cannot deserialize attribute {k!r} of {K.__name__}."
 

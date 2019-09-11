@@ -66,7 +66,7 @@ def assert_type_roundtrip(
     schema = ipce_from_typelike(T, globals0=use_globals)
     save_object(T, ipce=schema)
 
-    opt = IEDO()
+    opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
     T2 = typelike_from_ipce(schema, opt=opt)
 
     # TODO: in 3.6 does not hold for Dict, Union, etc.
@@ -371,7 +371,7 @@ def assert_object_roundtrip(
     if use_globals is None:
         use_globals = {}
     ieds = IEDS(use_globals, {})
-    opt = IEDO()
+    opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
 
     y1 = ipce_from_object(x1, globals_=use_globals)
     y1_cbor: bytes = cbor2.dumps(y1)

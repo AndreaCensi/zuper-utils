@@ -12,6 +12,7 @@ BINDINGS_ATT = "__binding__"
 enable_type_checking = True
 cache_enabled = True
 monkey_patch_Generic = False
+monkey_patch_dataclass = False
 
 
 class MakeTypeCache:

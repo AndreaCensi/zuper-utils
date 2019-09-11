@@ -8,7 +8,13 @@ import termcolor
 
 from zuper_commons.text.boxing import box
 from zuper_commons.text.text_sidebyside import side_by_side
-from .constants import ANNOTATIONS_ATT, DEPENDS_ATT, monkey_patch_Generic, PYTHON_36
+from .constants import (
+    ANNOTATIONS_ATT,
+    DEPENDS_ATT,
+    monkey_patch_Generic,
+    PYTHON_36,
+    monkey_patch_dataclass,
+)
 from .my_dict import make_dict
 from .zeneric2 import resolve_types, ZenericFix
 
@@ -141,8 +147,12 @@ def get_remembered_class(module_name: str, qual_name: str) -> type:
     return RegisteredClasses.klasses[k]
 
 
-def remember_created_class(res: type):
+def remember_created_class(res: type, msg: str = ""):
     k = (res.__module__, res.__qualname__)
+    if k in RegisteredClasses.klasses:
+        from .logging import logger
+
+        logger.info(f"Asked to remember again {k}: {msg}")
     RegisteredClasses.klasses[k] = res
 
 
@@ -174,6 +184,7 @@ def my_dataclass(
         # logger.info(f'called my_dataclass for {cls} with bases {_cls.__bases__}, '
         #             f'returning {res} with bases {res.__bases__} and annotations {
         #             _cls.__annotations__}')
+        remember_created_class(res, "my_dataclass")
         return res
 
     # See if we're being called as @dataclass or @dataclass().
@@ -241,10 +252,6 @@ def my_dataclass_(
 
         _cls2.__module__ = _cls.__module__
         _cls2.__qualname__ = _cls.__qualname__
-        # from .logging import logger
-        # logger.info(f'now set qualname == {_cls2.__qualname__}')
-        # from . import logger
-        # logger.info(f'Replaced {_cls} with {_cls2} with annotations {_cls2.__annotations__}')
         _cls = _cls2
     else:
         old_annotations = get_all_annotations(_cls)
@@ -257,23 +264,6 @@ def my_dataclass_(
         old_annotations[k] = bool  # typing.Optional[bool]
         setattr(_cls, k, True)
 
-    # reorder the fields
-    # def field_is_optional(x):
-    #     has_default = hasattr(_cls, x)
-    #     optional = is_optional(old_annotations[x])
-    #     return int(has_default) + int(optional)
-    # ordered_fields = sorted(old_annotations, key=field_is_optional)
-    # ordered_annotations = {}
-    # for k in ordered_fields:
-    #     ordered_annotations[k] = old_annotations[k]
-    # setattr(_cls, ANNOTATIONS_ATT, ordered_annotations)
-
-    #
-    # from .logging import logger
-    # logger.info(f'old: {list(old_annotations)}')
-    # logger.info(f'ord: {list(ordered_annotations)}')
-    # logger.info(f'_cls: {_cls.__annotations__}')
-
     res = original_dataclass(
         _cls,
         init=init,
@@ -283,7 +273,7 @@ def my_dataclass_(
         unsafe_hash=unsafe_hash,
         frozen=frozen,
     )
-    remember_created_class(res)
+
     # assert dataclasses.is_dataclass(res)
     refs = getattr(_cls, DEPENDS_ATT, ())
     resolve_types(res, refs=refs)
@@ -390,4 +380,5 @@ class DataclassHooks:
     dc_str = nice_str
 
 
-setattr(dataclasses, "dataclass", my_dataclass)
+if monkey_patch_dataclass:
+    setattr(dataclasses, "dataclass", my_dataclass)

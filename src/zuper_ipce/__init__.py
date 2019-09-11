@@ -27,5 +27,4 @@ _ = (
     IESO,
 )
 
-
 # __all__ = ['IPCE', 'ipce_from_typelike' ,'ipce_from_object', 'object_from_ipce', 'typelike_from_ipce']

@@ -19,13 +19,11 @@ from typing import (
 
 from zuper_commons.types.exceptions import ZException
 
-
 _X = TypeVar("_X")
 import numpy as np
 
 from zuper_commons.types import check_isinstance
 from zuper_typing.annotations_tricks import (
-    is_Any,
     is_ForwardRef,
     make_Tuple,
     make_Union,
@@ -83,7 +81,7 @@ from .constants import (
     X_PYTHON_MODULE_ATT,
 )
 from .structures import CannotFindSchemaReference
-from .types import TypeLike, IPCE
+from .types import TypeLike, IPCE, is_unconstrained
 
 
 @dataclass
@@ -94,7 +92,7 @@ class SRE:
 
 def typelike_from_ipce(schema0: JSONSchema, *, opt: Optional[IEDO] = None) -> TypeLike:
     if opt is None:
-        opt = IEDO()
+        opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
     ieds = IEDS({}, {})
     sre = typelike_from_ipce_sr(schema0, ieds=ieds, opt=opt)
     return sre.res
@@ -379,17 +377,18 @@ def typelike_from_ipce_dataclass(
     module_name = res[X_PYTHON_MODULE_ATT]
     qual_name = res[ATT_PYTHON_NAME]
 
-    try:
-        res = get_remembered_class(module_name, qual_name)
-        return SRE(res)
-    except KeyError:
-        pass
+    if opt.use_remembered_classes:
+        try:
+            res = get_remembered_class(module_name, qual_name)
+            return SRE(res)
+        except KeyError:
+            pass
 
     typevars: List[TypeVar] = []
     for tname, t in definitions.items():
         bound = f(t)
         # noinspection PyTypeHints
-        if is_Any(bound) or bound is object:
+        if is_unconstrained(bound):
             bound = None
         # noinspection PyTypeHints
         tv = TypeVar(tname, bound=bound)
@@ -532,8 +531,10 @@ def typelike_from_ipce_dataclass(
     if schema_id in used:
         used.pop(schema_id)
     if not used:
-        remember_created_class(T)
+        if opt.remember_deserialized_classes:
+            remember_created_class(T, "typelike_from_ipce")
 
+    logger.info(f"Estimated class {T.__name__} used = {used}")
     # assert not "varargs" in T.__dict__, T
     return SRE(T, used)
 
