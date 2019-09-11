@@ -202,9 +202,6 @@ def recursive_type_subst(
             )
         )
 
-        # from zuper_ipcl.debug_print_ import debug_print
-        # logger.info(f'changed {T.__name__} into {debug_print(T2.__annotations__)}')
-
         return T2
     elif T in (
         int,

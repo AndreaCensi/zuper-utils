@@ -39,6 +39,7 @@ setup(
         "PyYAML",
         "validate_email",
         "mypy_extensions",
+        "typing_extensions",
         "nose",
         "coverage>=1.4.33",
         "dataclasses",

@@ -18,7 +18,7 @@ from typing import (
 )
 
 from zuper_commons.types.exceptions import ZException
-from zuper_lang.logging_utils import zlinfo
+
 
 _X = TypeVar("_X")
 import numpy as np
