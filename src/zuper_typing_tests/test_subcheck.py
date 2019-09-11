@@ -475,23 +475,34 @@ def test_typevar2():
     assert res.result, res
 
 
+def assert_can(a, b):
+    res = can_be_used_as2(a, b)
+    assert res.result, res
+
+
+def assert_not(a, b):
+    res = can_be_used_as2(a, b)
+    assert not res.result, res
+
+
 def test_subcheck_literal_01():
+    """ known_failure """
     T = make_Literal(1)
     U = make_Literal(1, 2)
     V = make_Literal(1, 2, 3)
     W = make_Literal(1, 2, 4)
-    assert can_be_used_as2(T, T)
-    assert can_be_used_as2(T, U)
-    assert not can_be_used_as2(U, T)
-    assert can_be_used_as2(T, V)
-    assert not can_be_used_as2(V, T)
-    assert can_be_used_as2(T, W)
-    assert not can_be_used_as2(W, T)
+    assert_can(T, T)
+    assert_can(T, U)
+    assert_not(U, T)
+    assert_can(T, V)
+    assert_not(V, T)
+    assert_can(T, W)
+    assert_not(W, T)
 
-    assert not can_be_used_as2(V, W)
-    assert not can_be_used_as2(W, V)
+    assert_not(V, W)
+    assert_not(W, V)
 
-    assert not can_be_used_as2(U, List[int])
-    assert can_be_used_as2(make_Uninhabited(), U)
-    assert can_be_used_as2(U, int)
-    assert can_be_used_as2(U, Union[int, float])
+    assert_not(U, List[int])
+    assert_can(make_Uninhabited(), U)
+    assert_can(U, int)
+    assert_can(U, Union[int, float])

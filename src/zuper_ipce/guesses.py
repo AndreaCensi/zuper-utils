@@ -4,8 +4,12 @@ from zuper_ipce.types import is_unconstrained
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_FixedTuple_args,
+    get_Optional_arg,
+    get_Union_args,
     get_VarTuple_arg,
     is_FixedTuple,
+    is_Optional,
+    is_Union,
     is_VarTuple,
 )
 from zuper_typing.exceptions import ZTypeError, ZValueError
@@ -86,18 +90,42 @@ def get_dict_type_suggestion(ob: dict, st: TypeLike) -> Tuple[TypeLike, TypeLike
         raise ZValueError(msg, suggest_type=st)
 
 
+def is_UnionLike(x: TypeLike) -> bool:
+    return is_Union(x) or is_Optional(x)
+
+
+def get_UnionLike_args(x: TypeLike) -> Tuple[TypeLike, ...]:
+    if is_Union(x):
+        return get_Union_args(x)
+    elif is_Optional(x):
+        y = get_Optional_arg(x)
+        if is_UnionLike(y):
+            return get_UnionLike_args(y) + (type(None),)
+    else:
+        assert False
+
+
 def get_tuple_type_suggestion(x: tuple, st: TypeLike) -> Tuple[TypeLike, ...]:
     n = len(x)
-    if is_unconstrained(st):
-        return tuple([object] * n)
-    elif is_VarTuple(st):
-        return tuple([get_VarTuple_arg(st)] * n)
-    elif is_FixedTuple(st):
-        ts = get_FixedTuple_args(st)
-        return ts
+    if is_UnionLike(st):
+        options = get_UnionLike_args(st)
     else:
-        msg = f"@suggest_type does not make sense for a tuple"
-        raise ZValueError(msg, suggest_type=st)
+        options = (st,)
+
+    # first look for any tuple-like
+    for op in options:
+        if is_VarTuple(op):
+            V = get_VarTuple_arg(op)
+            return tuple([V] * n)
+        if is_FixedTuple(op):
+            ts = get_FixedTuple_args(op)
+            return ts
+    for op in options:
+        if is_unconstrained(op):
+            return tuple([object] * n)
+
+    msg = f"@suggest_type does not make sense for a tuple"
+    raise ZValueError(msg, suggest_type=st)
 
 
 def guess_type_for_naked_dict(ob: dict) -> Tuple[type, type]:

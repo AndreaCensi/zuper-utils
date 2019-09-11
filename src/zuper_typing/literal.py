@@ -13,6 +13,7 @@ def is_Literal(x: TypeLike) -> bool:
     return "Literal[" in str(x)
 
 
-def get_LiteralValues(x: TypeLike) -> Tuple[object, ...]:
+def get_Literal_args(x: TypeLike) -> Tuple[object, ...]:
     assert is_Literal(x)
-    return getattr(x, "__values__")
+
+    return getattr(x, "__args__")

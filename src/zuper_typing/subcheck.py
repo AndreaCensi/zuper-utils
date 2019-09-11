@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional, Tuple
 
 from zuper_commons.text import indent
+from zuper_typing.literal import is_Literal, get_Literal_args
 from zuper_typing.type_algebra import Matches
 from zuper_typing.uninhabited import is_Uninhabited
 from .annotations_tricks import (
@@ -87,6 +88,17 @@ def can_be_used_as2(
     if T2 is object:
         return CanBeUsed(True, "object is the top", matches)
     # cop out for the easy cases
+
+    if is_Literal(T1):
+        v1 = get_Literal_args(T1)
+        if is_Literal(T2):
+            v2 = get_Literal_args(T2)
+            included = all(any(x1 == x2 for x2 in v2) for x1 in v1)
+            if included:
+                return CanBeUsed(True, "included", matches)
+            else:
+                return CanBeUsed(False, "not included", matches)
+        raise NotImplementedError((T1, T2))
 
     assumptions = assumptions0 + ((T1, T2),)
 
