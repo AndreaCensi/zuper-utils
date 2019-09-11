@@ -24,10 +24,12 @@ from zuper_typing.annotations_tricks import (
     is_Sequence,
     name_for_type_like,
 )
+from zuper_typing.literal import make_Literal
 from zuper_typing.my_dict import make_list, make_set
 from zuper_typing.my_intersection import Intersection
 from zuper_typing.recursive_tricks import replace_typevars
 from zuper_typing.subcheck import can_be_used_as2
+from zuper_typing.uninhabited import make_Uninhabited
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -372,6 +374,7 @@ def test_replace_typevars():
         (Sequence, S, Sequence[Any]),
         (Intersection[X, int], S, Intersection[str, int]),
         (Intersection[X, str], S, str),
+        (make_Literal(2, 3), S, make_Literal(2, 3)),
     )
     for orig, subst, result in tries:
         yield try_, orig, subst, result
@@ -470,3 +473,25 @@ def test_typevar2():
     found_type = List[X]
     res = can_be_used_as2(found_type, expect_type)
     assert res.result, res
+
+
+def test_subcheck_literal_01():
+    T = make_Literal(1)
+    U = make_Literal(1, 2)
+    V = make_Literal(1, 2, 3)
+    W = make_Literal(1, 2, 4)
+    assert can_be_used_as2(T, T)
+    assert can_be_used_as2(T, U)
+    assert not can_be_used_as2(U, T)
+    assert can_be_used_as2(T, V)
+    assert not can_be_used_as2(V, T)
+    assert can_be_used_as2(T, W)
+    assert not can_be_used_as2(W, T)
+
+    assert not can_be_used_as2(V, W)
+    assert not can_be_used_as2(W, V)
+
+    assert not can_be_used_as2(U, List[int])
+    assert can_be_used_as2(make_Uninhabited(), U)
+    assert can_be_used_as2(U, int)
+    assert can_be_used_as2(U, Union[int, float])
