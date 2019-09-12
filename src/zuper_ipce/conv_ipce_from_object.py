@@ -83,7 +83,7 @@ def ipce_from_object_(
     if st in trivial:
         if not isinstance(ob, st):
             msg = "Expected this to be @suggest_type."
-            raise ZTypeError(msg, suggest_type=st, T=type(ob))
+            raise ZTypeError(msg, st=st, ob=ob, T=type(ob))
         return ob
 
     if isinstance(ob, trivial):

@@ -23,6 +23,6 @@ symbols = {"AName": AName}
 def test_schema1():
     n1 = AName("one", "two")
     y1 = ipce_from_object(n1, globals_=symbols)
-    print(json.dumps(y1, indent=2))
+    # print(json.dumps(y1, indent=2))
 
     validate(y1, y1["$schema"])

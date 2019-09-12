@@ -1,9 +1,5 @@
-import dataclasses
-import json
-
 from nose.tools import raises
 
-from zuper_ipce.exceptions import ZDeserializationErrorSchema
 from zuper_typing import dataclass
 from zuper_typing.exceptions import ZValueError
 from zuper_typing.logging import logger
@@ -32,7 +28,6 @@ def test_type2():
     assert_type_roundtrip(T, use_globals=symbols)
 
 
-@relies_on_missing_features
 def test_newtype():
     T = NewType("T", str)
     assert_type_roundtrip(T, use_globals=symbols)
@@ -91,10 +86,10 @@ def test_defaults1():
         num_episodes: int = 10
 
     mj = ipce_from_typelike(DummyImageSourceConfig)
-    print(json.dumps(mj, indent=2))
+    # print(json.dumps(mj, indent=2))
 
     T2: Type[dataclass] = typelike_from_ipce(mj)
-    print(dataclasses.fields(T2))
+    # print(dataclasses.fields(T2))
 
     assert_type_roundtrip(DummyImageSourceConfig)
 

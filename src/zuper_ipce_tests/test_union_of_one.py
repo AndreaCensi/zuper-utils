@@ -11,7 +11,7 @@ def test_u_of_one():
         v: int = 2
 
     ipce = ipce_from_typelike(A)
-    print(oyaml_dump(ipce))
+    # print(oyaml_dump(ipce))
 
     expect = """\
 $id: http://invalid.json-schema.org/test_u_of_one.<locals>.A#

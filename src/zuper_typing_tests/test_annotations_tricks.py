@@ -135,13 +135,13 @@ def test_Dict1():
 
 def test_Dict2():
     X = typing.Dict[str, int]
-    print(type(X))
-    print(f"{X!r}")
+    # print(type(X))
+    # print(f"{X!r}")
     assert is_Dict(X)
     K, V = get_Dict_args(X)
     assert_equal(K, str)
     assert_equal(V, int)
-    print(K, V)
+    # print(K, V)
     N = name_for_type_like(X)
     assert_equal(N, "Dict[str,int]")
 

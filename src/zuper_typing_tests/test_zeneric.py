@@ -23,19 +23,19 @@ def test_basic():
 
     T = Generic[U]
 
-    print(T.mro())
+    # print(T.mro())
 
     assert_equal(T.__name__, "Generic[U]")
-    print("inheriting C(T)")
+    # print("inheriting C(T)")
 
     @dataclass
     class C(T):
         ...
 
-    print(C.mro())
+    # print(C.mro())
 
     assert_equal(C.__name__, "C[U]")
-    print("subscribing C[int]")
+    # print("subscribing C[int]")
     D = C[int]
 
     assert_equal(D.__name__, "C[int]")

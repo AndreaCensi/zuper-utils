@@ -24,7 +24,7 @@ def test_is_set01():
 
 def test_is_set02():
     T = Set
-    print(f"the set is {T}")
+    # print(f"the set is {T}")
     assert is_Set(T)
 
 
@@ -81,14 +81,14 @@ def test_set_any2():
     a = A(v)
 
     ipce_v = ipce_from_object(v)
-    print(oyaml_dump(ipce_v))
+    # print(oyaml_dump(ipce_v))
 
     schema = ipce_v["$schema"]
     T = typelike_from_ipce(schema)
-    print(T)
+    # print(T)
 
     ipce = ipce_from_object(a)
-    print(oyaml_dump(ipce))
+    # print(oyaml_dump(ipce))
 
     assert_object_roundtrip(a)
 

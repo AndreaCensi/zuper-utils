@@ -1,18 +1,15 @@
 import typing
 from dataclasses import fields
 from numbers import Number
-from typing import ClassVar, Type, cast
+from typing import cast, ClassVar, Type
 
 import yaml
 from nose.tools import assert_equal, raises
 
-from zuper_ipce import ipce_from_typelike
-from zuper_ipce import typelike_from_ipce
-from zuper_ipce.logging import logger
-from zuper_ipce.pretty import pprint
-from zuper_ipce.utils_text import oyaml_dump, oyaml_load
+from zuper_ipce import ipce_from_typelike, typelike_from_ipce
+from zuper_ipce.utils_text import oyaml_load
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
-from zuper_typing import Generic, dataclass
+from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import (
     get_ClassVar_arg,
     get_Type_arg,
@@ -33,19 +30,19 @@ def test_basic():
 
     T = Generic[U]
 
-    print(T.mro())
+    # print(T.mro())
 
     assert_equal(T.__name__, "Generic[U]")
-    print("inheriting C(T)")
+    # print("inheriting C(T)")
 
     @dataclass
     class C(T):
         ...
 
-    print(C.mro())
+    # print(C.mro())
 
     assert_equal(C.__name__, "C[U]")
-    print("subscribing C[int]")
+    # print("subscribing C[int]")
     D = C[int]
 
     assert_equal(D.__name__, "C[int]")
@@ -149,7 +146,7 @@ def test_serialize_generic_optional():
     m1a = M1int(x=2)
     m1b = M1int(x=3)
     s = ipce_from_typelike(MR1)
-    print("M1 schema: \n" + oyaml_dump(s))
+    # print("M1 schema: \n" + oyaml_dump(s))
 
     M2 = typelike_from_ipce(s)
     assert "xo" in MR1.__annotations__, MR1.__annotations__
@@ -202,13 +199,13 @@ def test_more():
 
     resolve_types(Entity0)
 
-    print(Entity0.__annotations__["parent"].__repr__())
+    # print(Entity0.__annotations__["parent"].__repr__())
     assert not isinstance(Entity0.__annotations__["parent"], str)
     # raise Exception()
     schema = ipce_from_typelike(Entity0)
-    print(oyaml_dump(schema))
+    # print(oyaml_dump(schema))
     T = typelike_from_ipce(schema)
-    print(T.__annotations__)
+    # print(T.__annotations__)
 
     assert_type_roundtrip(Entity0)
 
@@ -318,7 +315,7 @@ def test_more2b():
     assert_type_roundtrip(E2I)
 
     parent2 = E2I.__annotations__["parent"]
-    print(parent2)
+    # print(parent2)
     x = E2I(parent=EI(data0=4))
     # print(json.dumps(type_to_schema(type(x), {}), indent=2))
     # print(type(x).__name__)
@@ -356,7 +353,7 @@ def test_more3_simpler():
         a: int
 
     ipce = ipce_from_typelike(MyClass)
-    print(oyaml_dump(ipce))
+    # print(oyaml_dump(ipce))
     assert_type_roundtrip(MyClass)
     #
     # # type_to_schema(MyClass, {})
@@ -373,7 +370,7 @@ def test_more3b_simpler():
         XT: ClassVar[Type[X]]
 
     ipce = ipce_from_typelike(MyClass)
-    print(oyaml_dump(ipce))
+    # print(oyaml_dump(ipce))
     assert_type_roundtrip(MyClass)
     #
     # # type_to_schema(MyClass, {})
@@ -443,7 +440,7 @@ def test_entity():
     fs = fields(Entity43)
     f0 = fs[3]
     assert f0.name == "parent"
-    print(f0)
+    # print(f0)
     assert f0.default is None
     assert_equal(Entity43.__name__, "Entity43[X]")
 
@@ -452,8 +449,8 @@ def test_entity():
 
     T = ipce_from_typelike(Entity43)
     C = typelike_from_ipce(T)
-    print(oyaml_dump(T))
-    print(C.__annotations__)
+    # print(oyaml_dump(T))
+    # print(C.__annotations__)
 
     # logger.info(f'SchemaCache: {pretty_dict("", SchemaCache.key2schema)}')
 
@@ -467,7 +464,7 @@ def test_entity():
     qn = Entity43_int.__qualname__
     assert "Entity43[int]" in qn, qn
 
-    logger.info("\n\nIgnore above\n\n")
+    # logger.info("\n\nIgnore above\n\n")
 
     assert_type_roundtrip(Entity43_int)
 
@@ -658,7 +655,7 @@ def test_derived2_subst():
 
     S = Signed3[int]
 
-    pprint(**S.__annotations__)
+    # pprint(**S.__annotations__)
 
     # Now we actually have it
     # assert 'X' not in str(S.__annotations__), S.__annotations__
@@ -668,13 +665,13 @@ def test_derived2_subst():
     class Y(S):
         pass
 
-    pprint(**Y.__annotations__)
+    # pprint(**Y.__annotations__)
 
     schema = ipce_from_typelike(Y)
-    print(oyaml_dump(schema))
+    # print(oyaml_dump(schema))
     TY = typelike_from_ipce(schema)
 
-    pprint("annotations", **TY.__annotations__)
+    # pprint("annotations", **TY.__annotations__)
     P = TY.__annotations__["parent"]
     assert not is_ForwardRef(P)
 
@@ -691,7 +688,7 @@ def test_derived3_subst():
         data: Optional[X]
 
     # noinspection PyDataclass
-    print(fields(Signed3))
+    # print(fields(Signed3))
     assert_type_roundtrip(Signed3)
 
     S = Signed3[int]

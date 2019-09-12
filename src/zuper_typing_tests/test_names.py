@@ -33,7 +33,7 @@ def test_names():
         type(None),
     )
     for x in xs:
-        print(name_for_type_like(x))
+        name_for_type_like(x)
 
 
 if __name__ == "__main__":

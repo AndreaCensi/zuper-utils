@@ -106,7 +106,7 @@ $schema:
 """
     ipce = oyaml_load(a)
     r = typelike_from_ipce(ipce)
-    print(r)
+    # print(r)
 
     assert_type_roundtrip(r)
 

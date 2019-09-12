@@ -1,12 +1,8 @@
-from typing import Any, Dict
+from typing import Any, cast, Dict, Type
 
 from nose.tools import assert_equal, raises
 
-from zuper_ipce import logger
-from zuper_ipce import ipce_from_object
-from zuper_ipce import ipce_from_typelike
-from zuper_ipce import object_from_ipce
-from zuper_ipce.pretty import pprint
+from zuper_ipce import ipce_from_object, logger, object_from_ipce
 from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import dataclass
 from zuper_typing.my_dict import get_DictLike_args, make_dict, make_list, make_set
@@ -20,7 +16,7 @@ def test_dict_int_int0():
 
 def test_dict_int_int1():
     D = Dict[int, int]
-    pprint(schema=ipce_from_typelike(D))
+    # pprint(schema=ipce_from_typelike(D))
 
     assert_type_roundtrip(D)
     # @dataclass
@@ -80,7 +76,9 @@ def test_dict_int_str4_type():
     ipce = ipce_from_object(D)
     D2 = object_from_ipce(ipce)
 
+    D = cast(Type[Dict], D)
     K, V = get_DictLike_args(D)
+    D2 = cast(Type[Dict], D2)
     K2, V2 = get_DictLike_args(D2)
     assert_equal((K, V), (K2, V2))
 
@@ -91,15 +89,15 @@ def test_dict_int_str4():
     c = D({"a": 1, "b": 2})
     K, V = get_DictLike_args(type(c))
     debug_print = str
-    logger.info(f"c: {debug_print(c)}")
+    # logger.info(f"c: {debug_print(c)}")
 
     ipce = ipce_from_object(c)
     c2 = object_from_ipce(ipce)
 
-    logger.info(f"ipce: {oyaml_dump(ipce)}")
-    logger.info(f"c2: {debug_print(c2)}")
+    # logger.info(f"ipce: {oyaml_dump(ipce)}")
+    # logger.info(f"c2: {debug_print(c2)}")
 
-    K2, V2 = get_DictLike_args(type(c2))
+    K2, V2 = get_DictLike_args(cast(Type[dict], type(c2)))
     assert_equal((K, V), (K2, V2))
 
 

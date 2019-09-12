@@ -1,5 +1,6 @@
 from typing import (
     Callable,
+    cast,
     ClassVar,
     Dict,
     List,
@@ -8,20 +9,17 @@ from typing import (
     Tuple,
     Type,
     Union,
-    cast,
 )
 
 from nose.tools import raises
 
-from zuper_commons.text import pretty_dict
-from zuper_ipce import logger
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
 from zuper_ipce.constants import JSONSchema
 from zuper_ipce.schema_caching import assert_canonical_schema
 from zuper_ipce_tests.test_utils import (
-    NotEquivalent,
     assert_equivalent_types,
     assert_type_roundtrip,
+    NotEquivalentException,
 )
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (
@@ -69,9 +67,9 @@ def test_rec1():
     T2 = recursive_type_subst(A, swap)
 
     T3 = recursive_type_subst(T2, swap)
-    logger.info(pretty_dict("A", A.__annotations__))
-    logger.info(pretty_dict("T2", T2.__annotations__))
-    logger.info(pretty_dict("T3", T3.__annotations__))
+    # logger.info(pretty_dict("A", A.__annotations__))
+    # logger.info(pretty_dict("T2", T2.__annotations__))
+    # logger.info(pretty_dict("T3", T3.__annotations__))
     assert_equivalent_types(A, T3, set())
 
     assert_type_roundtrip(A)
@@ -129,14 +127,14 @@ def test_classvar():
     assert is_ClassVar(T)
     assert get_ClassVar_arg(T) is int, T
     T2 = recursive_type_subst(T, swap)
-    print(T)
-    print(T2)
+    # print(T)
+    # print(T2)
 
     assert get_ClassVar_arg(T2) is str, T2
 
     try:
         assert_equivalent_types(T, T2, set())
-    except NotEquivalent:
+    except NotEquivalentException:
         pass
     else:  # pragma: no cover
         raise Exception()
@@ -145,8 +143,8 @@ def test_classvar():
     assert is_ClassVar(U)
     assert get_ClassVar_arg(U) is bool, U
     U2 = recursive_type_subst(U, swap)
-    print(U)
-    print(U2)
+    # print(U)
+    # print(U2)
 
     assert get_ClassVar_arg(U2) is bool, U
 

@@ -25,23 +25,31 @@ from zuper_ipce.json_utils import (
 )
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.utils_text import oyaml_dump
+from zuper_ipcl.debug_print_ import debug_print
 from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_ClassVar_arg,
     get_FixedTuple_args,
+    get_NewType_name,
     get_Optional_arg,
+    get_Type_arg,
     get_TypeVar_name,
     get_Union_args,
     get_VarTuple_arg,
     is_Any,
     is_ClassVar,
     is_FixedTuple,
+    is_NewType,
     is_Optional,
+    is_Type,
     is_TypeVar,
     is_Union,
     is_VarTuple,
+    get_NewType_arg,
 )
+from zuper_typing.exceptions import ZValueError
+from zuper_typing.logging import ztinfo
 from zuper_typing.my_dict import (
     get_DictLike_args,
     get_ListLike_arg,
@@ -66,8 +74,9 @@ def assert_type_roundtrip(
     schema = ipce_from_typelike(T, globals0=use_globals)
     save_object(T, ipce=schema)
 
-    opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
-    T2 = typelike_from_ipce(schema, opt=opt)
+    # logger.info(debug_print('schema', schema=schema))
+    iedo = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
+    T2 = typelike_from_ipce(schema, iedo=iedo)
 
     # TODO: in 3.6 does not hold for Dict, Union, etc.
     # if hasattr(T, '__qualname__'):
@@ -80,6 +89,8 @@ def assert_type_roundtrip(
     #     rl.pp(f"\n\nT2 ({T2}) - reconstructed from schema ", **getattr(T2, '__dict__', {}))
 
     # pprint("schema", schema=json.dumps(schema, indent=2))
+
+    ztinfo("assert_type_roundtrip", T=T, schema=schema, T2=T2)
 
     assert_equal(schema, schema0)
     if expect_type_equal:
@@ -114,12 +125,14 @@ def assert_type_roundtrip(
     return T2
 
 
-def debug(s, **kwargs):
-    ss = pretty_dict(s, kwargs)
-    logger.debug(ss)
+#
+#
+# def debug(s, **kwargs):
+#     ss = pretty_dict(s, kwargs)
+#     logger.debug(ss)
 
 
-class NotEquivalent(ValueError):
+class NotEquivalentException(ZValueError):
     pass
 
 
@@ -146,14 +159,14 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
 
         if is_dataclass(T1):
             if not is_dataclass(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
 
             for k in ["__name__", "__module__", "__doc__"]:
                 msg = f"Difference for {k} of {T1} ({type(T1)}) and {T2} ({type(T2)}"
                 v1 = getattr(T1, k, ())
                 v2 = getattr(T2, k, ())
                 if v1 != v2:
-                    raise NotEquivalent(msg)
+                    raise NotEquivalentException(msg, v1=v1, v2=v2)
                 # assert_equal(, , msg=msg)
 
             # noinspection PyDataclass
@@ -165,8 +178,8 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             fields2 = {_.name: _ for _ in fields2}
 
             if list(fields1) != list(fields2):
-                msg = f"Different fields: {list(fields1)} != {list(fields2)}"
-                raise NotEquivalent(msg)
+                msg = f"Different fields"
+                raise NotEquivalentException(msg, fields1=fields1, fields2=fields2)
 
             ann1 = getattr(T1, "__annotations__", {})
             ann2 = getattr(T2, "__annotations__", {})
@@ -179,45 +192,49 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             for k in fields1:
                 t1 = fields1[k].type
                 t2 = fields2[k].type
-                debug(
-                    f"checking the fields {k}",
-                    t1=f"{t1!r}",
-                    t2=f"{t2!r}",
-                    t1_ann=f"{T1.__annotations__[k]!r}",
-                    t2_ann=f"{T2.__annotations__[k]!r}",
-                )
+                # debug(
+                #     f"checking the fields {k}",
+                #     t1=f"{t1!r}",
+                #     t2=f"{t2!r}",
+                #     t1_ann=f"{T1.__annotations__[k]!r}",
+                #     t2_ann=f"{T2.__annotations__[k]!r}",
+                # )
                 try:
                     assert_equivalent_types(t1, t2, assume_yes=assume_yes)
-                except NotEquivalent as e:
+                except NotEquivalentException as e:
                     msg = f"Could not establish the annotation {k!r} to be equivalent"
-                    msg += f"\n t1 = {t1!r}"
-                    msg += f"\n t2 = {t2!r}"
-                    msg += f"\n t1_ann = {T1.__annotations__[k]!r}"
-                    msg += f"\n t2_ann = {T2.__annotations__[k]!r}"
-                    msg += f'\n t1_attribute = {getattr(T1, k, "no attribute")!r}'
-                    msg += f'\n t2_attribute = {getattr(T2, k, "no attribute")!r}'
-                    raise NotEquivalent(msg) from e
+                    raise NotEquivalentException(
+                        msg,
+                        t1=t1,
+                        t2=t2,
+                        t1_ann=T1.__annotations__[k],
+                        t2_ann=T2.__annotations__[k],
+                        t1_att=getattr(T1, k, "no attribute"),
+                        t2_att=getattr(T2, k, "no attribute"),
+                    ) from e
 
                 d1 = fields1[k].default
                 d2 = fields2[k].default
                 if d1 != d2:
-                    msg = f"Defaults for {k!r} are different:\n{d1}\n{d2}"
-                    raise NotEquivalent(msg)
+                    msg = f"Defaults for {k!r} are different."
+                    raise NotEquivalentException(msg, d1=d1, d2=d2)
 
             for k in ann1:
                 t1 = ann1[k]
                 t2 = ann2[k]
                 try:
                     assert_equivalent_types(t1, t2, assume_yes=assume_yes)
-                except NotEquivalent as e:
+                except NotEquivalentException as e:
                     msg = f"Could not establish the annotation {k!r} to be equivalent"
-                    msg += f"\n t1 = {t1!r}"
-                    msg += f"\n t2 = {t2!r}"
-                    msg += f"\n t1_ann = {T1.__annotations__[k]!r}"
-                    msg += f"\n t2_ann = {T2.__annotations__[k]!r}"
-                    msg += f'\n t1_attribute = {getattr(T1, k, "no attribute")!r}'
-                    msg += f'\n t2_attribute = {getattr(T2, k, "no attribute")!r}'
-                    raise NotEquivalent(msg) from e
+                    raise NotEquivalentException(
+                        msg,
+                        t1=t1,
+                        t2=t2,
+                        t1_ann=T1.__annotations__[k],
+                        t2_ann=T2.__annotations__[k],
+                        t1_att=getattr(T1, k, "no attribute"),
+                        t2_att=getattr(T2, k, "no attribute"),
+                    ) from e
 
         # for k in ['__annotations__']:
         #     assert_equivalent_types(getattr(T1, k, None), getattr(T2, k, None))
@@ -233,86 +250,103 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
         #             assert_equivalent_types(m1, m2, assume_yes=set())
         elif is_ClassVar(T1):
             if not is_ClassVar(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             t1 = get_ClassVar_arg(T1)
             t2 = get_ClassVar_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_Optional(T1):
             if not is_Optional(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             t1 = get_Optional_arg(T1)
             t2 = get_Optional_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_Union(T1):
             if not is_Union(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             ts1 = get_Union_args(T1)
             ts2 = get_Union_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
         elif is_Intersection(T1):
             if not is_Intersection(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             ts1 = get_Intersection_args(T1)
             ts2 = get_Intersection_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
         elif is_FixedTuple(T1):
             if not is_FixedTuple(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             ts1 = get_FixedTuple_args(T1)
             ts2 = get_FixedTuple_args(T2)
             for t1, t2 in zip(ts1, ts2):
                 assert_equivalent_types(t1, t2, assume_yes)
         elif is_VarTuple(T1):
             if not is_VarTuple(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             t1 = get_VarTuple_arg(T1)
             t2 = get_VarTuple_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_SetLike(T1):
             if not is_SetLike(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             t1 = get_SetLike_arg(T1)
             t2 = get_SetLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_ListLike(T1):
             T1 = cast(Type[List], T1)
             if not is_ListLike(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             T2 = cast(Type[List], T2)
             t1 = get_ListLike_arg(T1)
             t2 = get_ListLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_DictLike(T1):
             if not is_DictLike(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             t1, u1 = get_DictLike_args(T1)
             t2, u2 = get_DictLike_args(T2)
             assert_equivalent_types(t1, t2, assume_yes)
             assert_equivalent_types(u1, u2, assume_yes)
         elif is_Any(T1):
             if not is_Any(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
         elif is_TypeVar(T1):
             if not is_TypeVar(T2):
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
             n1 = get_TypeVar_name(T1)
             n2 = get_TypeVar_name(T2)
             if n1 != n2:
-                raise NotEquivalent((n1, n2))
+                raise NotEquivalentException(n1=n1, n2=n2)
         elif T1 in (int, str, bool, Decimal, datetime, float, type):
             if T1 != T2:
-                raise NotEquivalent((T1, T2))
+                raise NotEquivalentException(T1=T1, T2=T2)
+        elif is_NewType(T1):
+            if not is_NewType(T2):
+                raise NotEquivalentException(T1=T1, T2=T2)
+
+            n1 = get_NewType_name(T1)
+            n2 = get_NewType_name(T2)
+            if n1 != n2:
+                raise NotEquivalentException(T1=T1, T2=T2)
+
+            o1 = get_NewType_arg(T1)
+            o2 = get_NewType_arg(T2)
+            assert_equivalent_types(o1, o2, assume_yes)
+        elif is_Type(T1):
+            if not is_Type(T2):
+                raise NotEquivalentException(T1=T1, T2=T2)
+            t1 = get_Type_arg(T1)
+            t2 = get_Type_arg(T2)
+            assert_equivalent_types(t1, t2, assume_yes)
+
         else:
             raise NotImplementedError((T1, T2))
 
-    except NotEquivalent as e:
-        logger.error(e)
+    except NotEquivalentException as e:
+        # logger.error(e)
         msg = f"Could not establish the two types to be equivalent."
-        msg += f"\n T1 = {id(T1)} {T1!r}"
-        msg += f"\n T2 = {id(T2)} {T2!r}"
-        raise NotEquivalent(msg) from e
+        raise NotEquivalentException(msg, T1=T1, T2=T2) from e
     # assert T1 == T2
     # assert_equal(T1.mro(), T2.mro())
 
@@ -323,7 +357,7 @@ def save_object(x: object, ipce: object):
         import zuper_ipcl
     except:
         return
-    print(f"saving {x}")
+    # print(f"saving {x}")
     _x2 = object_from_ipce(ipce)
     ipce_bytes = cbor2.dumps(ipce, canonical=True, value_sharing=True)
     from zuper_ipcl.cid2mh import get_cbor_dag_hash_bytes
@@ -371,7 +405,7 @@ def assert_object_roundtrip(
     if use_globals is None:
         use_globals = {}
     ieds = IEDS(use_globals, {})
-    opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
+    iedo = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
 
     y1 = ipce_from_object(x1, globals_=use_globals)
     y1_cbor: bytes = cbor2.dumps(y1)
@@ -385,9 +419,9 @@ def assert_object_roundtrip(
 
     y1esl = decode_bytes_before_json_deserialization(json.loads(y1es))
 
-    y1eslo = object_from_ipce_(y1esl, object, ieds=ieds, opt=opt)
+    y1eslo = object_from_ipce_(y1esl, object, ieds=ieds, iedo=iedo)
 
-    x1b = object_from_ipce_(y1, object, ieds=ieds, opt=opt)
+    x1b = object_from_ipce_(y1, object, ieds=ieds, iedo=iedo)
 
     x1bj = ipce_from_object(x1b, globals_=use_globals)
 
@@ -418,7 +452,7 @@ def assert_object_roundtrip(
     if works_without_schema:
         z1 = ipce_from_object(x1, globals_=use_globals, ieso=ieso_false)
         z2 = cbor2.loads(cbor2.dumps(z1))
-        u1 = object_from_ipce_(z2, type(x1), ieds=ieds, opt=opt)
+        u1 = object_from_ipce_(z2, type(x1), ieds=ieds, iedo=iedo)
         check_equality(x1, u1, expect_equality)
 
     return locals()
@@ -429,7 +463,8 @@ import numpy as np
 
 def check_equality(x1: object, x1b: object, expect_equality: bool) -> None:
     if isinstance(x1b, type) and isinstance(x1, type):
-        logger.warning("Skipping type equality check for %s and %s" % (x1b, x1))
+        # logger.warning("Skipping type equality check for %s and %s" % (x1b, x1))
+        pass
     else:
         if isinstance(x1, np.ndarray):
             pass
@@ -473,7 +508,6 @@ def check_equality(x1: object, x1b: object, expect_equality: bool) -> None:
                     # raise Exception(msg)
 
 
-@known_failure
 def test_testing1():
     def get1():
         @dataclass
@@ -492,12 +526,12 @@ def test_testing1():
 
     try:
         assert_equivalent_types(get1(), get2(), set())
-    except:
-        print(traceback.format_exc())
-        raise
+    except NotEquivalentException:
+        pass
+    else:
+        raise Exception()
 
 
-@known_failure
 def test_testing2():
     def get1():
         @dataclass
@@ -515,9 +549,10 @@ def test_testing2():
 
     try:
         assert_equivalent_types(get1(), get2(), set())
-    except:
-        print(traceback.format_exc())
-        raise
+    except NotEquivalentException:
+        pass
+    else:
+        raise Exception()
 
 
 @dataclass

@@ -10,7 +10,7 @@ from zuper_typing.monkey_patching_typing import MyNamedArg as NamedArg
 
 def test_detection_1():
     T = Callable[[], int]
-    print(T.__dict__)
+    # print(T.__dict__)
     assert is_Callable(T)
 
     res = get_Callable_info(T)

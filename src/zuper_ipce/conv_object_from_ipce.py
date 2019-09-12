@@ -55,19 +55,19 @@ from .types import IPCE, TypeLike
 
 
 def object_from_ipce(
-    mj: IPCE, expect_type: TypeLike = object, *, opt: Optional[IEDO] = None
+    mj: IPCE, expect_type: TypeLike = object, *, iedo: Optional[IEDO] = None
 ) -> object:
     assert expect_type is not None
-    if opt is None:
-        opt = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
+    if iedo is None:
+        iedo = IEDO(use_remembered_classes=False, remember_deserialized_classes=False)
     ieds = IEDS({}, {})
 
     try:
-        res = object_from_ipce_(mj, expect_type=expect_type, ieds=ieds, opt=opt)
+        res = object_from_ipce_(mj, expect_type=expect_type, ieds=ieds, iedo=iedo)
         return res
     except IPCE_PASS_THROUGH:
         raise
-    except BaseException as e:
+    except ZValueError as e:
         msg = f"Cannot deserialize object"
         if isinstance(mj, dict) and "$schema" in mj:
             schema = mj["$schema"]
@@ -85,18 +85,18 @@ def object_from_ipce(
 
 
 def object_from_ipce_(
-    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: IEDO
+    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO
 ) -> object:
     assert expect_type is not None
 
     if is_Optional(expect_type):
-        return object_from_ipce_optional(mj, expect_type, ieds=ieds, opt=opt)
+        return object_from_ipce_optional(mj, expect_type, ieds=ieds, iedo=iedo)
 
     if is_Union(expect_type):
-        return object_from_ipce_union(mj, expect_type, ieds=ieds, opt=opt)
+        return object_from_ipce_union(mj, expect_type, ieds=ieds, iedo=iedo)
 
     if is_Intersection(expect_type):
-        return object_from_ipce_intersection(mj, expect_type, ieds=ieds, opt=opt)
+        return object_from_ipce_intersection(mj, expect_type, ieds=ieds, iedo=iedo)
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
     trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
 
@@ -120,7 +120,7 @@ def object_from_ipce_(
         return mj
 
     if isinstance(mj, list):
-        return object_from_ipce_list(mj, expect_type, ieds=ieds, opt=opt)
+        return object_from_ipce_list(mj, expect_type, ieds=ieds, iedo=iedo)
 
     if mj is None:
         if expect_type is None:
@@ -142,16 +142,16 @@ def object_from_ipce_(
     if mj.get(SCHEMA_ATT, "") == SCHEMA_ID:
         schema = cast(JSONSchema, mj)
 
-        sr = typelike_from_ipce_sr(schema, ieds=ieds, opt=opt)
+        sr = typelike_from_ipce_sr(schema, ieds=ieds, iedo=iedo)
         return sr.res
     if mj.get(JSC_TITLE, None) == JSC_TITLE_TYPE:
         schema = cast(JSONSchema, mj)
-        sr = typelike_from_ipce_sr(schema, ieds=ieds, opt=opt)
+        sr = typelike_from_ipce_sr(schema, ieds=ieds, iedo=iedo)
         return sr.res
 
     if SCHEMA_ATT in mj:
         sa = mj[SCHEMA_ATT]
-        R = typelike_from_ipce_sr(sa, ieds=ieds, opt=opt)
+        R = typelike_from_ipce_sr(sa, ieds=ieds, iedo=iedo)
         K = R.res
         # logger.debug(f' loaded K = {K} from {mj}')
     else:
@@ -166,15 +166,15 @@ def object_from_ipce_(
 
     if is_DictLike(K):
         K = cast(Type[Dict], K)
-        return object_from_ipce_dict(mj, K, ieds=ieds, opt=opt)
+        return object_from_ipce_dict(mj, K, ieds=ieds, iedo=iedo)
 
     if is_SetLike(K):
         K = cast(Type[Set], K)
-        res = object_from_ipce_SetLike(mj, K, ieds=ieds, opt=opt)
+        res = object_from_ipce_SetLike(mj, K, ieds=ieds, iedo=iedo)
         return res
 
     if is_dataclass(K):
-        return object_from_ipce_dataclass_instance(mj, K, ieds=ieds, opt=opt)
+        return object_from_ipce_dataclass_instance(mj, K, ieds=ieds, iedo=iedo)
 
     if K is slice:
         return object_from_ipce_slice(mj)
@@ -182,7 +182,7 @@ def object_from_ipce_(
     if is_unconstrained(K):
         if looks_like_set(mj):
             st = Set[object]
-            res = object_from_ipce_SetLike(mj, st, ieds=ieds, opt=opt)
+            res = object_from_ipce_SetLike(mj, st, ieds=ieds, iedo=iedo)
             return res
         else:
             msg = "No schema found and very ambiguous."
@@ -207,9 +207,9 @@ def object_from_ipce_slice(mj) -> slice:
     return slice(start, stop, step)
 
 
-def object_from_ipce_list(mj: IPCE, expect_type, *, ieds: IEDS, opt: IEDO) -> IPCE:
+def object_from_ipce_list(mj: IPCE, expect_type, *, ieds: IEDS, iedo: IEDO) -> IPCE:
     def rec(x, TT: TypeLike) -> object:
-        return object_from_ipce_(x, ieds=ieds, expect_type=TT, opt=opt)
+        return object_from_ipce_(x, ieds=ieds, expect_type=TT, iedo=iedo)
 
     # logger.info(f'expect_type for list is {expect_type}')
     from zuper_ipce.conv_ipce_from_object import is_unconstrained
@@ -220,7 +220,7 @@ def object_from_ipce_list(mj: IPCE, expect_type, *, ieds: IEDS, opt: IEDO) -> IP
         T = make_list(object)
         return T(seq)
     elif is_TupleLike(expect_type):
-        return object_from_ipce_tuple(mj, expect_type, ieds=ieds, opt=opt)
+        return object_from_ipce_tuple(mj, expect_type, ieds=ieds, iedo=iedo)
     elif is_ListLike(expect_type):
         suggest = get_ListLike_arg(expect_type)
         seq = [rec(_, suggest) for _ in mj]
@@ -233,23 +233,23 @@ def object_from_ipce_list(mj: IPCE, expect_type, *, ieds: IEDS, opt: IEDO) -> IP
 
 
 def object_from_ipce_optional(
-    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: IEDO
+    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO
 ) -> IPCE:
     if mj is None:
         return mj
     K = get_Optional_arg(expect_type)
 
-    return object_from_ipce_(mj, K, ieds=ieds, opt=opt)
+    return object_from_ipce_(mj, K, ieds=ieds, iedo=iedo)
 
 
 def object_from_ipce_union(
-    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: IEDO
+    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO
 ) -> IPCE:
     errors = []
     ts = get_Union_args(expect_type)
     for T in ts:
         try:
-            return object_from_ipce_(mj, T, ieds=ieds, opt=opt)
+            return object_from_ipce_(mj, T, ieds=ieds, iedo=iedo)
         except IPCE_PASS_THROUGH:  # pragma: no cover
             raise
         except BaseException:
@@ -261,13 +261,13 @@ def object_from_ipce_union(
 
 
 def object_from_ipce_intersection(
-    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: IEDO
+    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO
 ) -> IPCE:
     errors = {}
     ts = get_Intersection_args(expect_type)
     for T in ts:
         try:
-            return object_from_ipce_(mj, T, ieds=ieds, opt=opt)
+            return object_from_ipce_(mj, T, ieds=ieds, iedo=iedo)
         except IPCE_PASS_THROUGH:  # pragma: no cover
             raise
         except BaseException:
@@ -278,12 +278,12 @@ def object_from_ipce_intersection(
     raise ZValueError(msg, errors=errors, ts=ts)
 
 
-def object_from_ipce_tuple(mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: IEDO):
+def object_from_ipce_tuple(mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO):
     if is_FixedTuple(expect_type):
         seq = []
         ts = get_FixedTuple_args(expect_type)
         for expect_type_i, ob in zip(ts, mj):
-            r = object_from_ipce_(ob, expect_type_i, ieds=ieds, opt=opt)
+            r = object_from_ipce_(ob, expect_type_i, ieds=ieds, iedo=iedo)
             seq.append(r)
 
         return tuple(seq)
@@ -291,7 +291,7 @@ def object_from_ipce_tuple(mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, opt: 
         T = get_VarTuple_arg(expect_type)
         seq = []
         for i, ob in enumerate(mj):
-            r = object_from_ipce_(ob, T, ieds=ieds, opt=opt)
+            r = object_from_ipce_(ob, T, ieds=ieds, iedo=iedo)
             seq.append(r)
 
         return tuple(seq)
@@ -313,7 +313,7 @@ def add_to_globals(ieds: IEDS, name: str, val: object) -> IEDS:
 
 
 def object_from_ipce_dataclass_instance(
-    mj: IPCE, K: TypeLike, *, ieds: IEDS, opt: IEDO
+    mj: IPCE, K: TypeLike, *, ieds: IEDS, iedo: IEDO
 ):
     ieds = add_to_globals(ieds, K.__name__, K)
 
@@ -334,21 +334,21 @@ def object_from_ipce_dataclass_instance(
             raise ZValueError(msg, K=K, expect_type=et_k, mj=mj, annotation=anns[k])
 
         if k in hints:
-            R = typelike_from_ipce_sr(hints[k], ieds=ieds, opt=opt)
+            R = typelike_from_ipce_sr(hints[k], ieds=ieds, iedo=iedo)
 
             et_k = R.res
 
         try:
-            attrs[k] = object_from_ipce_(v, et_k, ieds=ieds, opt=opt)
+            attrs[k] = object_from_ipce_(v, et_k, ieds=ieds, iedo=iedo)
         except IPCE_PASS_THROUGH:  # pragma: no cover
             raise
-        except BaseException as e:  # pragma: no cover
+        except ZValueError as e:  # pragma: no cover
             msg = f"Cannot deserialize attribute {k!r} of {K.__name__}."
 
-            fn = write_out_yaml(f"instance_of_{K.__name__}_attribute_{k}", v)
-            msg += f"\n mj[{k!r}] in {fn}"
-            fn = write_out_yaml(f"instance_of_{K.__name__}", mj)
-            msg += f"\n mj in {fn}"
+            # fn = write_out_yaml(f"instance_of_{K.__name__}_attribute_{k}", v)
+            # msg += f"\n mj[{k!r}] in {fn}"
+            # fn = write_out_yaml(f"instance_of_{K.__name__}", mj)
+            # msg += f"\n mj in {fn}"
 
             raise ZValueError(
                 msg,
@@ -411,7 +411,7 @@ def write_out_yaml(prefix: str, v: object) -> str:
     return fn
 
 
-def object_from_ipce_dict(mj: IPCE, D: Type[Dict], *, ieds: IEDS, opt: IEDO):
+def object_from_ipce_dict(mj: IPCE, D: Type[Dict], *, ieds: IEDS, iedo: IEDO):
     assert is_DictLike(D), D
     K, V = get_DictLike_args(D)
     D = make_dict(K, V)
@@ -430,7 +430,7 @@ def object_from_ipce_dict(mj: IPCE, D: Type[Dict], *, ieds: IEDS, opt: IEDO):
             continue
 
         try:
-            attrs[k] = object_from_ipce_(v, et_V, ieds=ieds, opt=opt)
+            attrs[k] = object_from_ipce_(v, et_V, ieds=ieds, iedo=iedo)
 
         except (TypeError, NotImplementedError) as e:  # pragma: no cover
             msg = f'Cannot deserialize element at index "{k}".'
@@ -450,7 +450,7 @@ def object_from_ipce_dict(mj: IPCE, D: Type[Dict], *, ieds: IEDS, opt: IEDO):
         return ob
 
 
-def object_from_ipce_SetLike(mj: IPCE, D: Type[Set], *, ieds: IEDS, opt: IEDO):
+def object_from_ipce_SetLike(mj: IPCE, D: Type[Set], *, ieds: IEDS, iedo: IEDO):
     V = get_SetLike_arg(D)
 
     res = set()
@@ -460,7 +460,7 @@ def object_from_ipce_SetLike(mj: IPCE, D: Type[Set], *, ieds: IEDS, opt: IEDO):
         if k == SCHEMA_ATT:
             continue
 
-        vob = object_from_ipce_(v, V, ieds=ieds, opt=opt)
+        vob = object_from_ipce_(v, V, ieds=ieds, iedo=iedo)
 
         # logger.info(f'loaded k = {k} vob = {vob}')
         res.add(vob)

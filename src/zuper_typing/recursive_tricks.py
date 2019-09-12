@@ -17,6 +17,7 @@ from typing import (
 )
 
 from zuper_typing.literal import is_Literal
+from zuper_typing.logging import ztinfo
 from .aliases import TypeLike
 from .annotations_tricks import (
     get_Callable_info,
@@ -194,6 +195,7 @@ def replace_typevars(
 
         cls2 = make_type(cls, bindings=bindings, symbols=symbols)
 
+        ztinfo("replace_typevars", bindings=bindings, cls=cls, cls2=cls2)
         # logger.info(f'old cls: {cls.__annotations__}')
         # logger.info(f'new cls2: {cls2.__annotations__}')
         return cls2

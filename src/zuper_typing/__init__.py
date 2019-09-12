@@ -14,3 +14,5 @@ else:
 
     # noinspection PyUnresolvedReferences
     from .monkey_patching_typing import ZenericFix as Generic
+
+from .debug_print_ import debug_print

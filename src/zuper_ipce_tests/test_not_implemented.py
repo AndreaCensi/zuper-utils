@@ -1,9 +1,5 @@
-from dataclasses import field
-from typing import List
-
-
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
-from zuper_typing import dataclass
+
 
 # TODO:
 # if not USE_REMEMBERED_CLASSES:  # pragma: no cover

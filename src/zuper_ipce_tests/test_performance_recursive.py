@@ -63,7 +63,7 @@ def test_recursive_chain_ipce():
     t = create_chain(100, 0)
 
     ipce: IPCE = ipce_from_object(t)
-    print(ipce)
+    # print(ipce)
 
 
 def test_recursive_ipce():

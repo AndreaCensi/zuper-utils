@@ -13,7 +13,7 @@ def test_serialize_klasses0():
         a: int
 
     Aj = ipce_from_object(A)
-    pprint(Aj=Aj)
+    # pprint(Aj=Aj)
 
     assert_object_roundtrip(A, expect_equality=False)  # because of classes
 

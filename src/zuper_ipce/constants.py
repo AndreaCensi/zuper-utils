@@ -1,7 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import cast, Dict, NewType
+from typing import cast, Dict, NewType, Tuple
+
+from zuper_typing.my_dict import make_dict
 
 JSONSchema = NewType("JSONSchema", dict)
 GlobalsDict = Dict[str, object]
@@ -89,10 +91,26 @@ class IEDO:
     remember_deserialized_classes: bool
 
 
+ModuleName = QualName = str
+n = 0
+
+
 @dataclass
 class IEDS:
-    global_symbols: Dict
+    global_symbols: Dict[str, type]
     encountered: Dict
+    klasses: Dict[Tuple[ModuleName, QualName], type] = None
+
+    def __post_init__(self):
+        pass
+        if self.klasses is None:
+            self.klasses = make_dict(str, type)()
+        #     from .logging import logger
+        #     logger.info('IEDS new')
+        #     global n
+        #     n += 1
+        #     if n == 5:
+        #         raise NotImplementedError()
 
 
 @dataclass
@@ -101,4 +119,4 @@ class IESO:
     with_schema: bool = True
 
 
-IPCE_PASS_THROUGH = (NotImplementedError, KeyboardInterrupt, MemoryError, TypeError)
+IPCE_PASS_THROUGH = (NotImplementedError, KeyboardInterrupt, MemoryError)

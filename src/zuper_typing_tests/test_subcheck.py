@@ -30,6 +30,7 @@ from zuper_typing.my_intersection import Intersection
 from zuper_typing.recursive_tricks import replace_typevars
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing.uninhabited import make_Uninhabited
+from zuper_typing_tests.test_utils import known_failure
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -236,7 +237,7 @@ def test_match_List1a():
     L2 = List[X]
 
     res = can_be_used_as2(L1, L2)
-    print(L1, L2, res)
+    # print(L1, L2, res)
     assert res, res
 
     assert res.M.get_lb("X") is str, res
@@ -250,7 +251,7 @@ def test_match_List1b():
     L2 = List[str]
 
     res = can_be_used_as2(L1, L2)
-    print(L1, L2, res)
+    # print(L1, L2, res)
     assert res, res
 
     assert res.M.get_ub("X") is str, res
@@ -263,7 +264,7 @@ def test_match_List2():
     L1 = List[Any]
     L2 = List[X]
     res = can_be_used_as2(L1, L2)
-    print(L1, L2, res)
+    # print(L1, L2, res)
 
     assert res, res
     assert res.M.get_ub("X") is None
@@ -292,7 +293,7 @@ def test_match_TypeVar0():
     L1 = Tuple[str]
     L2 = TypeVar("L2")
     res = can_be_used_as2(L1, L2)
-    print(res)
+    # print(res)
 
     assert res, res
 
@@ -320,7 +321,7 @@ def test_match_Tuple0():
     L2 = Tuple[X]
 
     res = can_be_used_as2(L1, L2)
-    print(res)
+    # print(res)
 
     assert res.M.get_ub("X") is None, res
     assert res.M.get_lb("X") is str, res
@@ -333,7 +334,7 @@ def test_match_Tuple1():
     L2 = Tuple[X, Y]
 
     res = can_be_used_as2(L1, L2)
-    print(res)
+    # print(res)
     assert res.M.get_ub("X") is None, res
     assert res.M.get_lb("X") is str, res
     assert res.M.get_ub("Y") is None, res
@@ -382,7 +383,7 @@ def test_replace_typevars():
 
 def try_(orig, subst, result):
     obtained = replace_typevars(orig, bindings=subst, symbols={})
-    print(f"obtained {type(obtained)} {obtained!r}")
+    # print(f"obtained {type(obtained)} {obtained!r}")
     assert_equal(name_for_type_like(obtained), name_for_type_like(result))
 
 
@@ -402,7 +403,7 @@ def test_callable1():
     T = Callable[[int], str]
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
-    print(cinfo)
+    # print(cinfo)
 
     assert cinfo.parameters_by_name == {"0": int}
     assert cinfo.parameters_by_position == (int,)
@@ -416,7 +417,7 @@ def test_callable2():
     T = Callable[[X], Y]
     assert is_Callable(T)
     cinfo = get_Callable_info(T)
-    print(cinfo)
+    # print(cinfo)
 
     assert cinfo.parameters_by_name == {"0": X}
     assert cinfo.parameters_by_position == (X,)
@@ -485,8 +486,8 @@ def assert_not(a, b):
     assert not res.result, res
 
 
+@known_failure
 def test_subcheck_literal_01():
-    """ known_failure """
     T = make_Literal(1)
     U = make_Literal(1, 2)
     V = make_Literal(1, 2, 3)

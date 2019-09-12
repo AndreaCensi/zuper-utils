@@ -22,16 +22,16 @@ def test_pretty1():
     h = "-----BEGIN ciao"
     i = "zd..."
     j = "Qm..."
-    print(Animal)
+    # print(Animal)
     a = Animal(1, True, 0.1, datetime.now(), "a", b"a", g, h, i, j)
-    print(a.__repr__())
-    print(a.__str__())
+    # print(a.__repr__())
+    # print(a.__str__())
 
 
 def test_pretty2():
     X = TypeVar("X", bound=Dict[str, str])
-    print(X)
+    # print(X)
     Y = TypeVar("Y", contravariant=True)
-    print(Y)
+    # print(Y)
     Z = TypeVar("Z", covariant=True)
-    print(Z)
+    # print(Z)

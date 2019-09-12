@@ -30,10 +30,10 @@ def test_type():
     assert_equal(MyClass.__annotations__["another"].__annotations__["data0"], X)
 
     C = MyClass[A]
-    print(C.__annotations__["another"])
-    print(C.__annotations__["another"].__annotations__["data0"])
+    # print(C.__annotations__["another"])
+    # print(C.__annotations__["another"].__annotations__["data0"])
     assert_equal(C.__annotations__["another"].__annotations__["data0"], A)
-    print(C.__annotations__["another"])
+    # print(C.__annotations__["another"])
     assert_equal(C.__annotations__["another"].__name__, "Another[A]")
 
     # cannot serialize because A is not a dataclass
@@ -54,8 +54,8 @@ def test_type02():
     C0 = MyClass
     C1 = MyClass[V]
 
-    print(C0.__annotations__)
-    print(C1.__annotations__)
+    # print(C0.__annotations__)
+    # print(C1.__annotations__)
 
     assert C0.__annotations__["data0"] == X
     assert C1.__annotations__["data0"] == V
@@ -79,30 +79,30 @@ def test_type05():
         forked2: Optional["MyEntity[X]"]
         forked3: "Optional[MyEntity[X]]"
 
-    print("%s" % MyEntity)
-    print("name: %s" % MyEntity.__name__)
+    # print("%s" % MyEntity)
+    # print("name: %s" % MyEntity.__name__)
     # resolve_types(MyEntity, locals())
 
     forked1_X = MyEntity.__annotations__["forked1"]
-    print(f"forked1_X: {forked1_X!r}")
+    # print(f"forked1_X: {forked1_X!r}")
     forked2_X = MyEntity.__annotations__["forked2"]
-    print(f"forked2_X: {forked2_X!r}")
+    # print(f"forked2_X: {forked2_X!r}")
     forked3_X = MyEntity.__annotations__["forked3"]
-    print(f"forked3_X: {forked3_X!r}")
+    # print(f"forked3_X: {forked3_X!r}")
     E = MyEntity[A]
 
     forked1_A = E.__annotations__["forked1"]
-    print(f"forked1_A: {forked1_A!r}")
+    # print(f"forked1_A: {forked1_A!r}")
     forked2_A = E.__annotations__["forked2"]
-    print(f"forked2_A: {forked2_A!r}")
+    # print(f"forked2_A: {forked2_A!r}")
     forked3_A = E.__annotations__["forked3"]
-    print(f"forked3_A: {forked3_A!r}")
+    # print(f"forked3_A: {forked3_A!r}")
 
     assert_equal(E.__name__, "MyEntity[A]")
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)
-    print(E.__annotations__["forked1"])
+    # print(E.__annotations__["forked1"])
     assert_equal(E.__annotations__["forked1"].__name__, MyEntity[A].__name__)
-    print(E.__annotations__["forked2"])
+    # print(E.__annotations__["forked2"])
     assert_equal(
         E.__annotations__["forked2"].__args__[0].__name__, MyEntity[A].__name__
     )
@@ -141,7 +141,7 @@ def test_type06():
         signed_proposal: Signed[EntityUpdateProposal[Z]]
         # previous: 'Optional[VersionChainWithAuthors[Z]]' = None
 
-    print("**********\n\n\n")
+    # print("**********\n\n\n")
     C = VersionChainWithAuthors[Values]
     pprint("C annotations", C=C, **C.__annotations__)
     assert_equal(C.__name__, "VersionChainWithAuthors[Values]")
@@ -150,7 +150,7 @@ def test_type06():
         C.__annotations__["signed_proposal"].__name__,
         "Signed[EntityUpdateProposal[Values]]",
     )
-    print(oyaml_dump(ipce_from_typelike(C)))
+    # print(oyaml_dump(ipce_from_typelike(C)))
     #
     # assert_equal(E.__name__, 'Entity[A]')
     # assert_equal(E.__annotations__['parent'].__args__[0].__name__, Entity[Any].__name__)

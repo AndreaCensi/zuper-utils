@@ -9,7 +9,7 @@ def test_ordering():
         root: Optional[int]
         links: int
 
-    print(C.__annotations__)
+    # print(C.__annotations__)
 
     a = C(1, 2)
     assert a.root == 1

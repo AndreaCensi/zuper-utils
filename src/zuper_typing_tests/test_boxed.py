@@ -78,21 +78,21 @@ def test_boxed_can_dataclass():
     class CannotInstantiateYet(Generic[X]):
         inside: X
 
-    print("name: %s %s" % (CannotInstantiateYet.__name__, CannotInstantiateYet))
+    # print("name: %s %s" % (CannotInstantiateYet.__name__, CannotInstantiateYet))
     assert (
         "CannotInstantiateYet" in CannotInstantiateYet.__name__
     ), CannotInstantiateYet.__name__
 
     assert is_dataclass(CannotInstantiateYet)
-    print("calling")
+    # print("calling")
     CanBeInstantiated = CannotInstantiateYet[str]
 
     assert (
         "CannotInstantiateYet[str]" in CanBeInstantiated.__name__
     ), CanBeInstantiated.__name__
-    print("CanBeInstantiated: %s %s" % (CanBeInstantiated.__name__, CanBeInstantiated))
+    # print("CanBeInstantiated: %s %s" % (CanBeInstantiated.__name__, CanBeInstantiated))
 
-    print(CanBeInstantiated.__init__)
+    # print(CanBeInstantiated.__init__)
 
     CanBeInstantiated(inside="13")
 

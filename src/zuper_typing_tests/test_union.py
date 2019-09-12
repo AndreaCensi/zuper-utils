@@ -29,7 +29,7 @@ def test_corner_cases_empty_union():
 
 # @raises(ValueError)
 def test_corner_cases_empty_union1():
-    print(make_Union(int))
+    make_Union(int)
 
 
 def test_multiple_optional():

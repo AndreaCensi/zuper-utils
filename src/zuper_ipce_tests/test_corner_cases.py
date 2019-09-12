@@ -31,7 +31,7 @@ from zuper_ipce_tests.test_utils import (
     assert_equivalent_types,
     assert_object_roundtrip,
     assert_type_roundtrip,
-    NotEquivalent,
+    NotEquivalentException,
 )
 from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import (
@@ -182,7 +182,7 @@ def test_default2():
     ipce1 = ipce_from_typelike(C)
     C2 = typelike_from_ipce(ipce1)
     # print(debug_print(C))
-    print(oyaml_dump(ipce1))
+    # print(oyaml_dump(ipce1))
     assert ipce1["properties"]["a"]["default"] == False
     # print(debug_print(C2))
     ipce2 = ipce_from_typelike(C2)
@@ -221,8 +221,8 @@ a: true
     ipce = cast(dict, oyaml_load(a))
 
     T = typelike_from_ipce(ipce["$schema"])
-    print(T)
-    print(T.__annotations__)
+    # print(T)
+    # print(T.__annotations__)
     assert T.__annotations__["a"] is bool, T.__annotations__
 
     _ob = object_from_ipce(ipce)
@@ -320,7 +320,7 @@ def test_corner_optional_with_default():
     assert_object_roundtrip(a)
 
     ipce = ipce_from_typelike(MyCD)
-    logger.info("yaml:\n\n" + oyaml_dump(ipce))
+    # logger.info("yaml:\n\n" + oyaml_dump(ipce))
     assert ipce["properties"]["a"]["default"] == True
     assert "required" not in ipce
 
@@ -336,7 +336,7 @@ def test_corner_optional_with_default2():
     assert_object_roundtrip(a)
 
     ipce = ipce_from_typelike(MyCD2)
-    logger.info("yaml:\n\n" + oyaml_dump(ipce))
+    # logger.info("yaml:\n\n" + oyaml_dump(ipce))
     assert ipce["properties"]["a"]["default"] == True
     assert "required" not in ipce
 
@@ -376,7 +376,7 @@ def make_class_default(tl, default):
     return MyCD4
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal1():
     T1 = Union[int, bool]
     T2 = Union[int, str]
@@ -385,7 +385,7 @@ def test_not_equal1():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal2():
     T1 = Dict[int, bool]
     T2 = Dict[int, str]
@@ -394,7 +394,7 @@ def test_not_equal2():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal3():
     T1 = Dict[str, bool]
     T2 = Dict[int, bool]
@@ -403,7 +403,7 @@ def test_not_equal3():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal4():
     T1 = Set[str]
     T2 = Set[int]
@@ -412,7 +412,7 @@ def test_not_equal4():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal5():
     T1 = List[str]
     T2 = List[int]
@@ -421,25 +421,25 @@ def test_not_equal5():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal6():
     T1 = ClassVar[str]
     T2 = ClassVar[int]
     A = make_class(T1)
     B = make_class(T2)
-    print(A.__annotations__)
-    print(B.__annotations__)
+    # print(A.__annotations__)
+    # print(B.__annotations__)
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal7():
     T1 = ClassVar[str]
     T2 = ClassVar[int]
     assert_equivalent_types(T1, T2, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal8():
     T = bool
     A = make_class_default(T, True)
@@ -448,7 +448,7 @@ def test_not_equal8():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal9():
     T = Optional[bool]
     A = make_class_default(T, True)
@@ -457,7 +457,7 @@ def test_not_equal9():
     assert_equivalent_types(A, B, set())
 
 
-@raises(NotEquivalent)
+@raises(NotEquivalentException)
 def test_not_equal10():
     T = Optional[bool]
     A = make_class_default(T, None)
@@ -475,7 +475,7 @@ def test_type():
         XT: ClassVar[Type[X]]
 
     MyClassInt = MyClass[int]
-    print(MyClassInt.__annotations__)
+    # print(MyClassInt.__annotations__)
     assert_equal(MyClassInt.XT, int)
 
     assert_type_roundtrip(MyClass)

@@ -1,5 +1,4 @@
 import dataclasses
-import traceback
 import typing
 from datetime import datetime
 from typing import Dict, Generic, TypeVar
@@ -11,9 +10,9 @@ from zuper_commons.text.text_sidebyside import side_by_side
 from .constants import (
     ANNOTATIONS_ATT,
     DEPENDS_ATT,
+    monkey_patch_dataclass,
     monkey_patch_Generic,
     PYTHON_36,
-    monkey_patch_dataclass,
 )
 from .my_dict import make_dict
 from .zeneric2 import resolve_types, ZenericFix
@@ -149,8 +148,10 @@ def get_remembered_class(module_name: str, qual_name: str) -> type:
 
 def remember_created_class(res: type, msg: str = ""):
     k = (res.__module__, res.__qualname__)
+    from .logging import logger
+
+    logger.info(f"Asked to remember {k}: {msg}")
     if k in RegisteredClasses.klasses:
-        from .logging import logger
 
         logger.info(f"Asked to remember again {k}: {msg}")
     RegisteredClasses.klasses[k] = res
@@ -356,7 +357,7 @@ def debug_print_str(x: str, *, prefix: str):
             res = box(x, color="yellow", attrs=["dark"])
             return side_by_side([res, ps])
         except:
-            print(traceback.format_exc())
+            # print(traceback.format_exc())
             return "?"
     else:
         return "`" + x + "`" + ps

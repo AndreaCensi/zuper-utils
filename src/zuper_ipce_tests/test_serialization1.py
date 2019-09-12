@@ -2,16 +2,11 @@ from dataclasses import field
 from typing import Any, cast, Dict, NewType, Optional, TypeVar, Union
 
 from zuper_commons.logs import setup_logging
+from zuper_ipce import ipce_from_typelike, object_from_ipce, typelike_from_ipce
 from zuper_ipce.constants import JSONSchema, SCHEMA_ATT, SCHEMA_ID
-from zuper_ipce import ipce_from_typelike
-from zuper_ipce import object_from_ipce
-from zuper_ipce import typelike_from_ipce
-from zuper_ipce.exceptions import ZInvalidSchema
 from zuper_ipce.structures import CannotFindSchemaReference
-from zuper_ipce.utils_text import oyaml_dump
 from zuper_typing import Generic
 from zuper_typing.annotations_tricks import make_ForwardRef
-from zuper_typing.exceptions import ZValueError
 from zuper_typing.monkey_patching_typing import my_dataclass as dataclass
 from zuper_typing.my_dict import make_dict
 from zuper_typing_tests.test_utils import known_failure
@@ -72,7 +67,7 @@ def test_ser1():
 
     Person_schema = ipce_from_typelike(Person)
 
-    print(oyaml_dump(Person_schema))
+    # print(oyaml_dump(Person_schema))
 
     Address2 = typelike_from_ipce(Person_schema["properties"]["address"])
     assert_equal(Address2.__doc__, Address.__doc__)
@@ -219,8 +214,6 @@ def test_ser_dict_object():
 
 from nose.tools import raises, assert_equal
 
-from zuper_ipce import logger
-
 
 def test_bytes1():
     n1 = Contents(b"1234")
@@ -230,8 +223,9 @@ def test_bytes1():
 @raises(ValueError)
 def test_abnormal_no_schema():
     res = object_from_ipce({})
-    logger.info(f"res = {res!r}")
-    logger.info(f"type = {type(res)}")
+    # logger.info(f"res = {res!r}")
+    # logger.info(f"type = {type(res)}")
+    #
 
 
 def test_lists():
@@ -450,7 +444,7 @@ def test_2_error():
 #     eval_field(X, {}, {})
 
 
-@raises(ValueError)
+@raises(TypeError)
 def test_random_json():
     """ Invalid because of $schema """
     data = {"$schema": {"title": "LogEntry"}, "topic": "next_episode", "data": None}

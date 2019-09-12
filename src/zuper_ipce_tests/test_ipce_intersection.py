@@ -43,6 +43,6 @@ def test_intersection2():
     # AB = Intersection[A, B]
     AB = type_inf(A, B)
 
-    print(AB.__annotations__)
+    # print(AB.__annotations__)
     e = AB(a=1, b="2")
     assert_object_roundtrip(e)  # raise here

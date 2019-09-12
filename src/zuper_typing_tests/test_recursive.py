@@ -20,13 +20,13 @@ def test_recursive1():
 
     resolve_types(T2)
 
-    print(T1.__annotations__)
-    print(T2.__annotations__)
-
-    print(T1)
-    print(T2)
+    # print(T1.__annotations__)
+    # print(T2.__annotations__)
+    #
+    # print(T1)
+    # print(T2)
     c = can_be_used_as2(T1, T2)
-    print(c)
+    # print(c)
 
     assert c.result, c.why
 
@@ -46,9 +46,9 @@ def test_recursive2():
 
     resolve_types(T2)
 
-    print(T1)
-    print(T2)
+    # print(T1)
+    # print(T2)
     c = can_be_used_as2(T2, T1)
-    print(c)
+    # print(c)
 
     assert c.result, c.why

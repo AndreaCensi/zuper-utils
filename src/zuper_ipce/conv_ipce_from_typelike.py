@@ -43,6 +43,7 @@ from zuper_typing.annotations_tricks import (
     is_TypeVar,
     is_Union,
     is_VarTuple,
+    get_NewType_arg,
 )
 from zuper_typing.constants import BINDINGS_ATT, GENERIC_ATT2
 from zuper_typing.exceptions import (
@@ -283,46 +284,59 @@ def ipce_from_typelike_TupleLike(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
         assert False
 
 
+class KeepTrackSer:
+    def __init__(self, c: IFTContext, ieso: IESO):
+        self.c = c
+        self.ieso = ieso
+        self.used = {}
+
+    def ipce_from_typelike(self, T: TypeLike) -> JSONSchema:
+        tre = ipce_from_typelike_tr(T, c=self.c, ieso=self.ieso)
+        self.used.update(tre.used)
+        return tre.schema
+
+    # def ipce_from_object(self, x: IPCE, st: TypeLike) -> IPCE:
+    #     from zuper_ipce.conv_ipce_from_object import ipce_from_object_
+    #     res = object_from_ipce_(x, st, ieds=self.ieds, iedo=self.iedo)
+    #     return res
+
+    def tre(self, x: IPCE) -> TRE:
+        return TRE(x, self.used)
+
+
 def ipce_from_typelike_NewType(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     _ = c, ieso
     name = get_NewType_name(T)
-    used = {}
+    T0 = get_NewType_arg(T)
+    kt = KeepTrackSer(c, ieso)
     res = cast(JSONSchema, {})
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = "NewType"
+    res["newtype"] = kt.ipce_from_typelike(T0)
     res[JSC_TITLE] = name
     res = sorted_dict_cbor_ord(res)
-    return TRE(res, used)
+    return kt.tre(res)
 
 
 def ipce_from_typelike_ListLike(T: Type[List], c: IFTContext, ieso: IESO) -> TRE:
     assert is_ListLike(T), T
     items = get_ListLike_arg(T)
     res = cast(JSONSchema, {})
-    used = {}
-
-    def f(x: TypeLike) -> JSONSchema:
-        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
-        used.update(tr.used)
-        return tr.schema
+    kt = KeepTrackSer(c, ieso)
 
     res[SCHEMA_ATT] = SCHEMA_ID
     res[JSC_TYPE] = JSC_ARRAY
-    res[JSC_ITEMS] = f(items)
+    res[JSC_ITEMS] = kt.ipce_from_typelike(items)
     res[JSC_TITLE] = get_ListLike_name(T)
     res = sorted_dict_cbor_ord(res)
-    return TRE(res, used)
+    return kt.tre(res)
 
 
 def ipce_from_typelike_Callable(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     assert is_Callable(T), T
     cinfo = get_Callable_info(T)
-    used = {}
 
-    def f(x: TypeLike) -> JSONSchema:
-        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
-        used.update(tr.used)
-        return tr.schema
+    kt = KeepTrackSer(c, ieso)
 
     res = cast(
         JSONSchema,
@@ -337,12 +351,12 @@ def ipce_from_typelike_Callable(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     p = res[JSC_DEFINITIONS] = {}
 
     for k, v in cinfo.parameters_by_name.items():
-        p[k] = f(v)
-    p[CALLABLE_RETURN] = f(cinfo.returns)
+        p[k] = kt.ipce_from_typelike(v)
+    p[CALLABLE_RETURN] = kt.ipce_from_typelike(cinfo.returns)
     res[CALLABLE_ORDERING] = list(cinfo.ordering)
     # print(res)
     res = sorted_dict_cbor_ord(res)
-    return TRE(res, used)
+    return kt.tre(res)
 
 
 def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
@@ -468,7 +482,15 @@ def ipce_from_typelike_tr_(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
         return ipce_from_typelike_TupleLike(T, c=c, ieso=ieso)
 
     if is_Type(T):
-        raise NotImplementedError(T)
+        TT = get_Type_arg(T)
+        r = ipce_from_typelike_tr(TT, c, ieso=ieso)
+        res = cast(
+            JSONSchema,
+            {SCHEMA_ATT: SCHEMA_ID, JSC_TYPE: "subtype", "subtype": r.schema},
+        )
+        res = sorted_dict_cbor_ord(res)
+        return TRE(res, r.used)
+        # raise NotImplementedError(T)
 
     assert isinstance(T, type), T
 
@@ -511,17 +533,12 @@ def ipce_from_typelike_slice(ieso: IESO) -> TRE:
 
 def ipce_from_typelike_Intersection(T: TypeLike, c: IFTContext, ieso: IESO):
     args = get_Intersection_args(T)
-    used = {}
+    kt = KeepTrackSer(c, ieso)
 
-    def f(x: TypeLike) -> JSONSchema:
-        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
-        used.update(tr.used)
-        return tr.schema
-
-    options = [f(t) for t in args]
+    options = [kt.ipce_from_typelike(t) for t in args]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ALL_OF: options})
     res = sorted_dict_cbor_ord(res)
-    return TRE(res, used)
+    return kt.tre(res)
 
 
 def get_mentioned_names(T: TypeLike, context=()) -> typing.Iterator[str]:
@@ -676,7 +693,7 @@ def ipce_from_typelike_dataclass(T: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
             if is_ClassVar(t):
                 tt = get_ClassVar_arg(t)
                 # logger.info(f'ClassVar found : {tt}')
-                if is_Type(tt):
+                if False and is_Type(tt):
                     u = get_Type_arg(tt)
                     if is_TypeVar(u):
                         tn = get_TypeVar_name(u)
@@ -801,17 +818,12 @@ def ipce_from_typelike_Union(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
 
 def ipce_from_typelike_Optional(t: TypeLike, c: IFTContext, ieso: IESO) -> TRE:
     types = [get_Optional_arg(t), type(None)]
-    used = {}
+    kt = KeepTrackSer(c, ieso)
 
-    def f(x: TypeLike) -> JSONSchema:
-        tr = ipce_from_typelike_tr(x, c=c, ieso=ieso)
-        used.update(tr.used)
-        return tr.schema
-
-    options = [f(t) for t in types]
+    options = [kt.ipce_from_typelike(t) for t in types]
     res = cast(JSONSchema, {SCHEMA_ATT: SCHEMA_ID, ANY_OF: options})
     res = sorted_dict_cbor_ord(res)
-    return TRE(res, used)
+    return kt.tre(res)
 
 
 #

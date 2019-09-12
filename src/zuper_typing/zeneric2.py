@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, ClassVar, Dict, Tuple
 
-
+from zuper_typing.exceptions import ZTypeError
 from .annotations_tricks import (
     get_ClassVar_arg,
     get_Type_arg,
@@ -22,7 +22,7 @@ from .constants import (
     MakeTypeCache,
     PYTHON_36,
 )
-from .logging import logger
+from .logging import logger, ztinfo
 from .recursive_tricks import (
     get_name_without_brackets,
     NoConstructorImplemented,
@@ -67,9 +67,6 @@ else:
 
 
 class ZenericFix:
-    # class CannotInstantiate(TypeError):
-    #     ...
-    #
     if PYTHON_36:  # pragma: no cover
 
         def __getitem__(self, params):
@@ -150,6 +147,9 @@ class ZenericFix:
                             raise TypeError(msg)  # , U=U)
 
                 res = make_type(cls, bindings)
+                from zuper_typing.monkey_patching_typing import remember_created_class
+
+                remember_created_class(res)
                 return res
 
         name = "Generic[%s]" % ",".join(name_for_type_like(_) for _ in types)
@@ -305,25 +305,14 @@ def resolve_types(
         f.type = annotations[f.name]
 
 
-#
-# if PYTHON_36:
-#     B = Dict[Any, Any]  # bug in Python 3.6
-# else:
-#     B = Dict[TypeVar, Any]
-
-
 def make_type(cls: type, bindings, symbols=None) -> type:
+
     if symbols is None:
         symbols = {}
     symbols = dict(symbols)
 
     assert not is_NewType(cls)
-    # logger.info(f'make_type ({cls}) {bindings}')
-    # print(f'make_type for {cls.__name__}')
-    # rl.p(f'make_type for {cls.__name__}')
-    # rl.p(f'  dataclass {is_dataclass(cls)}')
-    # rl.p(f'  bindings: {bindings}')
-    # rl.p(f'  generic_att: {generic_att2}')
+
     if not bindings:
         return cls
     cache_key = (str(cls), str(bindings))
@@ -499,4 +488,5 @@ def make_type(cls: type, bindings, symbols=None) -> type:
 
     # logger.info(f'started {cls}; hash is {cls.__hash__}')
     # logger.info(f'specialized {cls2}; hash is {cls2.__hash__}')
+    ztinfo("make_type", cls=cls, bindings=bindings, cls2=cls2)
     return cls2

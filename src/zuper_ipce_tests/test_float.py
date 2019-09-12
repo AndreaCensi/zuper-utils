@@ -19,5 +19,5 @@ def test_float_2():
 
     T2 = assert_type_roundtrip(MyClass)
 
-    print(T2)
+    # print(T2)
     assert T2.__annotations__["f"] is float

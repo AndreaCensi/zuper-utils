@@ -53,6 +53,6 @@ def test_numpy_04():
 
     d = ipce_from_numpy_array(x)
     d1 = encode_bytes_before_json_serialization(d)
-    print(json.dumps(d1, indent=3))
+    # print(json.dumps(d1, indent=3))
     y = numpy_array_from_ipce(d)
     assert_allclose(x, y)

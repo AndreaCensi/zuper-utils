@@ -53,7 +53,7 @@ def check_case(fn: str):
     try:
         if not os.path.exists(fn):  # pragma: no cover
             raise SkipTest(f"File {fn} not found")
-        print("check_case " + fn)
+        # print("check_case " + fn)
         ipce_gz = read_bytes_from_file(fn)
         ipce_cbor = gzip.decompress(ipce_gz)
         ipce = cbor2.loads(ipce_cbor)
