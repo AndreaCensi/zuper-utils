@@ -1,5 +1,5 @@
 import json
-from dataclasses import fields, is_dataclass
+from dataclasses import is_dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import cast, Iterator, List, Optional, Tuple, Type, Union
@@ -28,6 +28,7 @@ from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_ClassVar_arg,
+    get_fields_including_static,
     get_FixedTuple_args,
     get_NewType_arg,
     get_NewType_name,
@@ -166,14 +167,8 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
                     raise NotEquivalentException(msg, v1=v1, v2=v2)
                 # assert_equal(, , msg=msg)
 
-            # noinspection PyDataclass
-            fields1 = fields(T1)
-            # noinspection PyDataclass
-            fields2 = fields(T2)
-
-            fields1 = {_.name: _ for _ in fields1}
-            fields2 = {_.name: _ for _ in fields2}
-
+            fields1 = get_fields_including_static(T1)
+            fields2 = get_fields_including_static(T2)
             if list(fields1) != list(fields2):
                 msg = f"Different fields"
                 raise NotEquivalentException(msg, fields1=fields1, fields2=fields2)
@@ -215,6 +210,12 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
                 if d1 != d2:
                     msg = f"Defaults for {k!r} are different."
                     raise NotEquivalentException(msg, d1=d1, d2=d2)
+                #
+                # d1 = fields1[k].default_factory
+                # d2 = fields2[k].default
+                # if d1 != d2:
+                #     msg = f"Defaults for {k!r} are different."
+                #     raise NotEquivalentException(msg, d1=d1, d2=d2)
 
             for k in ann1:
                 t1 = ann1[k]
