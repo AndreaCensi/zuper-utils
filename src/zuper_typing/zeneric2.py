@@ -149,7 +149,7 @@ class ZenericFix:
                 res = make_type(cls, bindings)
                 from zuper_typing.monkey_patching_typing import remember_created_class
 
-                remember_created_class(res)
+                remember_created_class(res, "__class_getitem__")
                 return res
 
         name = "Generic[%s]" % ",".join(name_for_type_like(_) for _ in types)

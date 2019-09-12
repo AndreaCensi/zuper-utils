@@ -539,7 +539,7 @@ def typelike_from_ipce_dataclass(
         logger.warning(msg)
     # logger.info(f"Estimated class {key} used = {used} ")
     # assert not "varargs" in T.__dict__, T
-    ztinfo("typelike_from_ipce", T=T, type_T=type(T), bases=bases)
+    # ztinfo("typelike_from_ipce", T=T, type_T=type(T), bases=bases)
     return SRE(T, used)
 
 

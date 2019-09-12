@@ -537,7 +537,7 @@ def debug_print_dataclass_type(
         _, max_levels=max_levels - 1, already=already, stack=stack, opt=opt
     )
     ps = " " + prefix if prefix else ""
-    ps += f" {id(x)}  {type(x)}"
+    # ps += f" {id(x)}  {type(x)}" # note breaks string equality
     if opt.abbreviate_zuper_lang:
         if x.__module__.startswith("zuper_lang."):
             return color_constant(x.__name__)

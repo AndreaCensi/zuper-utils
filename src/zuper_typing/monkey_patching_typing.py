@@ -152,8 +152,8 @@ def remember_created_class(res: type, msg: str = ""):
 
     # logger.info(f"Asked to remember {k}: {msg}")
     if k in RegisteredClasses.klasses:
-
-        logger.info(f"Asked to remember again {k}: {msg}")
+        pass
+        # logger.info(f"Asked to remember again {k}: {msg}")
     RegisteredClasses.klasses[k] = res
 
 
