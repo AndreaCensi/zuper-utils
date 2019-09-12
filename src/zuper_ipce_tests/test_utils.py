@@ -1,5 +1,4 @@
 import json
-import traceback
 from dataclasses import fields, is_dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -25,12 +24,12 @@ from zuper_ipce.json_utils import (
 )
 from zuper_ipce.pretty import pretty_dict
 from zuper_ipce.utils_text import oyaml_dump
-from zuper_ipcl.debug_print_ import debug_print
 from zuper_typing import dataclass
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
     get_ClassVar_arg,
     get_FixedTuple_args,
+    get_NewType_arg,
     get_NewType_name,
     get_Optional_arg,
     get_Type_arg,
@@ -46,7 +45,6 @@ from zuper_typing.annotations_tricks import (
     is_TypeVar,
     is_Union,
     is_VarTuple,
-    get_NewType_arg,
 )
 from zuper_typing.exceptions import ZValueError
 from zuper_typing.logging import ztinfo
@@ -59,7 +57,6 @@ from zuper_typing.my_dict import (
     is_SetLike,
 )
 from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
-from zuper_typing_tests.test_utils import known_failure
 
 
 def assert_type_roundtrip(
