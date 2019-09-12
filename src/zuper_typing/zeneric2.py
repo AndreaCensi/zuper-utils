@@ -22,7 +22,7 @@ from .constants import (
     MakeTypeCache,
     PYTHON_36,
 )
-from .logging import logger, ztinfo
+from .logging import logger
 from .recursive_tricks import (
     get_name_without_brackets,
     NoConstructorImplemented,
@@ -488,5 +488,5 @@ def make_type(cls: type, bindings, symbols=None) -> type:
 
     # logger.info(f'started {cls}; hash is {cls.__hash__}')
     # logger.info(f'specialized {cls2}; hash is {cls2.__hash__}')
-    ztinfo("make_type", cls=cls, bindings=bindings, cls2=cls2)
+    # ztinfo("make_type", cls=cls, bindings=bindings, cls2=cls2)
     return cls2

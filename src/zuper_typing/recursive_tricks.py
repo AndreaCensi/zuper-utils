@@ -195,7 +195,7 @@ def replace_typevars(
 
         cls2 = make_type(cls, bindings=bindings, symbols=symbols)
 
-        ztinfo("replace_typevars", bindings=bindings, cls=cls, cls2=cls2)
+        # ztinfo("replace_typevars", bindings=bindings, cls=cls, cls2=cls2)
         # logger.info(f'old cls: {cls.__annotations__}')
         # logger.info(f'new cls2: {cls2.__annotations__}')
         return cls2

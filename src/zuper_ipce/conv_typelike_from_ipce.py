@@ -422,7 +422,7 @@ def typelike_from_ipce_dataclass(
             # noinspection PyUnresolvedReferences
             base = Generic.__class_getitem__(typevars2)
 
-        ztinfo("", base=base, type_base=type(base))
+        # ztinfo("", base=base, type_base=type(base))
         bases = (base,)
     else:
 

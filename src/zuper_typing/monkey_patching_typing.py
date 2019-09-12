@@ -150,7 +150,7 @@ def remember_created_class(res: type, msg: str = ""):
     k = (res.__module__, res.__qualname__)
     from .logging import logger
 
-    logger.info(f"Asked to remember {k}: {msg}")
+    # logger.info(f"Asked to remember {k}: {msg}")
     if k in RegisteredClasses.klasses:
 
         logger.info(f"Asked to remember again {k}: {msg}")
