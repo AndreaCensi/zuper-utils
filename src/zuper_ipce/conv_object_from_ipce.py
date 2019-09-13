@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 
 from zuper_commons.fs import write_ustring_to_utf8_file
-from zuper_ipce.constants import IPCE_PASS_THROUGH
+from zuper_ipce.constants import IPCE_PASS_THROUGH, REF_ATT
 from zuper_ipce.conv_typelike_from_ipce import typelike_from_ipce_sr
 from zuper_ipce.exceptions import ZDeserializationErrorSchema
 from zuper_ipce.types import is_unconstrained
@@ -133,7 +133,7 @@ def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO
 
     from .conv_typelike_from_ipce import typelike_from_ipce_sr
 
-    if mj.get(SCHEMA_ATT, "") == SCHEMA_ID:
+    if mj.get(SCHEMA_ATT, "") == SCHEMA_ID or REF_ATT in mj:
         schema = cast(JSONSchema, mj)
 
         sr = typelike_from_ipce_sr(schema, ieds=ieds, iedo=iedo)
@@ -177,7 +177,7 @@ def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO
             return res
         else:
             msg = "No schema found and very ambiguous."
-            raise ZDeserializationErrorSchema(msg=msg, mj=mj)
+            raise ZDeserializationErrorSchema(msg=msg, mj=mj, ieds=ieds)
             # st = Dict[str, object]
             #
             # return object_from_ipce_dict(mj, st, ieds=ieds, opt=opt)

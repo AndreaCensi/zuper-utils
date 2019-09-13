@@ -48,6 +48,7 @@ from zuper_typing.annotations_tricks import (
     is_VarTuple,
 )
 from zuper_typing.exceptions import ZValueError
+from zuper_typing.get_patches_ import assert_equivalent_objects
 from zuper_typing.logging_util import ztinfo
 from zuper_typing.my_dict import (
     get_DictLike_args,
@@ -136,7 +137,9 @@ class NotEquivalentException(ZValueError):
     pass
 
 
-def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
+def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set = None):
+    if assume_yes is None:
+        assume_yes = set()
     # debug(f'equivalent', T1=T1, T2=T2)
     key = (id(T1), id(T2))
     if key in assume_yes:
@@ -209,9 +212,10 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
 
                 d1 = fields1[k].default
                 d2 = fields2[k].default
-                if d1 != d2:
-                    msg = f"Defaults for {k!r} are different."
-                    raise NotEquivalentException(msg, d1=d1, d2=d2)
+                assert_equivalent_objects(d1, d2)
+                # if d1 != d2:
+                #     msg = f"Defaults for {k!r} are different."
+                #     raise NotEquivalentException(msg, d1=d1, d2=d2)
                 #
                 # d1 = fields1[k].default_factory
                 # d2 = fields2[k].default

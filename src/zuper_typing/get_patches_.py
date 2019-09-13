@@ -1,7 +1,9 @@
 from dataclasses import is_dataclass, dataclass
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, cast
 
 from zuper_ipce.conv_ipce_from_object import get_fields_values
+from zuper_typing.aliases import TypeLike
+from zuper_typing.annotations_tricks import is_TypeLike
 
 from zuper_typing.exceptions import ZValueError
 
@@ -19,10 +21,17 @@ class Patch:
 
 
 def assert_equivalent_objects(ob1: object, ob2: object):
-    patches = get_patches(ob1, ob2)
-    if patches:
-        msg = "The objects are not equivalent"
-        raise ZValueError(msg, ob1=ob1, ob2=ob2, patches=patches)
+    if is_TypeLike(ob1):
+        from zuper_ipce_tests.test_utils import assert_equivalent_types
+
+        ob1 = cast(TypeLike, ob1)
+        ob2 = cast(TypeLike, ob2)
+        assert_equivalent_types(ob1, ob2)
+    else:
+        patches = get_patches(ob1, ob2)
+        if patches:
+            msg = "The objects are not equivalent"
+            raise ZValueError(msg, ob1=ob1, ob2=ob2, patches=patches)
 
 
 def get_patches(a: object, b: object) -> List[Patch]:
