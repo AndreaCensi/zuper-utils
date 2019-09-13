@@ -2,8 +2,7 @@ from typing import Any, cast, Dict, Type
 
 from nose.tools import assert_equal, raises
 
-from zuper_ipce import ipce_from_object, logger, object_from_ipce
-from zuper_ipce.utils_text import oyaml_dump
+from zuper_ipce import ipce_from_object, object_from_ipce
 from zuper_typing import dataclass
 from zuper_typing.my_dict import get_DictLike_args, make_dict, make_list, make_set
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip

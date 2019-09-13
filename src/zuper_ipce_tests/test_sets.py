@@ -1,8 +1,6 @@
 from typing import Any, Set
 
-from zuper_ipce import ipce_from_object
-from zuper_ipce import typelike_from_ipce
-from zuper_ipce.utils_text import oyaml_dump
+from zuper_ipce import ipce_from_object, typelike_from_ipce
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import is_Set
 from zuper_typing.my_dict import make_set

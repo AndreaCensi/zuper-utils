@@ -1,4 +1,3 @@
-import json
 from dataclasses import field
 
 import numpy as np

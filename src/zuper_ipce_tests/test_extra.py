@@ -2,9 +2,7 @@ from typing import Any, Optional, TypeVar
 
 from nose.tools import assert_equal
 
-from zuper_ipce import ipce_from_typelike
 from zuper_ipce.pretty import pprint
-from zuper_ipce.utils_text import oyaml_dump
 from zuper_ipce_tests.test_utils import assert_type_roundtrip
 from zuper_typing import dataclass, Generic
 

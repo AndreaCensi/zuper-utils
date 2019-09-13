@@ -7,6 +7,7 @@ import yaml
 from nose.tools import assert_equal, raises
 
 from zuper_ipce import ipce_from_typelike, typelike_from_ipce
+from zuper_ipce.constants import JSONSchema
 from zuper_ipce.utils_text import oyaml_load
 from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
 from zuper_typing import dataclass, Generic
@@ -242,6 +243,7 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
+    schema = cast(JSONSchema, schema)
     _T = typelike_from_ipce(schema)
 
 
@@ -490,6 +492,8 @@ type: object
     """,
         Loader=yaml.SafeLoader,
     )
+    schema = cast(JSONSchema, schema)
+
     _C = typelike_from_ipce(schema)
     # print(C.__annotations__)
     #

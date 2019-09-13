@@ -21,12 +21,11 @@ from zuper_ipce import (
     IPCE,
     ipce_from_object,
     ipce_from_typelike,
-    logger,
     object_from_ipce,
     typelike_from_ipce,
 )
 from zuper_ipce.ipce_spec import assert_sorted_dict_cbor_ord
-from zuper_ipce.utils_text import oyaml_dump, oyaml_load
+from zuper_ipce.utils_text import oyaml_load
 from zuper_ipce_tests.test_utils import (
     assert_equivalent_types,
     assert_object_roundtrip,

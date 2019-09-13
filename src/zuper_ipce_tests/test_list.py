@@ -1,9 +1,10 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 
 from nose.tools import raises
 
 from zuper_commons.logs import setup_logging
 from zuper_ipce import typelike_from_ipce
+from zuper_ipce.constants import JSONSchema
 from zuper_ipce.utils_text import oyaml_load
 from zuper_typing import dataclass
 from .test_utils import assert_object_roundtrip, assert_type_roundtrip
@@ -104,7 +105,7 @@ $schema:
   type: object
 
 """
-    ipce = oyaml_load(a)
+    ipce = cast(JSONSchema, oyaml_load(a))
     r = typelike_from_ipce(ipce)
     # print(r)
 

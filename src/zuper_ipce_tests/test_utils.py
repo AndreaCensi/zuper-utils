@@ -2,7 +2,7 @@ import json
 from dataclasses import is_dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import cast, Iterator, List, Optional, Tuple, Type, Union
+from typing import cast, Dict, List, Optional, Set, Type
 
 import cbor2
 from nose.tools import assert_equal
@@ -286,8 +286,10 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             t2 = get_VarTuple_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_SetLike(T1):
+            T1 = cast(Type[Set], T1)
             if not is_SetLike(T2):
                 raise NotEquivalentException(T1=T1, T2=T2)
+            T2 = cast(Type[Set], T2)
             t1 = get_SetLike_arg(T1)
             t2 = get_SetLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
@@ -300,8 +302,10 @@ def assert_equivalent_types(T1: TypeLike, T2: TypeLike, assume_yes: set):
             t2 = get_ListLike_arg(T2)
             assert_equivalent_types(t1, t2, assume_yes)
         elif is_DictLike(T1):
+            T1 = cast(Type[Dict], T1)
             if not is_DictLike(T2):
                 raise NotEquivalentException(T1=T1, T2=T2)
+            T2 = cast(Type[Dict], T2)
             t1, u1 = get_DictLike_args(T1)
             t2, u2 = get_DictLike_args(T2)
             assert_equivalent_types(t1, t2, assume_yes)
@@ -506,15 +510,15 @@ def check_equality(x1: object, x1b: object, expect_equality: bool) -> None:
                     # raise Exception(msg)
 
 
-def test_testing1():
-    def get1():
+def test_testing1() -> None:
+    def get1() -> type:
         @dataclass
         class C1:
             a: int
 
         return C1
 
-    def get2():
+    def get2() -> type:
         @dataclass
         class C1:
             a: int
@@ -530,15 +534,15 @@ def test_testing1():
         raise Exception()
 
 
-def test_testing2():
-    def get1():
+def test_testing2() -> None:
+    def get1() -> type:
         @dataclass
         class C1:
             A: int
 
         return C1
 
-    def get2():
+    def get2() -> type:
         @dataclass
         class C2:
             A: float
@@ -551,35 +555,3 @@ def test_testing2():
         pass
     else:
         raise Exception()
-
-
-@dataclass
-class Patch:
-    __print_order = ["prefix_str", "value1", "value2"]
-    prefix: Tuple[Union[str, int], ...]
-    value1: object
-    value2: Optional[object]
-    prefix_str: Optional[str] = None
-
-    def __post_init__(self):
-        self.prefix_str = "/".join(map(str, self.prefix))
-
-
-def patch(o1, o2, prefix: Tuple[Union[str, int], ...]) -> Iterator[Patch]:
-    if o1 == o2:
-        return
-    if isinstance(o1, dict) and isinstance(o2, dict):
-        for k, v in o1.items():
-            if not k in o2:
-                yield Patch(prefix + (k,), v, None)
-            else:
-                yield from patch(v, o2[k], prefix + (k,))
-    elif isinstance(o1, list) and isinstance(o2, list):
-        for i, v in enumerate(o1):
-            if i >= len(o2) - 1:
-                yield Patch(prefix + (i,), v, None)
-            else:
-                yield from patch(o1[i], o2[i], prefix + (i,))
-    else:
-        if o1 != o2:
-            yield Patch(prefix, o1, o2)
