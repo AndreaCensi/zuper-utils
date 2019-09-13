@@ -597,6 +597,7 @@ def test_corner_classvar2():
     class Dog42:
         x: ClassVar[Type[int]] = int
 
+    ztinfo(Dog=Dog42)
     assert_type_roundtrip(Dog42)
 
 
