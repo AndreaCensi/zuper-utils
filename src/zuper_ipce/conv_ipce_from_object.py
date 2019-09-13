@@ -246,7 +246,7 @@ def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) 
             raise
         except BaseException as e:
             msg = (
-                f"Could not serialie an object of type {T.__name__!r}. Problem "
+                f"Could not serialize an object. Problem "
                 f"occurred with the attribute {k!r}. It is supposed to be of type @expected "
                 f" but found @found."
             )

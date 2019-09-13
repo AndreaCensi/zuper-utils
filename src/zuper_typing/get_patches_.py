@@ -1,7 +1,7 @@
 from _pydecimal import Decimal
 from dataclasses import dataclass, is_dataclass
 from datetime import datetime
-from typing import cast, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import cast, Dict, List, Optional, Set, Tuple, Type, Union, Iterator
 
 from zuper_ipce.conv_ipce_from_object import get_fields_values
 from zuper_typing.aliases import TypeLike
@@ -76,10 +76,10 @@ def is_dataclass_instance(x: object) -> bool:
 import numpy as np
 
 
-def patch(o1, o2, prefix: Tuple[Union[str, int], ...]):
+def patch(o1, o2, prefix: Tuple[Union[str, int], ...]) -> Iterator[Patch]:
     if isinstance(o1, np.ndarray):
         if np.all(o1 == o2):
-            pass
+            return
         else:
             yield Patch(prefix, o1, o2)
     if o1 == o2:
