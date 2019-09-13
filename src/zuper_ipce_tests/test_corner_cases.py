@@ -26,12 +26,8 @@ from zuper_ipce import (
 )
 from zuper_ipce.ipce_spec import assert_sorted_dict_cbor_ord
 from zuper_ipce.utils_text import oyaml_load
-from zuper_ipce_tests.test_utils import (
-    assert_equivalent_types,
-    assert_object_roundtrip,
-    assert_type_roundtrip,
-    NotEquivalentException,
-)
+from zuper_ipce_tests.test_utils import assert_object_roundtrip, assert_type_roundtrip
+from zuper_typing.get_patches_ import NotEquivalentException, assert_equivalent_types
 from zuper_typing import dataclass, Generic
 from zuper_typing.annotations_tricks import (
     get_NewType_arg,

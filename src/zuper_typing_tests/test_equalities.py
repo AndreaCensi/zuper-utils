@@ -3,7 +3,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple, TypeVar
 
 from nose.tools import assert_equal, raises
 
-from zuper_ipce_tests.test_utils import NotEquivalentException, assert_equivalent_types
+from zuper_typing.get_patches_ import NotEquivalentException, assert_equivalent_types
 from zuper_typing.annotations_tricks import is_Dict, is_List, is_Set
 from zuper_typing.monkey_patching_typing import original_dict_getitem
 from zuper_typing.my_dict import make_dict, make_list, make_set

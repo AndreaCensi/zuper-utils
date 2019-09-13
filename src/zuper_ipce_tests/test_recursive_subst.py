@@ -16,11 +16,8 @@ from nose.tools import raises
 from zuper_ipce.assorted_recursive_type_subst import recursive_type_subst
 from zuper_ipce.constants import JSONSchema
 from zuper_ipce.schema_caching import assert_canonical_schema
-from zuper_ipce_tests.test_utils import (
-    assert_equivalent_types,
-    assert_type_roundtrip,
-    NotEquivalentException,
-)
+from zuper_ipce_tests.test_utils import assert_type_roundtrip
+from zuper_typing.get_patches_ import NotEquivalentException, assert_equivalent_types
 from zuper_typing import dataclass
 from zuper_typing.annotations_tricks import (
     get_ClassVar_arg,
