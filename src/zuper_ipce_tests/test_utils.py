@@ -48,7 +48,7 @@ from zuper_typing.annotations_tricks import (
     is_VarTuple,
 )
 from zuper_typing.exceptions import ZValueError
-from zuper_typing.logging import ztinfo
+from zuper_typing.logging_util import ztinfo
 from zuper_typing.my_dict import (
     get_DictLike_args,
     get_ListLike_arg,
@@ -88,14 +88,16 @@ def assert_type_roundtrip(
 
     # pprint("schema", schema=json.dumps(schema, indent=2))
 
-    ztinfo("assert_type_roundtrip", T=T, schema=schema, T2=T2)
+    try:
+        assert_equal(schema, schema0)
+        if expect_type_equal:
+            # assert_same_types(T, T)
+            # assert_same_types(T2, T)
+            assert_equivalent_types(T, T2, assume_yes=set())
+    except:
+        ztinfo("assert_type_roundtrip", T=T, schema=schema, T2=T2)
 
-    assert_equal(schema, schema0)
-    if expect_type_equal:
-        # assert_same_types(T, T)
-        # assert_same_types(T2, T)
-        assert_equivalent_types(T, T2, assume_yes=set())
-
+        raise
     schema2 = ipce_from_typelike(T2, globals0=use_globals)
     if schema != schema2:  # pragma: no cover
         msg = "Different schemas"

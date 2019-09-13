@@ -3,7 +3,7 @@ import inspect
 import traceback
 from dataclasses import Field, fields, is_dataclass, MISSING, replace
 from decimal import Decimal
-from typing import cast, Dict, Optional, Set, Type
+from typing import cast, Dict, Optional, Set, Type, TypeVar
 
 import numpy as np
 import yaml
@@ -18,7 +18,6 @@ from zuper_typing.annotations_tricks import (
     get_Optional_arg,
     get_Union_args,
     get_VarTuple_arg,
-    is_Any,
     is_ClassVar,
     is_FixedTuple,
     is_Optional,
@@ -63,7 +62,7 @@ def object_from_ipce(
     ieds = IEDS({}, {})
 
     try:
-        res = object_from_ipce_(mj, expect_type=expect_type, ieds=ieds, iedo=iedo)
+        res = object_from_ipce_(mj, expect_type, ieds=ieds, iedo=iedo)
         return res
     except IPCE_PASS_THROUGH:
         raise
@@ -84,56 +83,52 @@ def object_from_ipce(
         raise ZValueError(msg, expect_type=expect_type) from e
 
 
-def object_from_ipce_(
-    mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO
-) -> object:
-    assert expect_type is not None
+_X = TypeVar("_X")
 
-    if is_Optional(expect_type):
-        return object_from_ipce_optional(mj, expect_type, ieds=ieds, iedo=iedo)
 
-    if is_Union(expect_type):
-        return object_from_ipce_union(mj, expect_type, ieds=ieds, iedo=iedo)
+def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO) -> _X:
+    assert st is not None
+    # ztinfo('object_from_ipce_', mj=mj, st=st)
+    # if mj == {'ob': []}:
+    #     raise ZException(mj=mj, st=st)
 
-    if is_Intersection(expect_type):
-        return object_from_ipce_intersection(mj, expect_type, ieds=ieds, iedo=iedo)
+    if is_Optional(st):
+        return object_from_ipce_optional(mj, st, ieds=ieds, iedo=iedo)
+
+    if is_Union(st):
+        return object_from_ipce_union(mj, st, ieds=ieds, iedo=iedo)
+
+    if is_Intersection(st):
+        return object_from_ipce_intersection(mj, st, ieds=ieds, iedo=iedo)
     # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
     trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
 
-    if expect_type in trivial:
-        if not isinstance(mj, expect_type):
-            msg = "Expected trivial expect_type @expect_type, got @mj_yaml."
-            raise ZValueError(msg, expect_type=expect_type, mj_yaml=mj)
+    if st in trivial:
+        if not isinstance(mj, st):
+            msg = "Expected trivial expect_type @st, got @mj_yaml."
+            raise ZValueError(msg, st=st, mj_yaml=mj)
         else:
             return mj
 
     if isinstance(mj, trivial):
         # if check_types:  # pragma: no cover
         T = type(mj)
-        if (
-            expect_type is not None
-            and not is_Any(expect_type)
-            and not expect_type is object
-        ):
-            msg = f"Found an object of type @T, but wanted @expect_type"
-            raise ZValueError(msg, mj=mj, T=T, expect_type=expect_type)
+        if not is_unconstrained(st):
+            msg = f"Found an object of type @T, but wanted @st"
+            raise ZValueError(msg, mj=mj, T=T, st=st)
         return mj
 
     if isinstance(mj, list):
-        return object_from_ipce_list(mj, expect_type, ieds=ieds, iedo=iedo)
+        return object_from_ipce_list(mj, st, ieds=ieds, iedo=iedo)
 
     if mj is None:
-        if expect_type is None:
+        if st is type(None):
             return None
-        elif expect_type is type(None):
-            return None
-        elif is_Any(expect_type):
-            return None
-        elif expect_type is object:
+        elif is_unconstrained(st):
             return None
         else:
             msg = f"The value is None but the expected type is @expect_type."
-            raise ZValueError(msg, expect_type=expect_type)
+            raise ZValueError(msg, st=st)
 
     assert isinstance(mj, dict), type(mj)
 
@@ -155,11 +150,8 @@ def object_from_ipce_(
         K = R.res
         # logger.debug(f' loaded K = {K} from {mj}')
     else:
-        if expect_type is not None:
-            K = expect_type
-        else:
-            msg = f"Cannot find a schema and expect_type=None."
-            raise ZValueError(msg, mj_yaml=mj)
+
+        K = st
 
     if K is np.ndarray:
         return numpy_array_from_ipce(mj)
@@ -209,7 +201,7 @@ def object_from_ipce_slice(mj) -> slice:
 
 def object_from_ipce_list(mj: IPCE, expect_type, *, ieds: IEDS, iedo: IEDO) -> IPCE:
     def rec(x, TT: TypeLike) -> object:
-        return object_from_ipce_(x, ieds=ieds, expect_type=TT, iedo=iedo)
+        return object_from_ipce_(x, TT, ieds=ieds, iedo=iedo)
 
     # logger.info(f'expect_type for list is {expect_type}')
     from zuper_ipce.conv_ipce_from_object import is_unconstrained
@@ -278,17 +270,18 @@ def object_from_ipce_intersection(
     raise ZValueError(msg, errors=errors, ts=ts)
 
 
-def object_from_ipce_tuple(mj: IPCE, expect_type: TypeLike, *, ieds: IEDS, iedo: IEDO):
-    if is_FixedTuple(expect_type):
+def object_from_ipce_tuple(mj: IPCE, st: TypeLike, *, ieds: IEDS, iedo: IEDO):
+    if is_FixedTuple(st):
         seq = []
-        ts = get_FixedTuple_args(expect_type)
-        for expect_type_i, ob in zip(ts, mj):
-            r = object_from_ipce_(ob, expect_type_i, ieds=ieds, iedo=iedo)
+        ts = get_FixedTuple_args(st)
+        for st_i, ob in zip(ts, mj):
+            st_i = cast(Type[_X], st_i)  # XXX should not be necessary
+            r = object_from_ipce_(ob, st_i, ieds=ieds, iedo=iedo)
             seq.append(r)
 
         return tuple(seq)
-    elif is_VarTuple(expect_type):
-        T = get_VarTuple_arg(expect_type)
+    elif is_VarTuple(st):
+        T = get_VarTuple_arg(st)
         seq = []
         for i, ob in enumerate(mj):
             r = object_from_ipce_(ob, T, ieds=ieds, iedo=iedo)
@@ -321,6 +314,7 @@ def object_from_ipce_dataclass_instance(
 
     attrs = {}
     hints = mj.get(HINTS_ATT, {})
+    # ztinfo('hints', mj=mj, h=hints)
     # logger.info(f'hints for {K.__name__} = {hints}')
 
     for k, v in mj.items():
@@ -335,20 +329,17 @@ def object_from_ipce_dataclass_instance(
 
         if k in hints:
             R = typelike_from_ipce_sr(hints[k], ieds=ieds, iedo=iedo)
+            hint = R.res
+            et_k = hint
 
-            et_k = R.res
-
+        else:
+            hint = None
         try:
             attrs[k] = object_from_ipce_(v, et_k, ieds=ieds, iedo=iedo)
         except IPCE_PASS_THROUGH:  # pragma: no cover
             raise
         except ZValueError as e:  # pragma: no cover
             msg = f"Cannot deserialize attribute {k!r} of {K.__name__}."
-
-            # fn = write_out_yaml(f"instance_of_{K.__name__}_attribute_{k}", v)
-            # msg += f"\n mj[{k!r}] in {fn}"
-            # fn = write_out_yaml(f"instance_of_{K.__name__}", mj)
-            # msg += f"\n mj in {fn}"
 
             raise ZValueError(
                 msg,
@@ -357,6 +348,7 @@ def object_from_ipce_dataclass_instance(
                 ann_K=anns[k],
                 K_name=K.__name__,
             ) from e
+        # ztinfo(f'result for {k}', raw=v, hint = hint, et_k=et_k, attrs_k=attrs[k])
 
     class_fields = get_class_fields(K)
 

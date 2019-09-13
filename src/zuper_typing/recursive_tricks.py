@@ -17,7 +17,6 @@ from typing import (
 )
 
 from zuper_typing.literal import is_Literal
-from zuper_typing.logging import ztinfo
 from .aliases import TypeLike
 from .annotations_tricks import (
     get_Callable_info,

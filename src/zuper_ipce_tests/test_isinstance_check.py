@@ -3,7 +3,7 @@ from typing import cast, TypeVar
 from zuper_ipce import IEDO, ipce_from_object, object_from_ipce
 from zuper_typing import dataclass, Generic
 from zuper_typing.exceptions import ZAssertionError
-from zuper_typing.logging import ztinfo
+from zuper_typing.logging_util import ztinfo
 from zuper_typing.zeneric2 import StructuralTyping
 
 

@@ -18,7 +18,7 @@ from typing import (
 )
 
 from zuper_commons.types.exceptions import ZException
-from zuper_typing.logging import ztinfo
+from zuper_typing.logging_util import ztinfo
 from zuper_typing.zeneric2 import MyABC
 
 _X = TypeVar("_X")
@@ -270,7 +270,7 @@ class KeepTrackDes:
         self.used.update(sre.used)
         return sre.res
 
-    def object_from_ipce(self, x: IPCE, st: TypeLike) -> object:
+    def object_from_ipce(self, x: IPCE, st: Type[_X] = object) -> _X:
         from zuper_ipce.conv_object_from_ipce import object_from_ipce_
 
         res = object_from_ipce_(x, st, ieds=self.ieds, iedo=self.iedo)

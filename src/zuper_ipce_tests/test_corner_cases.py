@@ -40,8 +40,10 @@ from zuper_typing.annotations_tricks import (
     is_Any,
     is_NewType,
     is_Type,
+    make_Tuple,
     name_for_type_like,
 )
+from zuper_typing.logging_util import ztinfo
 from zuper_typing.my_dict import get_CustomSet_arg, get_ListLike_arg, make_set
 from zuper_typing.subcheck import can_be_used_as2
 from zuper_typing_tests.test_utils import known_failure
@@ -608,3 +610,31 @@ def test_corner_classvar3():
         x: ClassVar[Type[int]] = Union[int, bool]
 
     assert_type_roundtrip(Dog43)
+
+
+def test_empty_tuple1():
+    @dataclass
+    class Container1:
+        ob: object
+
+    c = Container1(())
+
+    assert_object_roundtrip(c, works_without_schema=False)
+
+
+def test_empty_tuple2():
+    @dataclass
+    class Container2:
+        ob: Tuple[str, ...]
+
+    c = Container2(())
+    assert_object_roundtrip(c)
+
+
+def test_empty_tuple3():
+    @dataclass
+    class Container3:
+        ob: make_Tuple()
+
+    c = Container3(())
+    assert_object_roundtrip(c)
