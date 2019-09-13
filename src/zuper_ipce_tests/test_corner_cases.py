@@ -50,11 +50,11 @@ from zuper_typing_tests.test_utils import known_failure
 
 
 def test_corner_cases01():
-    assert None is object_from_ipce(None, expect_type=Optional[int])
+    assert None is object_from_ipce(None, Optional[int])
 
 
 def test_corner_cases02():
-    assert 2 == object_from_ipce(2, expect_type=Optional[int])
+    assert 2 == object_from_ipce(2, Optional[int])
 
 
 def test_corner_cases03():
@@ -107,14 +107,14 @@ def test_corner_cases07():
     T = Union[bool, str]
     can = can_be_used_as2(int, T)
     assert not can, can
-    object_from_ipce(12, expect_type=T)
+    object_from_ipce(12, T)
 
 
 @raises(ValueError)
 def test_corner_cases08():
     T = Optional[bool]
     assert not can_be_used_as2(int, T).result
-    object_from_ipce(12, expect_type=Optional[bool])
+    object_from_ipce(12, T)
 
 
 def test_newtype1():
@@ -267,20 +267,20 @@ def test_error_scalar1():
 def test_error_scalar2():
     a = "s"
     S = Union[int, bool]
-    object_from_ipce(a, expect_type=S)
+    object_from_ipce(a, S)
 
 
 def test_corner_optional():
     a = {}
     S = Optional[Dict[str, int]]
-    object_from_ipce(a, expect_type=S)
+    object_from_ipce(a, S)
 
 
 @raises(ValueError)
 def test_corner_union():
     a = {}
     S = Union[str, int]
-    object_from_ipce(a, expect_type=S)
+    object_from_ipce(a, S)
 
 
 @raises(ValueError)
@@ -290,7 +290,7 @@ def test_corner_noclass():
     class S:
         pass
 
-    object_from_ipce(a, expect_type=S)
+    object_from_ipce(a, S)
 
 
 def test_classvars():
@@ -540,7 +540,7 @@ def test_corner_int3():
 def test_corner_int4():
     x = 1
     T = Dict[str, str]
-    object_from_ipce(x, expect_type=T)
+    object_from_ipce(x, T)
 
 
 def test_corner_none():

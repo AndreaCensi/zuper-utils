@@ -87,7 +87,7 @@ _X = TypeVar("_X")
 
 
 def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO) -> _X:
-    assert st is not None
+
     # ztinfo('object_from_ipce_', mj=mj, st=st)
     # if mj == {'ob': []}:
     #     raise ZException(mj=mj, st=st)
@@ -100,8 +100,8 @@ def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO
 
     if is_Intersection(st):
         return object_from_ipce_intersection(mj, st, ieds=ieds, iedo=iedo)
-    # logger.debug(f'ipce_to_object expect {expect_type} mj {mj}')
-    trivial = (int, float, bool, datetime.datetime, Decimal, bytes, str)
+
+    trivial = (int, float, bool, bytes, str, datetime.datetime, Decimal)
 
     if st in trivial:
         if not isinstance(mj, st):
@@ -111,7 +111,6 @@ def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO
             return mj
 
     if isinstance(mj, trivial):
-        # if check_types:  # pragma: no cover
         T = type(mj)
         if not is_unconstrained(st):
             msg = f"Found an object of type @T, but wanted @st"
