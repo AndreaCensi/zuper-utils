@@ -74,13 +74,20 @@ def is_dataclass_instance(x: object) -> bool:
     return not isinstance(x, type) and is_dataclass(x)
 
 
+import numpy as np
+
+
 def patch(o1, o2, prefix: Tuple[Union[str, int], ...]):
-    if o1 == o2:
-        return
+
     if is_TypeLike(o1) and is_TypeLike(o2):
         try:
             assert_equivalent_types(o1, o2)
         except NotEquivalentException:
+            yield Patch(prefix, o1, o2)
+    elif isinstance(o1, np.ndarray):
+        if np.all(o1 == o2):
+            pass
+        else:
             yield Patch(prefix, o1, o2)
     elif is_dataclass_instance(o1) and is_dataclass_instance(o2):
         fields1 = get_fields_values(o1)

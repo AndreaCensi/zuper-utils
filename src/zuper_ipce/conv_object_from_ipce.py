@@ -22,9 +22,9 @@ from zuper_typing.annotations_tricks import (
     is_FixedTuple,
     is_Optional,
     is_TupleLike,
+    is_TypeVar,
     is_Union,
     is_VarTuple,
-    is_TypeVar,
 )
 from zuper_typing.exceptions import ZTypeError, ZValueError
 from zuper_typing.my_dict import (
@@ -88,7 +88,6 @@ _X = TypeVar("_X")
 
 
 def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO) -> _X:
-
     # ztinfo('object_from_ipce_', mj=mj, st=st)
     # if mj == {'ob': []}:
     #     raise ZException(mj=mj, st=st)
