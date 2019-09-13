@@ -402,8 +402,11 @@ def ignore_aliases(self, data) -> bool:
         return True
 
 
-def write_out_yaml(prefix: str, v: object) -> str:
-    yaml.Dumper.ignore_aliases = ignore_aliases
+def write_out_yaml(prefix: str, v: object, no_aliases: bool = False) -> str:
+    if no_aliases:
+        yaml.Dumper.ignore_aliases = lambda _, data: True
+    else:
+        yaml.Dumper.ignore_aliases = ignore_aliases
     # d = oyaml_dump(v)
     d = yaml.dump(v)
     fn = f"errors/{prefix}.yaml"

@@ -207,6 +207,15 @@ def iterate_resolved_type_values_without_default(x: dataclass) -> Iterator[IterA
         yield IterAtt(k, k_st, v0)
 
 
+def get_fields_values(x: dataclass) -> Dict[str, object]:
+    res = {}
+    for f in fields(type(x)):
+        k = f.name
+        v0 = getattr(x, k)
+        res[k] = v0
+    return res
+
+
 def ipce_from_object_dataclass_instance(ob: dataclass, *, globals_, ieso: IESO) -> IPCE:
     globals_ = dict(globals_)
     res = {}
