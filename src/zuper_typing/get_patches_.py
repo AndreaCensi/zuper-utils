@@ -1,43 +1,42 @@
 from _pydecimal import Decimal
-from dataclasses import is_dataclass, dataclass
+from dataclasses import dataclass, is_dataclass
 from datetime import datetime
-from typing import List, Tuple, Union, Optional, cast, Type, Set, Dict
+from typing import cast, Dict, List, Optional, Set, Tuple, Type, Union
 
 from zuper_ipce.conv_ipce_from_object import get_fields_values
 from zuper_typing.aliases import TypeLike
 from zuper_typing.annotations_tricks import (
-    is_TypeLike,
-    get_fields_including_static,
-    is_ClassVar,
     get_ClassVar_arg,
-    is_Optional,
-    get_Optional_arg,
-    is_Union,
-    get_Union_args,
-    is_FixedTuple,
+    get_fields_including_static,
     get_FixedTuple_args,
-    is_VarTuple,
+    get_NewType_arg,
+    get_NewType_name,
+    get_Optional_arg,
+    get_Type_arg,
+    get_TypeVar_name,
+    get_Union_args,
     get_VarTuple_arg,
     is_Any,
-    is_TypeVar,
-    get_TypeVar_name,
+    is_ClassVar,
+    is_FixedTuple,
     is_NewType,
-    get_NewType_name,
-    get_NewType_arg,
+    is_Optional,
     is_Type,
-    get_Type_arg,
+    is_TypeLike,
+    is_TypeVar,
+    is_Union,
+    is_VarTuple,
 )
-
 from zuper_typing.exceptions import ZValueError
 from zuper_typing.my_dict import (
-    is_SetLike,
-    get_SetLike_arg,
-    is_ListLike,
-    get_ListLike_arg,
-    is_DictLike,
     get_DictLike_args,
+    get_ListLike_arg,
+    get_SetLike_arg,
+    is_DictLike,
+    is_ListLike,
+    is_SetLike,
 )
-from zuper_typing.my_intersection import is_Intersection, get_Intersection_args
+from zuper_typing.my_intersection import get_Intersection_args, is_Intersection
 
 
 @dataclass
@@ -78,17 +77,19 @@ import numpy as np
 
 
 def patch(o1, o2, prefix: Tuple[Union[str, int], ...]):
-
+    if isinstance(o1, np.ndarray):
+        if np.all(o1 == o2):
+            pass
+        else:
+            yield Patch(prefix, o1, o2)
+    if o1 == o2:
+        return
     if is_TypeLike(o1) and is_TypeLike(o2):
         try:
             assert_equivalent_types(o1, o2)
         except NotEquivalentException:
             yield Patch(prefix, o1, o2)
-    elif isinstance(o1, np.ndarray):
-        if np.all(o1 == o2):
-            pass
-        else:
-            yield Patch(prefix, o1, o2)
+
     elif is_dataclass_instance(o1) and is_dataclass_instance(o2):
         fields1 = get_fields_values(o1)
         fields2 = get_fields_values(o2)
