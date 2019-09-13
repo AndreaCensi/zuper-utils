@@ -24,6 +24,7 @@ from zuper_typing.annotations_tricks import (
     is_TupleLike,
     is_Union,
     is_VarTuple,
+    is_TypeVar,
 )
 from zuper_typing.exceptions import ZTypeError, ZValueError
 from zuper_typing.my_dict import (
@@ -112,7 +113,7 @@ def object_from_ipce_(mj: IPCE, st: Type[_X] = object, *, ieds: IEDS, iedo: IEDO
 
     if isinstance(mj, trivial):
         T = type(mj)
-        if not is_unconstrained(st):
+        if not is_unconstrained(st) and not is_TypeVar(st):
             msg = f"Found an object of type @T, but wanted @st"
             raise ZValueError(msg, mj=mj, T=T, st=st)
         return mj
