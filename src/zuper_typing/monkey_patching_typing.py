@@ -279,7 +279,7 @@ def my_dataclass_(
     refs = getattr(_cls, DEPENDS_ATT, ())
     resolve_types(res, refs=refs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return DataclassHooks.dc_repr(self)
 
     def __str__(self):

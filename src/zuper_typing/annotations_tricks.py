@@ -1,15 +1,25 @@
-import typing
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar, Union
-
 from dataclasses import Field
-
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
+import typing
 from zuper_typing.aliases import TypeLike
 from .constants import NAME_ARG, PYTHON_36
 
 paranoid = False
 
 
-def is_TypeLike(x) -> bool:
+def is_TypeLike(x: object) -> bool:
     if isinstance(x, type):
         return True
     else:
@@ -49,6 +59,8 @@ def is_SpecialForm(x):
 
 # noinspection PyProtectedMember
 def is_Optional(x: TypeLike) -> bool:
+    import typing
+
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return (
@@ -78,8 +90,10 @@ def get_Optional_arg(x: Type[Optional[X]]) -> Type[X]:
     # return x.__args__[0]
 
 
-def is_Union(x):
+def is_Union(x: TypeLike) -> bool:
     """ Union[X, None] is not considered a Union"""
+    import typing
+
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
         return not is_Optional(x) and isinstance(x, typing._Union)
@@ -91,20 +105,20 @@ def is_Union(x):
         )
 
 
-def get_Union_args(x):
+def get_Union_args(x: TypeLike) -> Tuple[TypeLike, ...]:
     assert is_Union(x)
     return tuple(x.__args__)
 
 
-def make_Union(*a):
+def make_Union(*a: TypeLike) -> TypeLike:
     if a:  # and a[-1] is type(None):
         T0 = type(None)
         if T0 in a:
             others = tuple(_ for _ in a if _ is not T0)
             if len(others) == 1:
-                return typing.Optional[others[0]]
+                return Optional[others[0]]
             else:
-                return typing.Optional[make_Union(*others)]
+                return Optional[make_Union(*others)]
 
     def key(x):
         if is_TypeVar(x):
@@ -143,15 +157,18 @@ def make_VarTuple(a: type):
     return res
 
 
-def make_Tuple(*a):
+class DummyForEmpty:
+    pass
+
+
+def make_Tuple(*a: TypeLike) -> TypeLike:
+    for _ in a:
+        if isinstance(_, tuple):
+            raise ValueError(a)
     if a in Caches.tuple_caches:
         return Caches.tuple_caches[a]
     if len(a) == 0:
-        x = Tuple[bool]
-        # from .logging import logger
-        # logger.info(f'x : {x.__args__!r}')
-        #
-        x.__args__ = ()
+        x = Tuple[DummyForEmpty]
         setattr(x, TUPLE_EMPTY_ATTR, True)
     elif len(a) == 1:
         x = Tuple[a[0]]
@@ -183,7 +200,7 @@ def _check_valid_arg(x):
         raise ValueError(msg)
 
 
-def is_ForwardRef(x):
+def is_ForwardRef(x: TypeLike):
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -224,9 +241,6 @@ def is_Any(x):
     else:
         # noinspection PyUnresolvedReferences
         return isinstance(x, typing._SpecialForm) and x._name == "Any"
-
-
-from typing import Optional, TypeVar, TYPE_CHECKING
 
 
 class CacheTypeVar:
@@ -465,7 +479,7 @@ def is_placeholder_typevar(x):
     return is_TypeVar(x) and get_TypeVar_name(x) in ["T", "T_co"]
 
 
-def get_Set_arg(x):
+def get_Set_arg(x: Type[Set]) -> TypeLike:
     assert is_Set(x)
     if PYTHON_36:  # pragma: no cover
         # noinspection PyUnresolvedReferences
@@ -478,7 +492,7 @@ def get_Set_arg(x):
     return t
 
 
-def get_List_arg(x):
+def get_List_arg(x: Type[List]) -> TypeLike:
     assert is_List(x), x
     if PYTHON_36:  # pragma: no cover
         if x.__args__ is None:
@@ -490,7 +504,7 @@ def get_List_arg(x):
     return t
 
 
-def is_List_canonical(x):
+def is_List_canonical(x: Type[List]) -> bool:
     assert is_List(x), x
 
     if PYTHON_36:  # pragma: no cover
@@ -503,7 +517,11 @@ def is_List_canonical(x):
     return True
 
 
-def get_Dict_args(T):
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+
+
+def get_Dict_args(T: Type[Dict[_K, _V]]) -> Tuple[Type[_K], Type[_V]]:
     assert is_Dict(T), T
 
     if T is Dict:
@@ -523,7 +541,10 @@ def get_Dict_args(T):
     return K, V
 
 
-def get_Iterator_arg(x):
+_X = TypeVar("_X")
+
+
+def get_Iterator_arg(x: Type[Iterator[_X]]) -> Type[X]:
     assert is_Iterator(x), x
 
     if x.__args__ is None:
@@ -534,7 +555,7 @@ def get_Iterator_arg(x):
     return t
 
 
-def get_Iterable_arg(x):
+def get_Iterable_arg(x: Type[typing.Iterable[_X]]) -> Type[X]:
     assert is_Iterable(x), x
     if x.__args__ is None:
         return Any
@@ -544,7 +565,7 @@ def get_Iterable_arg(x):
     return t
 
 
-def get_Sequence_arg(x):
+def get_Sequence_arg(x: Type[typing.Sequence[_X]]) -> Type[X]:
     assert is_Sequence(x), x
     if x.__args__ is None:
         return Any
@@ -554,7 +575,7 @@ def get_Sequence_arg(x):
     return t
 
 
-def get_Type_arg(x):
+def get_Type_arg(x: TypeLike) -> TypeLike:
     assert is_Type(x)
     if PYTHON_36:  # pragma: no cover
         if x.__args__ is None:
@@ -562,7 +583,7 @@ def get_Type_arg(x):
     return x.__args__[0]
 
 
-def is_Callable(x):
+def is_Callable(x: TypeLike) -> bool:
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -575,16 +596,16 @@ def is_Callable(x):
     # return isinstance(x, typing._GenericAlias) and x.__origin__.__name__ == "Callable"
 
 
-def is_MyNamedArg(x):
+def is_MyNamedArg(x: TypeLike) -> bool:
     return hasattr(x, NAME_ARG)
 
 
-def get_MyNamedArg_name(x):
+def get_MyNamedArg_name(x: TypeLike) -> str:
     assert is_MyNamedArg(x), x
     return getattr(x, NAME_ARG)
 
 
-def is_Dict(x: Any):
+def is_Dict(x: TypeLike) -> bool:
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -598,7 +619,7 @@ def is_Dict(x: Any):
         return isinstance(x, typing._GenericAlias) and x._name == "Dict"
 
 
-def is_Set(x: Any):
+def is_Set(x: TypeLike) -> bool:
     _check_valid_arg(x)
 
     if PYTHON_36:  # pragma: no cover
@@ -611,40 +632,40 @@ def is_Set(x: Any):
         return isinstance(x, typing._GenericAlias) and x._name == "Set"
 
 
-def get_Dict_name(T):
+def get_Dict_name(T: Type[Dict]) -> str:
     assert is_Dict(T), T
     K, V = get_Dict_args(T)
     return get_Dict_name_K_V(K, V)
 
 
-def get_Dict_name_K_V(K, V):
+def get_Dict_name_K_V(K: TypeLike, V: TypeLike) -> str:
     return "Dict[%s,%s]" % (name_for_type_like(K), name_for_type_like(V))
 
 
-def get_Set_name_V(V):
+def get_Set_name_V(V: TypeLike) -> str:
     return "Set[%s]" % (name_for_type_like(V))
 
 
-def get_Union_name(V):
+def get_Union_name(V: TypeLike) -> str:
     return "Union[%s]" % ",".join(name_for_type_like(_) for _ in get_Union_args(V))
 
 
-def get_List_name(V):
+def get_List_name(V: Type[List]) -> str:
     v = get_List_arg(V)
     return "List[%s]" % name_for_type_like(v)
 
 
-def get_Type_name(V):
+def get_Type_name(V: TypeLike) -> str:
     v = get_Type_arg(V)
     return "Type[%s]" % name_for_type_like(v)
 
 
-def get_Iterator_name(V):
+def get_Iterator_name(V: Type[Iterator]) -> str:
     v = get_Iterator_arg(V)
     return "Iterator[%s]" % name_for_type_like(v)
 
 
-def get_Iterable_name(V):
+def get_Iterable_name(V: Type[typing.Iterable[X]]) -> str:
     v = get_Iterable_arg(V)
     return "Iterable[%s]" % name_for_type_like(v)
 
@@ -670,17 +691,21 @@ def get_Set_name(V):
 #     return 'Set[%s]' % name_for_type_like(v)
 
 
-def get_Tuple_name(V):
+def get_Tuple_name(V: Type[Tuple]) -> str:
     return "Tuple[%s]" % ",".join(name_for_type_like(_) for _ in get_tuple_types(V))
 
 
-def get_tuple_types(V):
+def get_tuple_types(V: Type[Tuple]) -> Tuple[TypeLike, ...]:
     if V is tuple:
         return Any, ...
     if PYTHON_36:  # pragma: no cover
+        # noinspection PyUnresolvedReferences
         if V.__args__ is None:
             return Any, ...
+    # noinspection PyUnresolvedReferences
     args = V.__args__  # XXX
+    if args == (DummyForEmpty,):
+        return ()
     if args == ():
         if hasattr(V, TUPLE_EMPTY_ATTR):
             return ()
@@ -690,7 +715,7 @@ def get_tuple_types(V):
         return args
 
 
-def name_for_type_like(x):
+def name_for_type_like(x: TypeLike) -> str:
     from .my_dict import is_DictLike, get_SetLike_name
     from .my_dict import is_SetLike
     from .my_dict import get_DictLike_name
@@ -779,7 +804,7 @@ class CallableInfo:
         self.ordering = ordering
         self.returns = returns
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"CallableInfo({self.parameters_by_name!r}, {self.parameters_by_position!r}, "
             f"{self.ordering}, {self.returns})"
