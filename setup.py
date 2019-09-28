@@ -27,7 +27,6 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            # 'zj = zuper_ipce.zj:zj_main',
             "json2cbor = zuper_ipce:json2cbor_main",
             "cbor2json = zuper_ipce:cbor2json_main",
             "cbor2yaml = zuper_ipce:cbor2yaml_main",

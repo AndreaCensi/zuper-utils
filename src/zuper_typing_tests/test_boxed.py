@@ -14,7 +14,7 @@ from dataclasses import is_dataclass
 from nose.tools import raises, assert_equal
 
 from zuper_typing.constants import BINDINGS_ATT
-from zuper_ipce_tests.test_utils import assert_object_roundtrip
+
 from zuper_typing.recursive_tricks import NoConstructorImplemented
 
 X = TypeVar("X")
@@ -45,7 +45,7 @@ def test_boxed2():
 
     n1 = C(inside=13)
 
-    assert_object_roundtrip(n1, use_globals={"BoxedZ": BoxedZ})
+    # assert_object_roundtrip(n1, use_globals={"BoxedZ": BoxedZ})
 
 
 @raises(TypeError)

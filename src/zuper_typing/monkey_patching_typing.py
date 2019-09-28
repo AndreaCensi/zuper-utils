@@ -331,6 +331,8 @@ def debug_print_compact(x):
 
 
 def debug_print_str(x: str, *, prefix: str):
+    if type(x) is not str:
+        return type(x).__name__ + " - " + debug_print_str(str(x), prefix=prefix)
     if x == "\n":
         return "`\\n`"
     if x.startswith("Qm"):

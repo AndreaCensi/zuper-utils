@@ -1,5 +1,6 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, Callable
 
+from mypy_extensions import NamedArg
 from nose.tools import assert_equal
 
 from zuper_ipce.pretty import pprint
@@ -171,6 +172,24 @@ def test_another():
         parent: "Optional[Entity4[Any]]" = None
 
     assert_type_roundtrip(Entity4)
+
+
+def test_callable_1():
+    T = Callable[[], int]
+
+    assert_type_roundtrip(T)
+
+
+def test_callable_2():
+    T = Callable[[NamedArg(int, "A")], int]
+
+    assert_type_roundtrip(T)
+
+
+def test_callable_3():
+    T = Callable[[int], int]
+
+    assert_type_roundtrip(T)
 
 
 if __name__ == "__main__":

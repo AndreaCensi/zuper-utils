@@ -10,3 +10,8 @@ dist
 .mypy_cache
 test_objects
 test_objects
+test-results/
+errors
+evaluator.log
+.coverage.dorothy.98795.443718
+trace-cover
